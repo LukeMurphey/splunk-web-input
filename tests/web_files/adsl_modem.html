@@ -1,0 +1,278 @@
+
+<!-- saved from url=(0033)http://192.168.1.1/statsadsl.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+      <meta http-equiv="Pragma" content="no-cache">
+      <meta http-equiv="refresh" content="15">
+      <link rel="stylesheet" href="./statsadsl_files/stylemain.css" type="text/css">
+         <link rel="stylesheet" href="./statsadsl_files/colors.css" type="text/css">
+            <script language="javascript">
+<!-- hide
+
+function frmLoad() {
+   var update = '';
+   var errMsg = '&nbsp';
+   
+   if ( errMsg != '&nbsp' )
+      eval('location="statsadslerr.html"');
+}
+
+function btnBerTest() {
+   var options;
+
+   options = 'menubar=no,resizable=no,scrollbars=yes,titlebar=yes,toolbar=no,width=400,height=300';
+
+   window.open('berstart.tst?berState=0', 'BCM963xxBerTest', options);
+}
+
+function btnReset() {
+   var loc = 'statsadslreset.html';
+
+   var code = 'location="' + loc + '"';
+   eval(code);
+}
+
+function btnClose() {
+   window.close();
+}
+
+// done hiding -->
+      </script>
+   </head>
+   <body onload="frmLoad()">
+      <blockquote>
+         <form>
+            <b>Statistics -- ADSL</b><br><br>
+            <table border="1" cellpadding="0" cellspacing="0">
+               <tbody><tr>
+                  <td colspan="2" class="hd">Mode:</td>
+                  <td>G.DMT&nbsp;</td>
+               </tr>
+                  <script language="javascript">
+<!-- hide 
+{
+  // var mode = 'G.DMT';
+   var new_mode = '1';
+/*
+   if (!(mode != '&nbsp' && (mode == 'ADSL2' || mode == 'ADSL2+'))) {//add xman 2007-10-16
+      document.writeln("<tr><td colspan='2' class='hd'>Type:</td>\n");
+      document.writeln("<td>Fast&nbsp;</td>");
+   }
+   */
+   if (new_mode == '1') {
+      document.writeln("<tr><td colspan='2' class='hd'>Type:</td>\n");
+      document.writeln("<td>Fast&nbsp;</td>");
+   } 
+   if (new_mode > '1') {
+      document.writeln("<tr><td colspan='2' class='hd'>Type:</td>\n");
+      document.writeln("<td>Interleave&nbsp;</td>");
+   }    
+}
+// done hiding -->
+</script><tr><td colspan="2" class="hd">Type:</td>
+
+<td>Fast&nbsp;</td>
+
+               </tr>
+               <tr>
+                  <td colspan="2" class="hd">Line Coding:</td>
+                  <td>Trellis On&nbsp;</td>
+               </tr>
+               <tr>
+                  <td colspan="2" class="hd">Status:</td>
+                  <td>No Defect&nbsp;</td>
+               </tr>
+               <tr>
+                  <td colspan="2" class="hd">Link Power State:</td>
+                  <td>L0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td colspan="3">&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">&nbsp;</td>
+                  <td class="hd">Downstream</td>
+                  <td class="hd">Upstream</td>
+               </tr>
+               <tr>
+                  <td class="hd">SNR Margin (dB):</td>
+                  <td>17.1&nbsp;</td>
+                  <td>21.0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Attenuation (dB):</td>
+                  <td>45.0&nbsp;</td>
+                  <td>24.5&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Output Power (dBm):</td>
+                  <td>13.4&nbsp;</td>
+                  <td>6.7&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd"><nobreak>Attainable Rate (Kbps):</nobreak></td>
+                  <td>5600&nbsp;</td>
+                  <td>1224&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Rate (Kbps):</td>
+                  <td>3008&nbsp;</td>
+                  <td>512&nbsp;</td>
+               </tr>
+               <script language="javascript">
+<!-- hide -->
+{
+   var mode = 'G.DMT';
+   
+   if (mode != '&nbsp' && (mode == 'ADSL2' || mode == 'ADSL2+' )) {//add xman 2007-10-17
+      document.writeln("<tr><td class='hd'><nobreak>MSGc (number of bytes in overhead channel message):</nobreak></td>");
+      document.writeln("<td>1&nbsp;</td>");
+      document.writeln("<td>1&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>B (number of bytes in Mux Data Frame):</nobreak></td>");
+      document.writeln("<td>95&nbsp;</td>");
+      document.writeln("<td>17&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>M (number of Mux Data Frames in FEC Data Frame):</nobreak></td>");
+      document.writeln("<td>1&nbsp;</td>");
+      document.writeln("<td>1&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>T (Mux Data Frames over sync bytes):</nobreak></td>");
+      document.writeln("<td>1&nbsp;</td>");
+      document.writeln("<td>1&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>R (number of check bytes in FEC Data Frame):</nobreak></td>");
+      document.writeln("<td>0&nbsp;</td>");
+      document.writeln("<td>0&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>S (ratio of FEC over PMD Data Frame length):</nobreak></td>");
+      document.writeln("<td>1.0000&nbsp;</td>");
+      document.writeln("<td>1.0000&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>L (number of bits in PMD Data Frame):</nobreak></td>");
+      document.writeln("<td>768&nbsp;</td>");
+      document.writeln("<td>144&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>D (interleaver depth):</nobreak></td>");
+      document.writeln("<td>1&nbsp;</td>");
+      document.writeln("<td>1&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>Delay (msec):</nobreak></td>");
+      document.writeln("<td>0&nbsp;</td>");
+      document.writeln("<td>0&nbsp;</td></tr>");
+      
+   }
+   else if (mode != '&nbsp') {
+      document.writeln("<tr><td class='hd'><nobreak>K (number of bytes in DMT frame):</nobreak></td>");
+      document.writeln("<td>95&nbsp;</td>");
+      document.writeln("<td>17&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>R (number of check bytes in RS code word):</nobreak></td>");
+      document.writeln("<td>0&nbsp;</td>");
+      document.writeln("<td>0&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>S (RS code word size in DMT frame):</nobreak></td>");
+      document.writeln("<td>1&nbsp;</td>");
+      document.writeln("<td>1&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>D (interleaver depth):</nobreak></td>");
+      document.writeln("<td>1&nbsp;</td>");
+      document.writeln("<td>1&nbsp;</td></tr>");
+      document.writeln("<tr><td class='hd'><nobreak>Delay (msec):</nobreak></td>");
+      document.writeln("<td>0&nbsp;</td>");
+      document.writeln("<td>0&nbsp;</td></tr>");
+   }  
+}
+<!-- // done hiding -->
+</script><tr><td class="hd"><nobreak>K (number of bytes in DMT frame):</nobreak></td>
+<td>95&nbsp;</td>
+<td>17&nbsp;</td></tr>
+<tr><td class="hd"><nobreak>R (number of check bytes in RS code word):</nobreak></td>
+<td>0&nbsp;</td>
+<td>0&nbsp;</td></tr>
+<tr><td class="hd"><nobreak>S (RS code word size in DMT frame):</nobreak></td>
+<td>1&nbsp;</td>
+<td>1&nbsp;</td></tr>
+<tr><td class="hd"><nobreak>D (interleaver depth):</nobreak></td>
+<td>1&nbsp;</td>
+<td>1&nbsp;</td></tr>
+<tr><td class="hd"><nobreak>Delay (msec):</nobreak></td>
+<td>0&nbsp;</td>
+<td>0&nbsp;</td></tr>
+
+               <tr>
+                  <td colspan="3">&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Super Frames:</td>
+                  <td>948188&nbsp;</td>
+                  <td>948210&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Super Frame Errors:</td>
+                  <td>10&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">RS Words:</td>
+                  <td>0&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">RS Correctable Errors:</td>
+                  <td>0&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">RS Uncorrectable Errors:</td>
+                  <td>0&nbsp;</td>
+                  <td>N/A&nbsp;</td>
+               </tr>
+               <tr>
+                  <td colspan="3">&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">HEC Errors:</td>
+                  <td>1&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">OCD Errors:</td>
+                  <td>0&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">LCD Errors:</td>
+                  <td>0&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Total Cells:</td>
+                  <td>114355274&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Data Cells:</td>
+                  <td>1492604&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Bit Errors:</td>
+                  <td>0&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td colspan="3">&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Total ES:</td>
+                  <td>10&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Total SES:</td>
+                  <td>0&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+               <tr>
+                  <td class="hd">Total UAS:</td>
+                  <td>13&nbsp;</td>
+                  <td>0&nbsp;</td>
+               </tr>
+            </tbody></table>
+            <br><br>
+            <input type="button" onclick="btnBerTest()" value="ADSL BER Test">
+            <input type="button" onclick="btnReset()" value="Reset Statistics">
+         </form>
+      </blockquote>
+   
+
+</body></html>

@@ -5,12 +5,15 @@ import time
 import shutil
 import re
 import tempfile
+import threading
 from StringIO import StringIO
 
 sys.path.append( os.path.join("..", "src", "bin") )
 
 from web_input import URLField, DurationField, SelectorField, WebInput
 from modular_input import Field, FieldValidationException
+
+from test_web_server import get_server
 
 class TestURLField(unittest.TestCase):
     
@@ -48,6 +51,22 @@ class TestDurationField(unittest.TestCase):
         self.assertRaises( FieldValidationException, lambda: duration_field.to_python("minute") )   
     
 class TestWebInput(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        
+        cls.httpd = get_server(8888)
+        
+        def start_server(httpd):
+            httpd.serve_forever()
+        
+        t = threading.Thread(target=start_server, args = (cls.httpd,))
+        t.daemon = True
+        t.start()
+        
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
     
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp( prefix="TestWebInput" )
@@ -98,7 +117,18 @@ class TestWebInput(unittest.TestCase):
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
         result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/"), selector_field.to_python(".hero-unit.main_background") )
         self.assertEqual(result['response_code'], 200)
-        self.assertEqual(len(result['matches']), 1)
+        self.assertEqual(len(result['match']), 1)
+        
+    def test_scrape_page_child_text(self):
+        # This text ensure that text from nodes under the selected nodes is properly extracted
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/"), selector_field.to_python(".hero-unit.main_background") )
+        self.assertEqual(result['response_code'], 200)
+        self.assertEqual(len(result['match']), 1)
+        self.assertEqual(result['match'][0], "Ancient Greek, Modern Design TextCritical.net is a website that provides a library of ancient Greek works")
         
     def test_scrape_page_mv(self):
         web_input = WebInput(timeout=3)
@@ -107,12 +137,13 @@ class TestWebInput(unittest.TestCase):
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
         result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/"), selector_field.to_python("h2") )
         self.assertEqual(result['response_code'], 200)
-        self.assertEqual(len(result['matches']), 3)
+        self.assertEqual(len(result['match']), 3)
         
         out = StringIO()
         web_input.output_event(result, stanza="web_input://textcritical_net", index="main", source="test_web_input", sourcetype="sourcetype", out=out)
+        self.assertEquals( len(re.findall("match=", out.getvalue())), 3)
+        
         print out.getvalue()
-        self.assertEquals( len(re.findall("matches=", out.getvalue())), 3)
         
     def test_scrape_unavailable_page(self):
         web_input = WebInput(timeout=3)
@@ -122,6 +153,26 @@ class TestWebInput(unittest.TestCase):
         result = WebInput.scrape_page( url_field.to_python("http://192.168.30.23/"), selector_field.to_python(".hero-unit.main_background"), timeout=3 )
         
         self.assertEqual(result['timed_out'], True)
+        
+    def test_scrape_page_with_credentials(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888"), selector_field.to_python("tr"), username="admin", password="changeme", timeout=3 )
+        
+        #print result['match']
+        self.assertEqual(len(result['match']), 30)
+        
+    def test_scrape_page_with_invalid_credentials(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888"), selector_field.to_python("tr"), timeout=3 )
+        
+        #print result['match']
+        self.assertEqual(len(result['match']), 0)
     
     def test_unparsable(self):
         web_input = WebInput(timeout=3)
@@ -129,8 +180,7 @@ class TestWebInput(unittest.TestCase):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
         result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/media/images/link_external.png"), selector_field.to_python(".hero-unit .main_background"), timeout=3 )
-        self.assertEqual(result['matches'], [])
-        
+        self.assertEqual(result['match'], [])
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()

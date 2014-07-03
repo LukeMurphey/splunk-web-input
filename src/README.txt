@@ -2,7 +2,7 @@
 Overview
 ================================================
 
-This app provides a mechanism for pulling information from web applications.
+This app provides a mechanism for pulling information from websites.
 
 
 

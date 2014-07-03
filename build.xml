@@ -10,7 +10,7 @@
     <!-- Set up some basic parameters -->
     <property name="value.src.directory" value="src" />
     <property name="value.temp.directory" value="${java.io.tmpdir}/${user.name}/${ant.project.name}" />
-    <property name="value.build.appname" value="splunk-web-input" />
+    <property name="value.build.appname" value="website_input" />
     
     <!-- Set up the ant classpath -->
     <path id="ant.classpath">
