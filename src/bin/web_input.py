@@ -384,7 +384,7 @@ class WebInput(ModularInput):
                     if output_matches_as_mv:
                         result['match'].append(match_text)
                     else:
-                        result['match_' + str(fields_included)].append(match_text)
+                        result['match_' + str(fields_included)] = match_text
         
         # Handle time outs    
         except socket.timeout:
