@@ -7,7 +7,7 @@
 	</breadcrumb>
 	
 	<elements>
-		<element name="allFields" type="fieldset">
+		<element name="inputFields" type="fieldset">
 	      <view name="list"/>
 	      <view name="edit"/>
 	      <view name="create"/>
@@ -42,6 +42,16 @@
 	          <key name="exampleText">A <![CDATA[<a target="_blank" href="http://www.w3schools.com/cssref/css_selectors.asp">]]>CSS selector<![CDATA[</a>]]> that will match the data you want to retrieve</key>
 	        </element>
 	        
+	      </elements>
+	  	</element>
+	  	
+		<element name="authFields" type="fieldset">
+		  <key name="legend">Authentication</key>
+	      <view name="list"/>
+	      <view name="edit"/>
+	      <view name="create"/>
+	      <elements>
+	      
 	        <element name="username" type="textfield" label="Username">
 	          <view name="edit"/>
 	          <view name="create"/>
