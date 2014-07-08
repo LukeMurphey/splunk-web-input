@@ -306,7 +306,7 @@ class WebInput(ModularInput):
         return text.strip()
        
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, output_matches_as_mv=False):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, output_matches_as_mv=True, output_matches_as_separate_fields=False):
         """
         Retrieve data from a website.
         
@@ -316,7 +316,7 @@ class WebInput(ModularInput):
         username -- The username to use for authentication
         password -- The username to use for authentication
         timeout -- The amount of time to quit waiting on a connection.
-        output_matches_as_mv -- Output all of the matches with the same name ("matches")
+        output_matches_as_mv -- Output all of the matches with the same name ("match")
         """
         
         logger.debug('Running web input, url="%s"', url.geturl())
@@ -383,7 +383,8 @@ class WebInput(ModularInput):
                     # Save the match
                     if output_matches_as_mv:
                         result['match'].append(match_text)
-                    else:
+                    
+                    if output_matches_as_separate_fields:
                         result['match_' + str(fields_included)] = match_text
         
         # Handle time outs    
@@ -448,17 +449,22 @@ class WebInput(ModularInput):
             """
             
             # Get the information from the page
+            result = None
+            
             try:
                 result = WebInput.scrape_page(url, selector, username, password, timeout)
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", len(result['match']), stanza, url.geturl())
             except Exception:
                 logger.exception("An exception occurred when attempting to retrieve information from the web-page") 
             
-            # Send the event
-            self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, unbroken=True, close=True)
+            # Process the result (f we got one)
+            if result is not None:
+                
+                # Send the event
+                self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, unbroken=True, close=True)
             
-            # Save the checkpoint so that we remember when we last 
-            self.save_checkpoint(input_config.checkpoint_dir, stanza, int(time.time()) )
+                # Save the checkpoint so that we remember when we last 
+                self.save_checkpoint(input_config.checkpoint_dir, stanza, int(time.time()) )
         
             
 if __name__ == '__main__':
