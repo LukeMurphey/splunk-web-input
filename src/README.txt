@@ -10,7 +10,7 @@ This app provides a mechanism for pulling information from websites.
 Warning
 ================================================
 
-Some websites disallow web-scarping in the terms of use. Make sure to check the terms of use or get permission if you do not own the website that you are obtaining information from.
+Some websites disallow web-scraping in the terms of use. Make sure to check the terms of use or get permission if you do not own the website that you are obtaining information from.
 
 
 ================================================
