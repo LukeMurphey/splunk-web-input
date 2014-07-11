@@ -453,7 +453,13 @@ class WebInput(ModularInput):
             
             try:
                 result = WebInput.scrape_page(url, selector, username, password, timeout)
-                logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", len(result['match']), stanza, url.geturl())
+                
+                matches = 0
+                
+                if 'match' in result:
+                    matches = len(result['match'])
+                
+                logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
             except Exception:
                 logger.exception("An exception occurred when attempting to retrieve information from the web-page") 
             

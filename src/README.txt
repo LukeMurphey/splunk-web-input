@@ -47,4 +47,6 @@ Change History
 | 0.6     | Switched to multi-value output of matches and added transform for parsing match field                            |
 |         | Fixed exception that could happen if the web-page was not available                                              |
 |         | Put authentication fields on a separate location on the manager page                                             |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 0.7     | Fixed crash that would occur if the connection timed-out                                                         |
 +---------+------------------------------------------------------------------------------------------------------------------+
