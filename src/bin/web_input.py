@@ -12,6 +12,7 @@ import sys
 import time
 import os
 import splunk
+import chardet
 import re
 
 import httplib2
@@ -306,7 +307,7 @@ class WebInput(ModularInput):
         return text.strip()
        
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, output_matches_as_mv=True, output_matches_as_separate_fields=False):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
         """
         Retrieve data from a website.
         
@@ -317,6 +318,8 @@ class WebInput(ModularInput):
         password -- The username to use for authentication
         timeout -- The amount of time to quit waiting on a connection.
         output_matches_as_mv -- Output all of the matches with the same name ("match")
+        output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
+        
         """
         
         logger.debug('Running web input, url="%s"', url.geturl())
@@ -356,6 +359,42 @@ class WebInput(ModularInput):
             result['response_code'] = response.status    
             result['request_time'] = timer.msecs
             
+            # Determine the encoding
+            encoding = None
+
+            # Try getting the encoding from the "meta" attribute
+            if charset_detect_meta_enabled:
+                find_meta_charset = re.compile("<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE) #http://stackoverflow.com/questions/3458217/how-to-use-regular-expression-to-match-the-charset-string-in-html
+                matched_encoding = find_meta_charset.search(content)
+                    
+                if matched_encoding:
+                    encoding = matched_encoding.groups()[0]
+                
+            # Try getting the encoding from the content-type header
+            if encoding is None and charset_detect_content_type_header_enabled:
+                
+                if 'content-type' in response:
+                    find_header_charset = re.compile("charset=(.*)",re.IGNORECASE)
+                    matched_encoding = find_header_charset.search(response['content-type'])
+                    
+                    if matched_encoding:
+                        encoding = matched_encoding.groups()[0]
+                
+            # Try sniffing the encoding
+            if encoding is None and charset_detect_sniff_enabled:
+                encoding_detection = chardet.detect(content)
+                encoding = encoding_detection['encoding']
+                
+            # If all else fails, default to "Windows-1252"
+            if encoding is None:
+                encoding = "cp1252"
+            
+            # Store the encoding in the result
+            result['encoding'] = encoding
+            
+            # Decode the content
+            content = content.decode(encoding=encoding, errors='replace')
+                
             # Parse the HTML
             tree = lxml.html.fromstring(content)
             

@@ -1,3 +1,4 @@
+# coding=utf-8
 import unittest
 import sys
 import os
@@ -6,6 +7,7 @@ import shutil
 import re
 import tempfile
 import threading
+import unicodedata
 from StringIO import StringIO
 
 sys.path.append( os.path.join("..", "src", "bin") )
@@ -74,7 +76,10 @@ class TestWebInput(unittest.TestCase):
         
     def tearDown(self):
         shutil.rmtree( self.tmp_dir )
-        
+    
+    def get_test_dir(self):
+        return os.path.dirname(os.path.abspath(__file__))
+    
     def test_get_file_path(self):
         self.assertEquals( WebInput.get_file_path( "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com"), "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input/2c70b6c76574eb4d825bfb194a460558.json")
         
@@ -92,10 +97,7 @@ class TestWebInput(unittest.TestCase):
     def test_is_expired(self):
         self.assertFalse( WebInput.is_expired(time.time(), 30) )
         self.assertTrue( WebInput.is_expired(time.time() - 31, 30) )
-        
-    def get_test_dir(self):
-        return os.path.dirname(os.path.abspath(__file__))
-        
+    
     def test_needs_another_run(self):
         
         # Test case where file does not exist
@@ -143,8 +145,6 @@ class TestWebInput(unittest.TestCase):
         web_input.output_event(result, stanza="web_input://textcritical_net", index="main", source="test_web_input", sourcetype="sourcetype", out=out)
         self.assertEquals( len(re.findall("match=", out.getvalue())), 3)
         
-        print out.getvalue()
-        
     def test_scrape_unavailable_page(self):
         web_input = WebInput(timeout=3)
         
@@ -181,6 +181,46 @@ class TestWebInput(unittest.TestCase):
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
         result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/media/images/link_external.png"), selector_field.to_python(".hero-unit .main_background"), timeout=3, output_matches_as_mv=True )
         self.assertEqual(result['match'], [])
+        
+    def test_scrape_encoding_detect_page(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container") )
+        self.assertEqual(result['response_code'], 200)
+        self.assertEqual(len(result['match']), 45)
+        self.assertEqual(result['encoding'], "utf-8")
+        self.assertEqual(unicodedata.normalize('NFC', result['match'][1]), unicodedata.normalize('NFC', u"2 Καθὼς γέγραπται ἐν τῷ Ἠσαίᾳ τῷ προφήτῃ Ἰδοὺ ἀποστέλλω τὸν ἄγγελόν μου πρὸ προσώπου σου ὃς κατασκευάσει τὴν ὁδόν σου"))
+        
+    def test_scrape_encoding_detect_sniff(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"), charset_detect_meta_enabled=False, charset_detect_content_type_header_enabled=False, charset_detect_sniff_enabled=True )
+        self.assertEqual(result['response_code'], 200)
+        self.assertEqual(len(result['match']), 45)
+        self.assertEqual(result['encoding'], "utf-8")
+        
+    def test_scrape_encoding_detect_meta(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2"), selector_field.to_python(".verse-container"), charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=False, charset_detect_sniff_enabled=False )
+        self.assertEqual(result['response_code'], 200)
+        self.assertEqual(result['encoding'], "utf-8")
+    
+    def test_scrape_encoding_detect_content_type_header(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"), charset_detect_meta_enabled=False, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=False )
+        self.assertEqual(result['response_code'], 200)
+        self.assertEqual(len(result['match']), 45)
+        self.assertEqual(result['encoding'], "utf-8")
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()
