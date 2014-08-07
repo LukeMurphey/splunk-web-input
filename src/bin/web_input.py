@@ -294,6 +294,12 @@ class WebInput(ModularInput):
        
     @classmethod
     def get_text(cls, element):
+        """
+        Get the accumulated text from the child nodes.
+        
+        Arguments:
+        element -- The element to get the text from
+        """
         
         if element.text is not None:
             text = element.text.strip()
@@ -304,14 +310,21 @@ class WebInput(ModularInput):
         for child_element in element:
             text = text + " " + WebInput.get_text(child_element)
             
+            # Get the tail text
+            if child_element.tail:
+                tail_text = child_element.tail.strip()
+                
+                if len(tail_text) > 0:
+                    text = text + " " + tail_text
+            
         return text.strip()
        
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False):
         """
         Retrieve data from a website.
         
-        Argument:
+        Arguments:
         url -- The url to connect to. This object ought to be an instance derived from using urlparse.
         selector -- A CSS selector that matches the data to retrieve.
         username -- The username to use for authentication
@@ -319,7 +332,7 @@ class WebInput(ModularInput):
         timeout -- The amount of time to quit waiting on a connection.
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
-        
+        include_empty_matches -- Output matches that result in empty strings
         """
         
         logger.debug('Running web input, url="%s"', url.geturl())
@@ -408,13 +421,16 @@ class WebInput(ModularInput):
             # We are going to count how many fields we made
             fields_included = 0
             
+            # Store the raw match count (the nodes that the CSS matches)
+            result['raw_match_count'] = len(matches)
+            
             for match in matches:
                 
                 # Unescape the text in case it includes HTML entities
                 match_text = cls.unescape(WebInput.get_text(match))
                 
                 # Don't include the field if it is empty
-                if len(match_text) > 0:
+                if include_empty_matches or len(match_text) > 0:
                     
                     # Keep a count of how many fields we matched
                     fields_included = fields_included + 1

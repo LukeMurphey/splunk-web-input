@@ -130,6 +130,7 @@ class TestWebInput(unittest.TestCase):
         result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/"), selector_field.to_python(".hero-unit.main_background"), output_matches_as_mv=True )
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 1)
+        
         self.assertEqual(result['match'][0], "Ancient Greek, Modern Design TextCritical.net is a website that provides a library of ancient Greek works")
         
     def test_scrape_page_mv(self):
@@ -191,7 +192,8 @@ class TestWebInput(unittest.TestCase):
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 45)
         self.assertEqual(result['encoding'], "utf-8")
-        self.assertEqual(unicodedata.normalize('NFC', result['match'][1]), unicodedata.normalize('NFC', u"2 Καθὼς γέγραπται ἐν τῷ Ἠσαίᾳ τῷ προφήτῃ Ἰδοὺ ἀποστέλλω τὸν ἄγγελόν μου πρὸ προσώπου σου ὃς κατασκευάσει τὴν ὁδόν σου"))
+        #print result['match']
+        self.assertEqual(unicodedata.normalize('NFC', result['match'][1]), unicodedata.normalize('NFC', u"2 Καθὼς γέγραπται ἐν τῷ Ἠσαίᾳ τῷ προφήτῃ Ἰδοὺ ἀποστέλλω τὸν ἄγγελόν μου πρὸ προσώπου σου , ὃς κατασκευάσει τὴν ὁδόν σου :"))
         
     def test_scrape_encoding_detect_sniff(self):
         web_input = WebInput(timeout=3)
@@ -221,6 +223,18 @@ class TestWebInput(unittest.TestCase):
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 45)
         self.assertEqual(result['encoding'], "utf-8")
+    
+    def test_scrape_page_adjacent_selector(self):
+        # For bug: http://lukemurphey.net/issues/773
+        
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://apps.splunk.com/app/981/"), selector_field.to_python(".app-title,#app-rate-text + li"), timeout=3, output_matches_as_mv=True )
+        
+        self.assertEqual(len(result['match']), 2)
+
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()
