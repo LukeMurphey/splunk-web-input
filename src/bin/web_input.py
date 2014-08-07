@@ -17,7 +17,8 @@ import re
 
 import httplib2
 import lxml.html
-from lxml.cssselect import CSSSelector
+
+from cssselector import CSSSelector
 
 def setup_logger():
     """
