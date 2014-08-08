@@ -51,4 +51,8 @@ Change History
 | 0.7     | Fixed crash that would occur if the connection timed-out                                                         |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 0.8     | Fixed issue where content did not get encoded correctly                                                          |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 0.9     | Fixed issue where not all matches were returned                                                                  |
+|         | Added preview dialog to modular input page                                                                       |
+|         | Added raw_match_count to output which counts CSS matches, even they included no text                             |
 +---------+------------------------------------------------------------------------------------------------------------------+
