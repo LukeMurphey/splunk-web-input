@@ -1,0 +1,297 @@
+<%page args="element" />
+<div class="web_input_preview_panel" style="display:none">
+	Results
+	<table></table>
+</div>
+<style>
+#web_input_preview_dialog_content{
+	padding: 16px;
+	min-height: 150px;
+	min-width: 400px;
+}
+
+#web_input_preview_dialog_content td{
+	padding: 3px;
+}
+
+#web_input_preview_dialog_content [class*='response_code_2']{
+	font-weight: bold;
+	color: #00A009;
+}
+
+#web_input_preview_dialog_content [class*='response_code_3']{
+	font-weight: bold;
+	color: #DBA635;
+}
+
+#web_input_preview_dialog_content [class*='response_code_4']{
+	font-weight: bold;
+	color: #C42323;
+}
+
+#web_input_preview_dialog_content [class*='response_code_1']{
+	font-weight: bold;
+	color: #DBA635;
+}
+
+#web_input_preview_dialog_content [class*='response_code_5']{
+	font-weight: bold;
+	color: #C42323;
+}
+
+#web_input_preview_dialog_content table.matches{
+	width: 95%;
+}
+
+#web_input_preview_dialog_content table.matches tbody tr:nth-of-type(2n)
+{
+	background:#EEE;
+}
+
+#web_input_preview_dialog_content .table_scroll{
+	max-height: 200px;
+	overflow-y: scroll;
+	border: 1px solid #888;
+}
+
+#web_input_preview_dialog_content div.matches{
+	margin-top: 16px;
+	font-weight: bold;
+}
+
+#web_input_preview_dialog_content .validation_errors{
+	color: #C42323;
+	font-weight: bold;
+}
+
+#web_input_preview_dialog_content ul{
+	margin-left: 24px;
+}
+
+#web_input_preview_dialog_content .error_message{
+	color: #C42323;
+	font-weight: bold;
+}
+</style>
+
+<label><div></div></label>
+<div>
+	<a id="preview_web_input_results" href="#">Preview results</a>
+</div>
+<script type="text/javascript">
+
+	var entityMap = {
+	    "&": "&amp;",
+	    "<": "&lt;",
+	    ">": "&gt;",
+	    '"': '&quot;',
+	    "'": '&#39;',
+	    "/": '&#x2F;'
+	};
+
+	function escapeHtml(string) {
+	    return String(string).replace(/[&<>"'\/]/g, function (s) {
+	      return entityMap[s];
+	    });
+	}
+	
+	function round(n){
+		return Math.round(n*10)/10.0;
+	}
+	
+	function getHumanReadableResponseTime(rtime) {
+		
+		if( rtime > (60 * 1000) ){
+	    	return String(round(rtime/60.0 * 1000)) + " minutes";
+	    }
+	    else if( rtime > (1000) ){
+	    	return String(round(rtime/60.0)) + " seconds";
+	    }
+	    else{
+	    	return String(round(rtime)) + " ms";
+	    }
+	}
+	
+	function getHumanReadableBytes(bytes) {
+	    if( bytes > (1024 * 1024) ){
+	    	return String(round(bytes/(1024* 1024.0))) + " MB";
+	    }
+	    else if( bytes > 1024 ){
+	    	return String(round(bytes/1024.0)) + " KB";
+	    }
+	    else{
+	    	return String(bytes) + " bytes";
+	    }
+	}
+
+	function validateInput(){
+		
+		var url = $('#url_id').val();
+		var selector= $('#selector_id').val();
+		var problems = 0;
+		
+		var html = '<div class="validation_errors">Configuration is invalid:</div><ul>';
+		
+		if( url.length === 0 ){
+			html += '<li>URL is empty</li>';
+			problems++;
+		}
+		else if( !checkURL(url)){
+			html += '<li>URL is invalid</li>';
+			problems++;
+		}
+		
+		if( selector.length === 0 ){
+			html += '<li>Selector is empty</li>';
+			problems++;
+		}
+		
+		html += '</ul>';
+		
+		if( problems === 0 ){
+			return true;
+		}
+		else{
+			$("#web_input_preview_dialog_content").html(html);
+			return false;
+		}
+		
+	}
+	
+	function renderResult(result){
+		
+		var html = "";
+		
+		html += '<table>';
+		
+		if(result.hasOwnProperty("response_code")){
+			html += '<tr><td>Response Code:</td><td class="response_code_' + String(result.response_code) + '">' + result.response_code + '</td></tr>';
+		}
+		
+		if(result.hasOwnProperty("request_time")){
+			html += '<tr><td>Response Time:</td><td>' + getHumanReadableResponseTime(result.request_time) + '</td></tr>';
+		}
+		
+		if(result.hasOwnProperty("response_size")){
+			html += '<tr><td>Response Size:</td><td>' + getHumanReadableBytes(result.response_size) + '</td></tr>';
+		}
+		
+		if(result.hasOwnProperty("encoding")){
+			html += '<tr><td>Encoding:</td><td>' + result.encoding + '</td></tr>';
+		}
+		
+		/*
+		if(result.hasOwnProperty("match")){
+			html += '<tr><td>Matches:</td><td>' + String(result.match.length) + '</td></tr>';
+		}
+		
+		
+		if(result.hasOwnProperty("raw_match_count")){
+			html += '<tr><td>Raw Matches:</td><td>' + String(result.raw_match_count) + '</td></tr>';
+		}
+		*/
+		
+		html += '</table>';
+		
+		if(result.hasOwnProperty("match")){
+			
+			if( result.match.length == 0 ){
+				html += '<div class="matches">No matches found</div>';
+			}
+			else{
+				
+				html += '<div class="matches">Matches ('  + String(result.match.length) + ' total): </div><div class="table_scroll"><table class="matches"><tbody>';
+				
+				var max_matches = 100;
+				
+				for(var c = 0; c < result.match.length && c < max_matches; c++){
+					html += '<tr><td>' + String(c+1) + '</td>';
+					html += '<td>' + escapeHtml(shortenString(result.match[c])) + '</td></tr>';
+				}
+				
+				html += '</tbody></table></div>';
+			}
+		}
+		
+		return html;
+		
+	}
+
+	function checkURL(value) {
+	    var urlregex = new RegExp("^(http|https|ftp)\://([a-zA-Z0-9\.\-]+(\:[a-zA-Z0-9\.&amp;%\$\-]+)*@)*((25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])|([a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(\:[0-9]+)*(/($|[a-zA-Z0-9\.\,\?\'\\\+&amp;%\$#\=~_\-]+))*$");
+	    if (urlregex.test(value)) {
+	        return true;
+	    }
+	    return false;
+	}
+	
+	function shortenString(s){
+		var max_length = 80;
+		
+		if(s.length > max_length){
+			return s.substr(0, max_length-1) + "..."
+		}
+		else{
+			return s;
+		}
+	}
+	
+	function doPreview(){
+		
+		if( !validateInput() ){
+			return;
+		}
+		
+		var data = {};
+		data.url = $('#url_id').val();
+		data.selector= $('#selector_id').val();
+		
+		// Get the authentication
+		if( $('#username_id').val().length > 0 && $('#password_id').val().length > 0 ){
+			data.username = $('#username_id').val();
+			data.password = $('#password_id').val();
+		}
+		
+		//data.include_empty_matches = true;
+		
+		$.ajax(
+				{
+					url:  Splunk.util.make_url('/custom/website_input/web_input_controller/scrape_page'),
+					type: 'POST',
+					data: data,
+					success: function(result, textStatus, jqXHR){
+						if( result.hasOwnProperty("success") && result.success == false ){
+							$("#web_input_preview_dialog_content").html('<span class="error_message">Preview could not be performed:</span><div>' + result.messages[0].message + "</div>");
+							return;
+						}
+						
+						$("#web_input_preview_dialog_content").html(renderResult(result));
+					},
+					error: function(jqXHR,textStatus,errorThrown) {
+						$("#web_input_preview_dialog_content").html("Preview could not be completed");
+					}
+				});
+		
+		
+	}
+	
+	$(document).ready(
+			function(){
+				var uri = Splunk.util.make_url('/custom/website_input/web_input_controller/scrape_page?url=http://lukemurphey.net&selector=.email');
+				
+				$('#preview_web_input_results').click(
+						function() {
+							_mypopup = new  Splunk.Popup('<div id="web_input_preview_dialog_content">Loading preview...</div>',
+								    {
+								            title : "Preview Results",
+								            pclass : "web_input_preview_dialog",
+								            cloneFlag : false
+								    });
+							
+							//$("#web_input_preview_dialog_content").html(renderResult({response_code: 200, request_size: 14414, match: ["lukemurphey.net"]}));
+							doPreview();
+						}
+				);
+			}
+	);
+</script>

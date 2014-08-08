@@ -42,6 +42,11 @@
 	          <key name="exampleText">A <![CDATA[<a target="_blank" href="http://www.w3schools.com/cssref/css_selectors.asp">]]>CSS selector<![CDATA[</a>]]> that will match the data you want to retrieve</key>
 	        </element>
 	        
+		  	<element name="web_input_preview_dialog" type="web_input_preview_dialog">
+		  	    <view name="create"/>
+	            <view name="edit"/>
+		  	</element>
+		  	
 	      </elements>
 	  	</element>
 	  	
