@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import cherrypy
+import traceback
 
 from splunk.appserver.mrsparkle.lib import jsonresponse
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
@@ -16,8 +17,8 @@ import splunk.entity as entity
 sys.path.append( os.path.join("..", "..", "..", "bin") )
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
-from web_input import URLField, DurationField, SelectorField, WebInput
-from modular_input import Field, FieldValidationException
+from web_input import URLField, SelectorField, WebInput
+from modular_input import FieldValidationException
 
 def setup_logger(level):
     """
@@ -102,9 +103,6 @@ class WebInputController(controllers.BaseController):
         # Run the input
         try:
             web_input = WebInput(timeout=10)
-        
-            url_field = URLField( "url", "title", "preview" )
-            selector_field = SelectorField( "selector", "title", "preview" )
             
             # Get the authentication information, if available
             username = None
@@ -120,15 +118,17 @@ class WebInputController(controllers.BaseController):
                 include_empty_matches = util.normalizeBoolean(kwargs['include_empty_matches'], True)
             
             # Scrape the page
-            result = WebInput.scrape_page( url_field.to_python(url), selector_field.to_python(selector), username=username, password=password, include_empty_matches=include_empty_matches )
+            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches )
             
         except FieldValidationException, e:
             cherrypy.response.status = 202
             return self.render_error_json(_(str(e)))
         
-        except:
+        except Exception, e:
             cherrypy.response.status = 500
-            return self.render_error_json(_("The request could not be completed"))
+            #logger.exception(e)
+            logger.error("Error generated during execution: " + traceback.format_exc() )
+            return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
         
         # Return the information
         return self.render_json(result)

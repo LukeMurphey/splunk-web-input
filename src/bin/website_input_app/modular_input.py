@@ -378,8 +378,8 @@ class ModularInput():
                 Field("name", "Stanza name", "The name of the stanza for this modular input", empty_allowed=True),
                 Field("stanza", "Stanza name", "The name of the stanza for this modular input", empty_allowed=True),
                 Field("source", "Source", "The source for events created by this modular input", empty_allowed=True),
-                Field("sourcetype", "Stanza name", "The name of the stanza for this modular input", empty_allowed=True),
-                Field("index", "Index", "The index that data should be sent to", empty_allowed=True),
+                Field("sourcetype", "Stanza name", "The name of the stanza for this modular input", empty_allowed=True, none_allowed=True),
+                Field("index", "Index", "The index that data should be sent to", empty_allowed=True, none_allowed=True),
                 Field("host", "Host", "The host that is running the input", empty_allowed=True),
                 BooleanField("disabled", "Disabled", "Whether the modular input is disabled or not", empty_allowed=True)
                 ]

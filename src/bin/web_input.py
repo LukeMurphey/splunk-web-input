@@ -1,6 +1,6 @@
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
-from modular_input import Field, FieldValidationException, ModularInput
+from website_input_app.modular_input import Field, FieldValidationException, ModularInput
 
 import logging
 from logging import handlers
@@ -44,18 +44,22 @@ class URLField(Field):
     Represents a URL. The URL is converted to a Python object that was created via urlparse.
     """
     
-    def to_python(self, value):
-        Field.to_python(self, value)
-        
+    @classmethod
+    def parse_url(cls, value, name):
         parsed_value = urlparse(value)
         
         if parsed_value.hostname is None or len(parsed_value.hostname) <= 0:
-            raise FieldValidationException("The value of '%s' for the '%s' parameter does not contain a host name" % (str(value), self.name))
+            raise FieldValidationException("The value of '%s' for the '%s' parameter does not contain a host name" % (str(value), name))
         
         if parsed_value.scheme not in ["http", "https"]:
-            raise FieldValidationException("The value of '%s' for the '%s' parameter does not contain a valid protocol (only http and https are supported)" % (str(value), self.name))
+            raise FieldValidationException("The value of '%s' for the '%s' parameter does not contain a valid protocol (only http and https are supported)" % (str(value), name))
     
         return parsed_value
+    
+    def to_python(self, value):
+        Field.to_python(self, value)
+        
+        return URLField.parse_url(value, self.name)
     
     def to_string(self, value):
         return value.geturl()
@@ -126,15 +130,17 @@ class SelectorField(Field):
     Represents a selector for getting information from a web-page. The selector is converted to a LXML CSS selector instance.
     """
     
+    @classmethod
+    def parse_selector(cls, value, name):
+        try:
+            return CSSSelector(value)
+        except AssertionError as e:
+            raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), name, str(e)))
+    
     def to_python(self, value):
         Field.to_python(self, value)
         
-        try:
-            selector = CSSSelector(value)
-        except AssertionError as e:
-            raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), self.name, str(e)))
-    
-        return selector
+        return SelectorField.parse_selector(value, self.name)
     
     def to_string(self, value):
         return value.css
@@ -161,7 +167,7 @@ class WebInput(ModularInput):
     The web input modular input connects to a web-page obtains information from it.
     """
     
-    def __init__(self, timeout=30):
+    def __init__(self, timeout=30, **kwargs):
 
         scheme_args = {'title': "Web-pages",
                        'description': "Retrieve information from web-pages",
@@ -335,6 +341,12 @@ class WebInput(ModularInput):
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
         include_empty_matches -- Output matches that result in empty strings
         """
+        
+        if isinstance(url, basestring):
+            url = URLField.parse_url(url, "url")
+            
+        if isinstance(selector, basestring):
+            selector = SelectorField.parse_selector(selector, "selector")
         
         logger.debug('Running web input, url="%s"', url.geturl())
         
