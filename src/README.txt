@@ -55,4 +55,6 @@ Change History
 | 0.9     | Fixed issue where not all matches were returned                                                                  |
 |         | Added preview dialog to modular input page                                                                       |
 |         | Added raw_match_count to output which counts CSS matches, even they included no text                             |
+|         | Fixed incompatibilty with other apps that also import the modular_input base class                               |
+|         | Fixed issue where entering and then clearing the sourcetype causes an error                                      |
 +---------+------------------------------------------------------------------------------------------------------------------+
