@@ -11,6 +11,7 @@ import unicodedata
 from StringIO import StringIO
 
 sys.path.append( os.path.join("..", "src", "bin") )
+sys.path.append( os.path.join("..", "src", "bin", "website_input_app") )
 
 from web_input import URLField, DurationField, SelectorField, WebInput
 from modular_input import Field, FieldValidationException
@@ -234,7 +235,46 @@ class TestWebInput(unittest.TestCase):
         result = WebInput.scrape_page( url_field.to_python("http://apps.splunk.com/app/981/"), selector_field.to_python(".app-title,#app-rate-text + li"), timeout=3, output_matches_as_mv=True )
         
         self.assertEqual(len(result['match']), 2)
-
+    
+    def test_scrape_page_name_attributes(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888"), selector_field.to_python(".hd"), username="admin", password="changeme", timeout=3, name_attributes=["class"] )
+        
+        self.assertEqual(len(result['hd']), 31)
+        
+    def test_scrape_page_name_attributes_separate_fields(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888"), selector_field.to_python(".hd"), username="admin", password="changeme", timeout=3, name_attributes=["class"], output_matches_as_separate_fields=True, output_matches_as_mv=False)
+        
+        self.assertEqual(result['match_hd_1'], 'Mode:')
+    
+    def test_scrape_page_name_attributes_escaped_name(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888"), selector_field.to_python("input"), username="admin", password="changeme", timeout=3, name_attributes=["onclick"], include_empty_matches=True)
+        
+        self.assertTrue('btnBerTest__' in result)
+        self.assertTrue('btnReset__' in result)
+        
+    def test_field_escaping(self):
+        self.assertTrue(WebInput.escape_field_name("tree()"), "tree__")
+        
+    def test_field_escaping_whitespace(self):
+        self.assertTrue(WebInput.escape_field_name("  "), "blank")
+        
+    def test_field_escaping_reserved(self):
+        self.assertTrue(WebInput.escape_field_name("source"), "match_source")
+        self.assertTrue(WebInput.escape_field_name("host"), "match_host")
+        self.assertTrue(WebInput.escape_field_name("sourcetype"), "match_sourcetype")
+        self.assertTrue(WebInput.escape_field_name("_time"), "match_time")
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()

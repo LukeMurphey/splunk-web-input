@@ -18,3 +18,6 @@ username = <value>
 
 password = <value>
 * Defines the password to use for authenticating (only HTTP authentication supported)
+
+name_attributes = <value>
+* Defines the attributes that ought to be used for finding the information for naming a the matching field

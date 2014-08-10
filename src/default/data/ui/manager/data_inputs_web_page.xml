@@ -50,6 +50,22 @@
 	      </elements>
 	  	</element>
 	  	
+		<element name="outputFields" type="fieldset">
+		  <key name="legend">Output</key>
+	      <view name="list"/>
+	      <view name="edit"/>
+	      <view name="create"/>
+	      <elements>
+	      
+	        <element name="name_attributes" type="textfield" label="Name Attributes (to use HTML attributes to assign field names)">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">The value of the field name will be set to the value of the attribute in the matching element; enter multiple attributes separated by commas</key>
+	        </element>
+	        
+	      </elements>
+	    </element>
+	  	
 		<element name="authFields" type="fieldset">
 		  <key name="legend">Authentication</key>
 	      <view name="list"/>

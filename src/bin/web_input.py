@@ -1,6 +1,6 @@
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
-from website_input_app.modular_input import Field, FieldValidationException, ModularInput
+from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput
 
 import logging
 from logging import handlers
@@ -167,6 +167,20 @@ class WebInput(ModularInput):
     The web input modular input connects to a web-page obtains information from it.
     """
     
+    RESERVED_FIELD_NAMES = [
+                            # Splunk reserved fields:
+                            'source',
+                            'sourcetype',
+                            'host',
+                            '_time',
+                            'punct',
+                            
+                            # Internal reserved fields:
+                            'request_time',
+                            'response_code',
+                            'raw_match_count'
+                            ]
+    
     def __init__(self, timeout=30, **kwargs):
 
         scheme_args = {'title': "Web-pages",
@@ -181,7 +195,8 @@ class WebInput(ModularInput):
                 DurationField("interval", "Interval", "The interval defining how often to perform the check; can include time units (e.g. 15m for 15 minutes, 8h for 8 hours)", empty_allowed=False),
                 SelectorField("selector", "Selector", "A selector that will match the data you want to retrieve", none_allowed=False, empty_allowed=False),
                 Field("username", "Username", "The username to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-                Field("password", "Password", "The password to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
+                Field("password", "Password", "The password to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -327,16 +342,30 @@ class WebInput(ModularInput):
         return text.strip()
        
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False):
+    def escape_field_name(cls, name):
+        name = re.sub(r'[^A-Z0-9]', '_', name.strip(), flags=re.IGNORECASE)
+        
+        if len(name) == 0:
+            return "blank"
+        
+        if name in cls.RESERVED_FIELD_NAMES:
+            return "match_" + name
+        
+        return name
+        
+       
+    @classmethod
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False):
         """
         Retrieve data from a website.
         
         Arguments:
-        url -- The url to connect to. This object ought to be an instance derived from using urlparse.
-        selector -- A CSS selector that matches the data to retrieve.
+        url -- The url to connect to. This object ought to be an instance derived from using urlparse
+        selector -- A CSS selector that matches the data to retrieve
         username -- The username to use for authentication
         password -- The username to use for authentication
-        timeout -- The amount of time to quit waiting on a connection.
+        timeout -- The amount of time to quit waiting on a connection
+        name_attributes -- Attributes to use the values for assigning the names
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
         include_empty_matches -- Output matches that result in empty strings
@@ -449,11 +478,36 @@ class WebInput(ModularInput):
                     fields_included = fields_included + 1
                     
                     # Save the match
-                    if output_matches_as_mv:
-                        result['match'].append(match_text)
+                    field_made = False
                     
-                    if output_matches_as_separate_fields:
-                        result['match_' + str(fields_included)] = match_text
+                    # Try to use the name attributes for determining the field name
+                    for a in name_attributes:
+                        #print match
+                        attributes = dict(match.attrib)
+                        
+                        if a in attributes:
+                            
+                            field_made = True
+                            field_name = cls.escape_field_name(attributes[a])
+                            
+                            # If the field does not exists, create it
+                            if not field_name in result and output_matches_as_mv:
+                                result[field_name] = [match_text]
+                                
+                            # If the field exists and we are adding them as mv, then add it
+                            elif field_name in result and output_matches_as_mv:
+                                result[field_name].append(match_text)
+                                
+                            # If the field doesn't exist
+                            if output_matches_as_separate_fields:
+                                result['match_' + field_name + "_" + str(fields_included)] = match_text
+                        
+                    if not field_made:
+                        if output_matches_as_mv:
+                            result['match'].append(match_text)
+                        
+                        if output_matches_as_separate_fields:
+                            result['match_' + str(fields_included)] = match_text
         
         # Handle time outs    
         except socket.timeout:
@@ -494,16 +548,17 @@ class WebInput(ModularInput):
     def run(self, stanza, cleaned_params, input_config):
         
         # Make the parameters
-        interval      = cleaned_params["interval"]
-        title         = cleaned_params["title"]
-        url           = cleaned_params["url"]
-        selector      = cleaned_params["selector"]
-        username      = cleaned_params.get("username", None)
-        password      = cleaned_params.get("password", None)
-        timeout       = self.timeout
-        sourcetype    = cleaned_params.get("sourcetype", "web_input")
-        index         = cleaned_params.get("index", "default")
-        source        = stanza
+        interval        = cleaned_params["interval"]
+        title           = cleaned_params["title"]
+        url             = cleaned_params["url"]
+        selector        = cleaned_params["selector"]
+        username        = cleaned_params.get("username", None)
+        password        = cleaned_params.get("password", None)
+        name_attributes = cleaned_params.get("name_attributes", [])
+        timeout         = self.timeout
+        sourcetype      = cleaned_params.get("sourcetype", "web_input")
+        index           = cleaned_params.get("index", "default")
+        source          = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
             
@@ -520,7 +575,7 @@ class WebInput(ModularInput):
             result = None
             
             try:
-                result = WebInput.scrape_page(url, selector, username, password, timeout)
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes)
                 
                 matches = 0
                 
