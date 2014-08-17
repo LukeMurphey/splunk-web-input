@@ -65,4 +65,5 @@ Thumbs.db
 /local.properties
 .project
 .pydevproject
+.settings/
 
