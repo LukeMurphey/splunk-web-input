@@ -1,6 +1,9 @@
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput
+from splunk.models.base import SplunkAppObjModel
+from splunk.models.field import Field as ModelField
+from splunk.models.field import IntField as ModelIntField 
 
 import logging
 from logging import handlers
@@ -16,6 +19,7 @@ import chardet
 import re
 
 import httplib2
+from httplib2 import socks
 import lxml.html
 
 from cssselector import CSSSelector
@@ -161,6 +165,15 @@ class Timer(object):
         self.end = time.time()
         self.secs = self.end - self.start
         self.msecs = self.secs * 1000  # millisecs
+
+class WebsiteInputConfig(SplunkAppObjModel):
+    
+    resource       = '/admin/app_website_input'
+    proxy_server   = ModelField()
+    proxy_port     = ModelIntField()
+    proxy_type     = ModelField()
+    proxy_user     = ModelField()
+    proxy_password = ModelField()
 
 class WebInput(ModularInput):
     """
@@ -353,9 +366,30 @@ class WebInput(ModularInput):
         
         return name
         
+    @classmethod
+    def resolve_proxy_type(cls, proxy_type):
+        
+        # Make sure the proxy string is not none
+        if proxy_type is None:
+            return None
+        
+        # Prepare the string so that the proxy type can be matched more reliably
+        t = proxy_type.strip().lower()
+        
+        if t == "socks4":
+            return socks.PROXY_TYPE_SOCKS4
+        elif t == "socks5":
+            return socks.PROXY_TYPE_SOCKS5
+        elif t == "http":
+            return socks.PROXY_TYPE_HTTP
+        elif t == "":
+            return None
+        else:
+            logger.warn("Proxy type is not recognized: %s", proxy_type)
+            return None
        
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         """
         Retrieve data from a website.
         
@@ -380,10 +414,20 @@ class WebInput(ModularInput):
         logger.debug('Running web input, url="%s"', url.geturl())
         
         try:
-            # Get the HTML
+            # Determine which type of proxy is to be used (if any)
+            resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
+            
+            # Setup the proxy info if so configured
+            if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
+                proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
+                logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
+            else:
+                # No proxy is being used
+                proxy_info = None
+                logger.debug("Not using a proxy server")
                         
             # Make the HTTP object
-            http = httplib2.Http(timeout=timeout, disable_ssl_certificate_validation=True)
+            http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
             
             # Setup the credentials if necessary
             if username is not None or password is not None:
@@ -545,6 +589,32 @@ class WebInput(ModularInput):
         
         return h.unescape(text)
     
+    def get_proxy_config(self, session_key, stanza="default"):
+        """
+        Get the proxy configuration
+        
+        Arguments:
+        session_key -- The session key to use when connecting to the REST API
+        stanza -- The stanza to get the proxy information from (defaults to "default")
+        """
+        
+        # If the stanza is empty, then just use the default
+        if stanza is None or stanza.strip() == "":
+            stanza = "default"
+        
+        # Get the proxy configuration
+        try:
+            website_input_config = WebsiteInputConfig.get( WebsiteInputConfig.build_id( stanza, "website_input", "nobody"), sessionKey=session_key )
+            
+            logger.debug("Proxy information loaded, stanza=%s", stanza)
+            
+        except splunk.ResourceNotFound:
+            logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
+            raise
+        
+        return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
+        
+    
     def run(self, stanza, cleaned_params, input_config):
         
         # Make the parameters
@@ -558,24 +628,23 @@ class WebInput(ModularInput):
         timeout         = self.timeout
         sourcetype      = cleaned_params.get("sourcetype", "web_input")
         index           = cleaned_params.get("index", "default")
+        conf_stanza     = cleaned_params.get("configuration", None)
         source          = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
             
-            """
             # Get the proxy configuration
             try:
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = self.get_proxy_config(input_config.session_key, conf_stanza)
             except splunk.ResourceNotFound:
                 logger.error("The proxy configuration could not be loaded. The execution will be skipped for this input with stanza=%s", stanza)
                 return
-            """
             
             # Get the information from the page
             result = None
             
             try:
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes)
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
                 
                 matches = 0
                 

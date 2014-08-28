@@ -11,6 +11,7 @@ from splunk.appserver.mrsparkle.lib.decorators import expose_page
 from splunk.appserver.mrsparkle.lib.routes import route
 import splunk.appserver.mrsparkle.controllers as controllers
 
+import splunk
 import splunk.util as util
 import splunk.entity as entity
 
@@ -117,8 +118,17 @@ class WebInputController(controllers.BaseController):
             if 'include_empty_matches' in kwargs:
                 include_empty_matches = util.normalizeBoolean(kwargs['include_empty_matches'], True)
             
+            # Get the proxy configuration
+            conf_stanza = "default"
+            
+            try:
+                proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
+            except splunk.ResourceNotFound:
+                cherrypy.response.status = 202
+                return self.render_error_json(_("Proxy server information could not be obtained"))
+            
             # Scrape the page
-            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches )
+            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
             
         except FieldValidationException, e:
             cherrypy.response.status = 202

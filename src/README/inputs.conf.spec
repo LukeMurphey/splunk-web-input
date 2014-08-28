@@ -2,10 +2,10 @@
 * Configure an input for retrieving information from a website
 
 url = <value>
-* The URL to be checked
+* The URL to obtain the data from
 
 interval = <value>
-* Indicates how often to perform the ping
+* Indicates how often to extract the data from the page
 
 title = <value>
 * A title of the input
