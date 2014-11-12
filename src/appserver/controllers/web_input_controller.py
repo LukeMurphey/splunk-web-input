@@ -19,7 +19,7 @@ sys.path.append( os.path.join("..", "..", "..", "bin") )
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import URLField, SelectorField, WebInput
-from modular_input import FieldValidationException
+from website_input_app.modular_input import FieldValidationException
 
 def setup_logger(level):
     """
