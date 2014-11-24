@@ -7,6 +7,9 @@ import xml.sax.saxutils
 import sys
 import re
 import time
+import os
+import hashlib
+import json
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 
@@ -859,6 +862,136 @@ class ModularInput():
         
         raise Exception("Run function was not implemented")
     
+    @staticmethod
+    def is_expired( last_run, interval, cur_time=None ):
+        """
+        Indicates if the last run time is expired based on the value of the last_run parameter.
+        
+        Arguments:
+        last_run -- The time that the analysis was last done
+        interval -- The interval that the analysis ought to be done (as an integer)
+        cur_time -- The current time (will be automatically determined if not provided)
+        """
+        
+        if cur_time is None:
+            cur_time = time.time()
+        
+        if (last_run + interval) < cur_time:
+            return True
+        else:
+            return False
+    
+    @classmethod
+    def last_ran( cls, checkpoint_dir, stanza ):
+        """
+        Determines the date that the analysis was last performed for the given input (denoted by the stanza name).
+        
+        Arguments:
+        checkpoint_dir -- The directory where checkpoints ought to be saved
+        stanza -- The stanza of the input being used
+        """
+        
+        checkpoint_dict = cls.get_checkpoint_data(checkpoint_dir, stanza)
+        
+        if checkpoint_dict is None or 'last_run' not in checkpoint_dict:
+            return None
+        else:
+            return checkpoint_dict['last_run']
+    
+    @classmethod
+    def needs_another_run(cls, checkpoint_dir, stanza, interval, cur_time=None):
+        """
+        Determines if the given input (denoted by the stanza name) ought to be executed.
+        
+        Arguments:
+        checkpoint_dir -- The directory where checkpoints ought to be saved
+        stanza -- The stanza of the input being used
+        interval -- The frequency that the analysis ought to be performed
+        cur_time -- The current time (will be automatically determined if not provided)
+        """
+        
+        try:
+            last_ran = cls.last_ran(checkpoint_dir, stanza)
+            
+            return cls.is_expired(last_ran, interval, cur_time)
+            
+        except IOError as e:
+            # The file likely doesn't exist
+            return True
+        
+        except ValueError as e:
+            # The file could not be loaded
+            return True
+        
+        # Default return value
+        return True
+    
+    @staticmethod
+    def get_file_path( checkpoint_dir, stanza ):
+        """
+        Get the path to the checkpoint file.
+        
+        Arguments:
+        checkpoint_dir -- The directory where checkpoints ought to be saved
+        stanza -- The stanza of the input being used
+        """
+        
+        return os.path.join( checkpoint_dir, hashlib.sha224(stanza).hexdigest() + ".json" )
+    
+    @classmethod
+    def get_checkpoint_data(cls, checkpoint_dir, stanza):
+        """
+        Gets the checkpoint for this input (if it exists)
+        
+        Arguments:
+        checkpoint_dir -- The directory where checkpoints ought to be saved
+        stanza -- The stanza of the input being used
+        """
+        
+        fp = None
+        
+        try:
+            fp = open( cls.get_file_path(checkpoint_dir, stanza) )
+            checkpoint_dict = json.load(fp)
+            
+            return checkpoint_dict
+    
+        finally:
+            if fp is not None:
+                fp.close()
+             
+    @classmethod   
+    def save_checkpoint_data(cls, checkpoint_dir, stanza, data):
+        """
+        Save the checkpoint state.
+        
+        Arguments:
+        checkpoint_dir -- The directory where checkpoints ought to be saved
+        stanza -- The stanza of the input being used
+        data -- A dictionary with the data to save
+        """
+        
+        fp = None
+        
+        try:
+            fp = open( cls.get_file_path(checkpoint_dir, stanza), 'w' )
+            
+            json.dump(data, fp)
+            
+        except Exception:
+            logger.exception("Failed to save checkpoint directory") 
+            
+        finally:
+            if fp is not None:
+                fp.close()
+    
+    def do_shutdown(self):
+        """
+        This function is called when the modular input should shut down.
+        """
+        
+        pass
+    
     def do_run(self, in_stream=sys.stdin, log_exception_and_continue=False):
         """
         Read the config from standard input and return the configuration.
@@ -871,6 +1004,12 @@ class ModularInput():
         input_config = self.read_config(in_stream)
                 
         while True:
+                                
+            # If Splunk is no longer the parent process, then it has shut down and this input needs to terminate
+            if hasattr(os, 'getppid') and os.getppid() == 1:
+                logging.warn("Modular input is no longer running under Splunk; script will now exit")
+                self.do_shutdown()
+                sys.exit(2)
             
             # Initialize the document that will be used to output the results
             self.document = self._create_document()
@@ -888,8 +1027,12 @@ class ModularInput():
                     else:
                         raise e
                     
-            time.sleep(self.sleep_interval)
-    
+            # Sleep for a bit
+            try:
+                time.sleep(self.sleep_interval)
+            except IOError:
+                pass #Exceptions such as KeyboardInterrupt and IOError can be thrown in order to interrupt sleep calls
+                
     def get_validation_data(self, in_stream=sys.stdin):
         """
         Get the validation data from standard input
