@@ -611,6 +611,9 @@ class WebInput(ModularInput):
         except splunk.ResourceNotFound:
             logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
             raise
+        except splunk.SplunkdConnectionException:
+            logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
+            raise
         
         return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
         
@@ -637,7 +640,10 @@ class WebInput(ModularInput):
             try:
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = self.get_proxy_config(input_config.session_key, conf_stanza)
             except splunk.ResourceNotFound:
-                logger.error("The proxy configuration could not be loaded. The execution will be skipped for this input with stanza=%s", stanza)
+                logger.error("The proxy configuration could not be loaded (resource not found). The execution will be skipped for now for this input with stanza=%s", stanza)
+                return
+            except splunk.SplunkdConnectionException:
+                logger.error("The proxy configuration could not be loaded (splunkd connection problem). The execution will be skipped for now for this input with stanza=%s", stanza)
                 return
             
             # Get the information from the page
