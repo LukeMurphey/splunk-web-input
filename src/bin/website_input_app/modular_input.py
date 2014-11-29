@@ -503,7 +503,7 @@ class ModularInput():
         else:
             return s
     
-    def create_event_string(self, data_dict, stanza, sourcetype, source, index, unbroken=False, close=False ):
+    def create_event_string(self, data_dict, stanza, sourcetype, source, index, host=None, unbroken=False, close=False ):
         """
         Create a string representing the event.
         
@@ -552,6 +552,9 @@ class ModularInput():
             
         if source is not None:
             event_dict['source'] = source
+            
+        if host is not None:
+            event_dict['host'] = host
         
         event = self._create_event(self.document, 
                                    params=event_dict,
@@ -563,7 +566,7 @@ class ModularInput():
         # added with a "</done>" tag.
         return self._print_event(self.document, event)
         
-    def output_event(self, data_dict, stanza, index=None, sourcetype=None, source=None, unbroken=False, close=False, out=sys.stdout ):
+    def output_event(self, data_dict, stanza, index=None, sourcetype=None, source=None, host=None, unbroken=False, close=False, out=sys.stdout ):
         """
         Output the given even so that Splunk can see it.
         
@@ -576,9 +579,10 @@ class ModularInput():
         unbroken -- 
         close -- 
         out -- The stream to send the event to (defaults to standard output)
+        host -- The host
         """
         
-        output = self.create_event_string(data_dict, stanza, sourcetype, source, index, unbroken, close)
+        output = self.create_event_string(data_dict, stanza, sourcetype, source, index, host, unbroken, close)
         
         out.write(output)
         out.flush()

@@ -630,6 +630,7 @@ class WebInput(ModularInput):
         name_attributes = cleaned_params.get("name_attributes", [])
         timeout         = self.timeout
         sourcetype      = cleaned_params.get("sourcetype", "web_input")
+        host            = cleaned_params.get("host", None)
         index           = cleaned_params.get("index", "default")
         conf_stanza     = cleaned_params.get("configuration", None)
         source          = stanza
@@ -665,7 +666,7 @@ class WebInput(ModularInput):
             if result is not None:
                 
                 # Send the event
-                self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, unbroken=True, close=True)
+                self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True)
             
                 # Save the checkpoint so that we remember when we last 
                 self.save_checkpoint(input_config.checkpoint_dir, stanza, int(time.time()) )
