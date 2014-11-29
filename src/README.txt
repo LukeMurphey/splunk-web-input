@@ -61,5 +61,10 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 1.0     | Added ability to use a proxy server                                                                              |
 |---------|------------------------------------------------------------------------------------------------------------------|
-| 1.0.1   | Fixed issue were preview did not work                                                                            |
+| 1.0.1   | Fixed issue where preview did not work                                                                           |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 1.0.2   | Fixed issue where the input would:                                                                                   |
+|         |    sometimes fail due to exception thrown from sleep() being interrupted                                         |
+|         |    sometimes fail due to splunkd connection failure                                                              |
+|         |    ignore the host field that was set on the configuration page                                                  |
 +---------+------------------------------------------------------------------------------------------------------------------+
