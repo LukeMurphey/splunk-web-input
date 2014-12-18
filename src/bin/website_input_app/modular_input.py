@@ -866,8 +866,8 @@ class ModularInput():
         
         raise Exception("Run function was not implemented")
     
-    @staticmethod
-    def is_expired( last_run, interval, cur_time=None ):
+    @classmethod
+    def is_expired( cls, last_run, interval, cur_time=None ):
         """
         Indicates if the last run time is expired based on the value of the last_run parameter.
         
@@ -930,8 +930,8 @@ class ModularInput():
         # Default return value
         return True
     
-    @staticmethod
-    def get_file_path( checkpoint_dir, stanza ):
+    @classmethod
+    def get_file_path(cls, checkpoint_dir, stanza):
         """
         Get the path to the checkpoint file.
         
@@ -963,6 +963,38 @@ class ModularInput():
         finally:
             if fp is not None:
                 fp.close()
+             
+    @classmethod
+    def get_non_deviated_last_run(cls, last_ran, interval):
+        """
+        This method will return a last_run time that doesn't carry over the processing time.
+        If you used the current time and the script took 5 seconds to run, then next run will actually be 5 seconds after it should have been.
+        
+        Basically, it computes when the interval _should_ have executed so that the input runs on the correct frequency.
+        
+        Arguments:
+        interval -- The execution interval
+        last_ran -- When the input last ran (Unix epoch).
+        """
+        
+        # We don't want the input to interval to slide by including the processing time in the interval. In other words, if the interval is 60 and it takes 5 seconds to process,
+        # then we don't just want to set the last_run to now because then the interval would actually be 65 seconds. So, let's assume that the processing time was 0 and we are
+        # right on time. If we assume this, then we would have ran at last_run + interval exactly. 
+        # There is a potential problem with this though. We'll deal with that in a bit.
+        last_ran_derived = last_ran + interval
+                
+        # There is a one problem with correcting the last run to the previous time plus the interval. If the input failed to run for a long time, then we might keep creating a
+        # last_run that is in the past and thus, keep executing the input until we finally come to the current time. I would rather just skip the ones in the past and start back
+        # over. That is what we will do.
+        if last_ran_derived < (time.time() - interval):
+            # The last run isn't within one interval of the current time. That means we either ran too long and missed a subsequent run or we just weren't running for a long-time.
+            # To catch up, we'll set it to the current time
+            last_ran_derived = time.time()
+            
+            logger.info("Previous run was too far in the past (gap=%r) and thus some executions of the input have been missed", last_ran_derived-last_ran)
+            
+        #logger.info("Calculated non-deviated last_ran=%r from previous_last_ran=%r", last_ran_derived, last_ran)
+        return last_ran_derived
              
     @classmethod   
     def save_checkpoint_data(cls, checkpoint_dir, stanza, data):

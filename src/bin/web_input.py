@@ -219,8 +219,8 @@ class WebInput(ModularInput):
         else:
             self.timeout = 30
     
-    @staticmethod
-    def get_file_path( checkpoint_dir, stanza ):
+    @classmethod
+    def get_file_path( cls, checkpoint_dir, stanza ):
         """
         Get the path to the checkpoint file.
         
@@ -230,102 +230,6 @@ class WebInput(ModularInput):
         """
         
         return os.path.join( checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json" )
-        
-    @classmethod
-    def last_ran( cls, checkpoint_dir, stanza ):
-        """
-        Determines the date that the analysis was last performed for the given input (denoted by the stanza name).
-        
-        Arguments:
-        checkpoint_dir -- The directory where checkpoints ought to be saved
-        stanza -- The stanza of the input being used
-        """
-        
-        fp = None
-        
-        try:
-            fp = open( cls.get_file_path(checkpoint_dir, stanza) )
-            checkpoint_dict = json.load(fp)
-                
-            return checkpoint_dict['last_run']
-    
-        finally:
-            if fp is not None:
-                fp.close()
-        
-    @classmethod
-    def needs_another_run(cls, checkpoint_dir, stanza, interval, cur_time=None):
-        """
-        Determines if the given input (denoted by the stanza name) ought to be executed.
-        
-        Arguments:
-        checkpoint_dir -- The directory where checkpoints ought to be saved
-        stanza -- The stanza of the input being used
-        interval -- The frequency that the analysis ought to be performed
-        cur_time -- The current time (will be automatically determined if not provided)
-        """
-        
-        try:
-            last_ran = cls.last_ran(checkpoint_dir, stanza)
-            
-            return cls.is_expired(last_ran, interval, cur_time)
-            
-        except IOError as e:
-            # The file likely doesn't exist
-            return True
-        
-        except ValueError as e:
-            # The file could not be loaded
-            return True
-        
-        # Default return value
-        return True
-    
-    @classmethod
-    def save_checkpoint(cls, checkpoint_dir, stanza, last_run):
-        """
-        Save the checkpoint state.
-        
-        Arguments:
-        checkpoint_dir -- The directory where checkpoints ought to be saved
-        stanza -- The stanza of the input being used
-        last_run -- The time when the analysis was last performed
-        """
-        
-        fp = None
-        
-        try:
-            fp = open( cls.get_file_path(checkpoint_dir, stanza), 'w' )
-            
-            d = { 'last_run' : last_run }
-            
-            json.dump(d, fp)
-            
-        except Exception:
-            logger.exception("Failed to save checkpoint directory") 
-            
-        finally:
-            if fp is not None:
-                fp.close()
-    
-    @staticmethod
-    def is_expired( last_run, interval, cur_time=None ):
-        """
-        Indicates if the last run time is expired based .
-        
-        Arguments:
-        last_run -- The time that the analysis was last done
-        interval -- The interval that the analysis ought to be done (as an integer)
-        cur_time -- The current time (will be automatically determined if not provided)
-        """
-        
-        if cur_time is None:
-            cur_time = time.time()
-        
-        if (last_run + interval) < cur_time:
-            return True
-        else:
-            return False
        
     @classmethod
     def get_text(cls, element):
@@ -662,14 +566,17 @@ class WebInput(ModularInput):
             except Exception:
                 logger.exception("An exception occurred when attempting to retrieve information from the web-page") 
             
-            # Process the result (f we got one)
+            # Process the result (if we got one)
             if result is not None:
                 
                 # Send the event
                 self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True)
             
-                # Save the checkpoint so that we remember when we last 
-                self.save_checkpoint(input_config.checkpoint_dir, stanza, int(time.time()) )
+                # Get the time that the input last ran
+                last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
+                
+                # Save the checkpoint so that we remember when we last executed this
+                self.save_checkpoint_data(input_config.checkpoint_dir, stanza, { 'last_run' : self.get_non_deviated_last_run(last_ran, interval) })
         
             
 if __name__ == '__main__':
