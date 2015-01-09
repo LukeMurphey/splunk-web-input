@@ -13,6 +13,7 @@ Warning
 Some websites disallow web-scraping in the terms of use. Make sure to check the terms of use or get permission if you do not own the website that you are obtaining information from.
 
 
+
 ================================================
 Configuring Splunk
 ================================================
@@ -63,8 +64,11 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 1.0.1   | Fixed issue where preview did not work                                                                           |
 |---------|------------------------------------------------------------------------------------------------------------------|
-| 1.0.2   | Fixed issue where the input would:                                                                                   |
+| 1.0.2   | Fixed issue where the input would:                                                                               |
 |         |    sometimes fail due to exception thrown from sleep() being interrupted                                         |
 |         |    sometimes fail due to splunkd connection failure                                                              |
 |         |    ignore the host field that was set on the configuration page                                                  |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 1.0.3   | Fixed issue where the input would not stay on the interval because it included processing time in the interval   |
+|         | Fixed issue where the modular input logs were not sourcetyped correctly                                          |
 +---------+------------------------------------------------------------------------------------------------------------------+
