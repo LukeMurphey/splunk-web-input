@@ -1,6 +1,6 @@
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
-from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput
+from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
 from splunk.models.field import IntField as ModelIntField 
@@ -9,8 +9,6 @@ import logging
 from logging import handlers
 import hashlib
 import socket
-import json
-from urlparse import urlparse
 import sys
 import time
 import os
@@ -42,92 +40,6 @@ def setup_logger():
     return logger
 
 logger = setup_logger()
-
-class URLField(Field):
-    """
-    Represents a URL. The URL is converted to a Python object that was created via urlparse.
-    """
-    
-    @classmethod
-    def parse_url(cls, value, name):
-        parsed_value = urlparse(value)
-        
-        if parsed_value.hostname is None or len(parsed_value.hostname) <= 0:
-            raise FieldValidationException("The value of '%s' for the '%s' parameter does not contain a host name" % (str(value), name))
-        
-        if parsed_value.scheme not in ["http", "https"]:
-            raise FieldValidationException("The value of '%s' for the '%s' parameter does not contain a valid protocol (only http and https are supported)" % (str(value), name))
-    
-        return parsed_value
-    
-    def to_python(self, value):
-        Field.to_python(self, value)
-        
-        return URLField.parse_url(value, self.name)
-    
-    def to_string(self, value):
-        return value.geturl()
-
-class DurationField(Field):
-    """
-    The duration field represents a duration as represented by a string such as 1d for a 24 hour period.
-    
-    The string is converted to an integer indicating the number of seconds.
-    """
-    
-    DURATION_RE = re.compile("(?P<duration>[0-9]+)\s*(?P<units>[a-z]*)", re.IGNORECASE)
-    
-    MINUTE = 60
-    HOUR   = 60 * MINUTE
-    DAY    = 24 * HOUR
-    WEEK   = 7 * DAY
-    
-    UNITS = {
-             'w'       : WEEK,
-             'week'    : WEEK,
-             'd'       : DAY,
-             'day'     : DAY,
-             'h'       : HOUR,
-             'hour'    : HOUR,
-             'm'       : MINUTE,
-             'min'     : MINUTE,
-             'minute'  : MINUTE,
-             's'       : 1
-             }
-    
-    def to_python(self, value):
-        Field.to_python(self, value)
-        
-        # Parse the duration
-        m = DurationField.DURATION_RE.match(value)
-
-        # Make sure the duration could be parsed
-        if m is None:
-            raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid duration" % (str(value), self.name))
-        
-        # Get the units and duration
-        d = m.groupdict()
-        
-        units = d['units']
-        
-        # Parse the value provided
-        try:
-            duration = int(d['duration'])
-        except ValueError:
-            raise FieldValidationException("The duration '%s' for the '%s' parameter is not a valid number" % (d['duration'], self.name))
-        
-        # Make sure the units are valid
-        if len(units) > 0 and units not in DurationField.UNITS:
-            raise FieldValidationException("The unit '%s' for the '%s' parameter is not a valid unit of duration" % (units, self.name))
-        
-        # Convert the units to seconds
-        if len(units) > 0:
-            return duration * DurationField.UNITS[units]
-        else:
-            return duration
-
-    def to_string(self, value):        
-        return str(value)
 
 class SelectorField(Field):
     """
