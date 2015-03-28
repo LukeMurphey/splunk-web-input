@@ -92,7 +92,7 @@ class TestWebInput(unittest.TestCase):
         self.assertEquals(result['timed_out'], True)
         
     def test_save_checkpoint(self):
-        WebInput.save_checkpoint(self.tmp_dir, "web_input://TextCritical.com", 100)
+        WebInput.save_checkpoint_data(self.tmp_dir, "web_input://TextCritical.com", { 'last_run': 100 })
         self.assertEquals( WebInput.last_ran(self.tmp_dir, "web_input://TextCritical.com"), 100)
         
     def test_is_expired(self):
@@ -232,8 +232,7 @@ class TestWebInput(unittest.TestCase):
         
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
-        result = WebInput.scrape_page( url_field.to_python("http://apps.splunk.com/app/981/"), selector_field.to_python(".app-title,#app-rate-text + li"), timeout=3, output_matches_as_mv=True )
-        
+        result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/"), selector_field.to_python("h1+p,.sharing-buttons"), timeout=3, output_matches_as_mv=True )
         self.assertEqual(len(result['match']), 2)
     
     def test_scrape_page_name_attributes(self):
