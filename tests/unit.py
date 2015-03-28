@@ -192,10 +192,10 @@ class TestWebInput(unittest.TestCase):
         result = WebInput.scrape_page( url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container") )
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 45)
-        self.assertEqual(result['encoding'], "utf-8")
         #print result['match']
         self.assertEqual(unicodedata.normalize('NFC', result['match'][1]), unicodedata.normalize('NFC', u"2 Καθὼς γέγραπται ἐν τῷ Ἠσαίᾳ τῷ προφήτῃ Ἰδοὺ ἀποστέλλω τὸν ἄγγελόν μου πρὸ προσώπου σου , ὃς κατασκευάσει τὴν ὁδόν σου :"))
-        
+        self.assertEqual(result['encoding'], "utf-8")
+                
     def test_scrape_encoding_detect_sniff(self):
         web_input = WebInput(timeout=3)
         
@@ -275,6 +275,18 @@ class TestWebInput(unittest.TestCase):
         self.assertTrue(WebInput.escape_field_name("host"), "match_host")
         self.assertTrue(WebInput.escape_field_name("sourcetype"), "match_sourcetype")
         self.assertTrue(WebInput.escape_field_name("_time"), "match_time")
+    
+    def test_scrape_page_bad_encoding(self):
+        #http://lukemurphey.net/issues/987
+        
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://rss.slashdot.org/Slashdot/slashdot"), selector_field.to_python("description") )
+        self.assertEqual(result['response_code'], 200)
+        self.assertGreater(len(result['match']), 0)
+        self.assertEqual(result['encoding'], "ISO-8859-1")
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()
