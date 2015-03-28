@@ -73,4 +73,5 @@ Change History
 |         | Fixed issue where the modular input logs were not sourcetyped correctly                                          |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 1.0.4   | Enhanced logging for when interval gap is too large and when checkpoint file could not be found                  |
+|         | Fixed issue where some files could not be parsed because lxml won't parsed correctly encoded files in some cases |                                          |
 +---------+------------------------------------------------------------------------------------------------------------------+
