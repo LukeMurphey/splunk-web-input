@@ -1,6 +1,11 @@
 """
-from search_command import SearchCommand
-import sys
+This class provides a base class for search commands that handles much of the Splunk-to-Python interaction necessary for making a search command.
+
+See below for a basic example of a class that sub-classes SearchCommand:
+"""
+
+"""
+from search_command_example_app.search_command import SearchCommand
 
 class Echo(SearchCommand):
     
@@ -9,26 +14,20 @@ class Echo(SearchCommand):
         # Save the parameters
         self.what_to_echo = what_to_echo
         
-         # Initialize the class
+        # Initialize the class
         SearchCommand.__init__( self, run_in_preview=True, logger_name='echo_search_command')
     
     def handle_results(self, results, in_preview, session_key):
-        self.output_results({'echo' : self.what_to_echo})
+        self.output_results([{'echo' : self.what_to_echo}])
         
 if __name__ == '__main__':
-    try:
-        Echo.execute()
-        sys.exit(0)
-    except Exception as e:
-        print e
+    Echo.execute()
 """
 
 import splunk.Intersplunk
 import sys
-import os
 import logging
 from logging import handlers
-from splunk import SplunkdConnectionException
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 
