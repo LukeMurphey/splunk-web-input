@@ -1,6 +1,5 @@
 from website_input_app.search_command import SearchCommand
 from web_input import WebInput
-import sys
 
 class WebScraper(SearchCommand):
     
@@ -27,14 +26,10 @@ class WebScraper(SearchCommand):
         # Do the scraping
         result = WebInput.scrape_page(self.url, self.selector, self.username, self.password, self.timeout, self.name_attributes, self.output_matches_as_mv, self.output_matches_as_separate_fields, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None)
         
-        self.logger.info("Retrieved results, count=%r", result)
+        self.logger.debug("Retrieved results, result=%r", result)
         
         # Output the results
         self.output_results([result])
         
 if __name__ == '__main__':
-    try:
-        WebScraper.execute()
-        sys.exit(0)
-    except Exception as e:
-        print e
+    WebScraper.execute()
