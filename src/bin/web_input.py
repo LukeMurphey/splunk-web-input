@@ -203,7 +203,7 @@ class WebInput(ModularInput):
         else:
             logger.warn("Proxy type is not recognized: %s", proxy_type)
             return None
-       
+    
     @classmethod
     def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         """
@@ -395,11 +395,6 @@ class WebInput(ModularInput):
         
         return result
     
-    ##
-    # 
-    #
-    # @param text The HTML (or XML) source text.
-    # @return The plain text, as a Unicode string, if necessary.
     @classmethod
     def unescape(cls, text):
         """
