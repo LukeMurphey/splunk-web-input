@@ -101,6 +101,10 @@
 	        </group_set>
 	      </onChange>
 	    </element>
+	    <element name="sourcetype_selection_fix" type="sourcetype_selection_fix">
+		  <view name="create"/>
+	      <view name="edit"/>
+		</element>
 	    <element name="advanced" type="fieldset" class="spl-mgr-advanced-options">
 	      <view name="edit"/>
 	      <view name="create"/>
