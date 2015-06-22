@@ -75,5 +75,7 @@ Change History
 | 1.0.4   | Enhanced logging for when interval gap is too large and when checkpoint file could not be found                  |
 |         | Fixed issue where some files could not be parsed because lxml won't parsed correctly encoded files in some cases |
 |---------|------------------------------------------------------------------------------------------------------------------|
-| 1.0.5   | Fixed issue where web input controller used the incorrect logger name                                            |   
+| 1.0.5   | Fixed issue where web input controller used the incorrect logger name                                            |
+|         | Fixed issue where you could not select the sourcetype correctly in some cases                                    |
+|         | Added a search command for performing web scrapes from the search page                                           |
 +---------+------------------------------------------------------------------------------------------------------------------+
