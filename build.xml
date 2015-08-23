@@ -106,6 +106,7 @@
             <filterset begintoken="${" endtoken="}"> 
                 <filter token="value.build.number" value="${value.build.number}" />
             	<filter token="value.build.date" value="${value.build.date}" />
+            	<filter token="value.version.number" value="${value.version.number}" />
             </filterset>
         </copy>
         

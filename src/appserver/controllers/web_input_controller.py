@@ -112,7 +112,14 @@ class WebInputController(controllers.BaseController):
             if( 'password' in kwargs and 'username' in kwargs):
                 username = kwargs['username']
                 password = kwargs['password']
+                
+            # Get the user-agent string
+            user_agent = None
             
+            if( 'user_agent' in kwargs):
+                user_agent = kwargs['user_agent']
+            
+            # Determine if we should include empty matches
             include_empty_matches = False
             
             if 'include_empty_matches' in kwargs:
@@ -128,7 +135,7 @@ class WebInputController(controllers.BaseController):
                 return self.render_error_json(_("Proxy server information could not be obtained"))
             
             # Scrape the page
-            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
+            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent)
             
         except FieldValidationException, e:
             cherrypy.response.status = 202

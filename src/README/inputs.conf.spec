@@ -21,3 +21,6 @@ password = <value>
 
 name_attributes = <value>
 * Defines the attributes that ought to be used for finding the information for naming a the matching field
+
+user_agent = <value>
+* Defines the user-agent string used by the HTTP client

@@ -205,7 +205,7 @@ class WebInput(ModularInput):
             return None
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None):
         """
         Retrieve data from a website.
         
@@ -219,6 +219,7 @@ class WebInput(ModularInput):
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
         include_empty_matches -- Output matches that result in empty strings
+        user_agent -- The string to use for the user-agent
         """
         
         if isinstance(url, basestring):
@@ -258,10 +259,17 @@ class WebInput(ModularInput):
                 
             # This will be where the result information will be stored
             result = {}
+            
+            # Setup the headers as necessary
+            headers = {}
+            
+            if user_agent is not None:
+                headers['User-Agent'] = user_agent
                         
             # Perform the request
             with Timer() as timer:
-                response, content = http.request( url.geturl(), 'GET')
+                
+                response, content = http.request( url.geturl(), 'GET', headers=headers)
                 
                 # Get the hash of the content
                 response_md5 = hashlib.md5(content).hexdigest()

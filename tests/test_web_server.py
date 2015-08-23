@@ -3,6 +3,7 @@ import SocketServer
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import os
 import base64
+from StringIO import StringIO
 
 class Handler(BaseHTTPRequestHandler):
     ''' Main class to present webpages and authentication. '''
@@ -22,10 +23,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         username = 'admin'
         password = 'changeme'
+        
         encoded_password = base64.b64encode(username + ":" + password)
         
-        ''' Present frontpage with user authentication. '''
-        if self.headers.getheader('Authorization') == None:
+        # Present header reflection page
+        if self.path == "/header_reflection":
+            #self.send_response(200)
+            self.do_HEAD()
+            print '\n\n\n\nUser-agent:' + self.headers.get('user-agent', "(undefined)")
+            self.wfile.write('<html><body><div class="user-agent">%s</div></body></html>' % str(self.headers['user-agent']))
+        
+        # Present frontpage with user authentication.
+        elif self.headers.getheader('Authorization') == None:
             self.do_AUTHHEAD()
             self.wfile.write('no auth header received')
             pass

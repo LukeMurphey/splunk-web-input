@@ -58,7 +58,23 @@ class TestWebInput(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         
-        cls.httpd = get_server(8888)
+        attempts = 0
+        cls.httpd = None
+        
+        sys.stdout.write("Waiting for web-server to start ...")
+        sys.stdout.flush()
+        
+        while cls.httpd is None and attempts < 20:
+            try:
+                cls.httpd = get_server(8888)
+                
+                print " Done"
+            except IOError:
+                cls.httpd = None
+                time.sleep(2)
+                attempts = attempts + 1
+                sys.stdout.write(".")
+                sys.stdout.flush()
         
         def start_server(httpd):
             httpd.serve_forever()
@@ -286,6 +302,40 @@ class TestWebInput(unittest.TestCase):
         self.assertEqual(result['response_code'], 200)
         self.assertGreater(len(result['match']), 0)
         self.assertEqual(result['encoding'], "ISO-8859-1")
+        
+    def test_scape_page_custom_user_agent(self):
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/header_reflection"), selector_field.to_python(".user-agent"), timeout=3, output_matches_as_mv=True, user_agent="test_scape_page_custom_user_agent")
+        print result
+        
+        #print result['match']
+        self.assertEqual(len(result['match']), 1)
+        self.assertEqual(result['match'][0], "test_scape_page_custom_user_agent")
+        
+    '''
+    def test_html_to_json(self):
+        
+        web_input = WebInput(timeout=3)
+        
+        content = """
+        <html>
+            <head>
+              <title>Some page</title>
+            </head>
+            <body>
+              <div class="header">This is the header</div>
+              <div class="footer" />
+            </body>
+        </html>
+        """
+        
+        tree = lxml.html.fromstring(content)
+        
+        html_as_json = WebInput.html_to_json(tree)
+    '''
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()
