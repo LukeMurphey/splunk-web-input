@@ -138,7 +138,8 @@
 		  			"Chrome 33" : "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.517 Safari/537.36",
 		  			"Chrome 32" : "Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36",
 		  			
-		  			"Googlebot 2.1" : "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+		  			"Googlebot 2.1" : "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+		  			"Default (Splunk Website Input)" : "Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)"
 		  			
 		  		}
 		  		</key>
