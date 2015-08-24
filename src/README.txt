@@ -79,5 +79,5 @@ Change History
 |         | Fixed issue where you could not select the sourcetype correctly in some cases                                    |
 |         | Added a search command for performing web scrapes from the search page                                           |
 |---------|------------------------------------------------------------------------------------------------------------------|
-| 1.0.6   | Added ability to specify the user-agent string                                                                   |
+| 1.1     | Added ability to specify the user-agent string                                                                   |
 +---------+------------------------------------------------------------------------------------------------------------------+
