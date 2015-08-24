@@ -87,6 +87,22 @@
 	      </elements>
 	  	</element>
 	  	
+		<element name="advancedFields" type="fieldset">
+		  <key name="legend">Advanced</key>
+	      <view name="list"/>
+	      <view name="edit"/>
+	      <view name="create"/>
+	      <elements>
+	      
+	        <element name="user_agent" type="textfield" label="User-agent">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">The user agent string for the client to use</key>
+	        </element>
+	        
+	      </elements>
+	  	</element>
+	  	
 	  	<!-- The sourcetype selection content is typically in the page by default -->
 	    <element name="spl-ctrl_EnableAdvanced" type="checkbox" 
 		     label="More settings" class="spl-mgr-advanced-switch">

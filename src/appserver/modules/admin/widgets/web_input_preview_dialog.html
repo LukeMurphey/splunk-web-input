@@ -246,6 +246,11 @@
 		data.url = $('#url_id').val();
 		data.selector= $('#selector_id').val();
 		
+		// Set up the user-agent if customized
+		if( $('#user_agent_id').val().length > 0 ){
+			data.user_agent= $('#user_agent_id').val();
+		}
+		
 		// Get the authentication
 		if( $('#username_id').val().length > 0 && $('#password_id').val().length > 0 ){
 			data.username = $('#username_id').val();

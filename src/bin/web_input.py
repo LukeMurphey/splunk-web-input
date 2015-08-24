@@ -122,6 +122,7 @@ class WebInput(ModularInput):
                 Field("username", "Username", "The username to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("password", "Password", "The password to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                Field("user_agent", "User Agent", "The user-agent to use when communicating with the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -264,6 +265,7 @@ class WebInput(ModularInput):
             headers = {}
             
             if user_agent is not None:
+                logger.info("Setting user-agent=%s", user_agent)
                 headers['User-Agent'] = user_agent
                         
             # Perform the request
@@ -456,6 +458,7 @@ class WebInput(ModularInput):
         username        = cleaned_params.get("username", None)
         password        = cleaned_params.get("password", None)
         name_attributes = cleaned_params.get("name_attributes", [])
+        user_agent      = cleaned_params.get("user_agent", None)
         timeout         = self.timeout
         sourcetype      = cleaned_params.get("sourcetype", "web_input")
         host            = cleaned_params.get("host", None)
@@ -479,7 +482,7 @@ class WebInput(ModularInput):
             result = None
             
             try:
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent)
                 
                 matches = 0
                 

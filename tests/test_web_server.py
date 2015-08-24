@@ -28,9 +28,7 @@ class Handler(BaseHTTPRequestHandler):
         
         # Present header reflection page
         if self.path == "/header_reflection":
-            #self.send_response(200)
             self.do_HEAD()
-            print '\n\n\n\nUser-agent:' + self.headers.get('user-agent', "(undefined)")
             self.wfile.write('<html><body><div class="user-agent">%s</div></body></html>' % str(self.headers['user-agent']))
         
         # Present frontpage with user authentication.
