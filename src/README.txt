@@ -18,7 +18,7 @@ Some websites disallow web-scraping in the terms of use. Make sure to check the 
 Configuring Splunk
 ================================================
 
-This app exposes a new input type that can be configured in the Splunk Manager. To configure it, create a new input in the Manager under Data inputs È Web-pages.
+This app exposes a new input type that can be configured in the Splunk Manager. To configure it, create a new input in the Manager under Data inputs ï¿½ Web-pages.
 
 
 
@@ -78,4 +78,6 @@ Change History
 | 1.0.5   | Fixed issue where web input controller used the incorrect logger name                                            |
 |         | Fixed issue where you could not select the sourcetype correctly in some cases                                    |
 |         | Added a search command for performing web scrapes from the search page                                           |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 1.0.6   | Added ability to specify the user-agent string                                                                   |
 +---------+------------------------------------------------------------------------------------------------------------------+
