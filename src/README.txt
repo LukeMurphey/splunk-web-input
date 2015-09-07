@@ -80,4 +80,6 @@ Change History
 |         | Added a search command for performing web scrapes from the search page                                           |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 1.1     | Added ability to specify the user-agent string                                                                   |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 1.1.1   | Updated to the latest version of the modular input library; should fix problems where the input crashes          |
 +---------+------------------------------------------------------------------------------------------------------------------+
