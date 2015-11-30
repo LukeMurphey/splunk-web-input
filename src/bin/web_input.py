@@ -497,7 +497,7 @@ class WebInput(ModularInput):
             if result is not None:
                 
                 # Send the event
-                self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True)
+                self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_spaces=True)
             
                 # Get the time that the input last ran
                 last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
