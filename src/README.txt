@@ -82,4 +82,6 @@ Change History
 | 1.1     | Added ability to specify the user-agent string                                                                   |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 1.1.1   | Updated to the latest version of the modular input library; should fix problems where the input crashes          |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 1.1.2   | Fixed issue where fields without spaces were not being extracted as multi-value fields by defualt                |
 +---------+------------------------------------------------------------------------------------------------------------------+
