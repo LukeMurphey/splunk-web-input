@@ -84,4 +84,6 @@ Change History
 | 1.1.1   | Updated to the latest version of the modular input library; should fix problems where the input crashes          |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 1.1.2   | Fixed issue where fields without spaces were not being extracted as multi-value fields by default                |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 1.1.3   | Fixed issue where you had to re-type the password everytime you wanted to edit an input                          |
 +---------+------------------------------------------------------------------------------------------------------------------+
