@@ -547,13 +547,13 @@ class ModularInput():
         # Return the content as a string WITHOUT the XML header.
         return doc.documentElement.toxml()
     
-    def escape_spaces(self, s, encapsulate_in_double_spaces=False):
+    def escape_spaces(self, s, encapsulate_in_double_quotes=False):
         """
         If the string contains spaces, then add double quotes around the string. This is useful when outputting fields and values to Splunk since a space will cause Splunk to not recognize the entire value.
         
         Arguments:
         s -- A string to escape.
-        encapsulate_in_double_spaces -- If true, the value will have double-spaces added around it.
+        encapsulate_in_double_quotes -- If true, the value will have double-spaces added around it.
         """
         
         # Make sure the input is a string
@@ -565,13 +565,13 @@ class ModularInput():
             s = s.replace('"', '\\"')
             s = s.replace("'", "\\'")
         
-        if s is not None and (" " in s or encapsulate_in_double_spaces):
+        if s is not None and (" " in s or encapsulate_in_double_quotes):
             return '"' + s + '"'
         
         else:
             return s
     
-    def create_event_string(self, data_dict, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_spaces=False):
+    def create_event_string(self, data_dict, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_quotes=False):
         """
         Create a string representing the event.
         
@@ -583,7 +583,7 @@ class ModularInput():
         index -- The index to send the event to
         unbroken -- 
         close -- 
-        encapsulate_value_in_double_spaces -- If true, the value will have double-spaces added around it.
+        encapsulate_value_in_double_quotes -- If true, the value will have double-spaces added around it.
         """
         
         # Make the content of the event
@@ -601,7 +601,7 @@ class ModularInput():
             
             # Write out each value
             for v in values:
-                v_escaped = self.escape_spaces(v, encapsulate_in_double_spaces=encapsulate_value_in_double_spaces)
+                v_escaped = self.escape_spaces(v, encapsulate_in_double_quotes=encapsulate_value_in_double_quotes)
                 
                 
                 if len(data_str) > 0:
@@ -635,7 +635,7 @@ class ModularInput():
         # added with a "</done>" tag.
         return self._print_event(self.document, event)
         
-    def output_event(self, data_dict, stanza, index=None, sourcetype=None, source=None, host=None, unbroken=False, close=False, out=sys.stdout, encapsulate_value_in_double_spaces=False ):
+    def output_event(self, data_dict, stanza, index=None, sourcetype=None, source=None, host=None, unbroken=False, close=False, out=sys.stdout, encapsulate_value_in_double_quotes=False ):
         """
         Output the given even so that Splunk can see it.
         
@@ -649,10 +649,10 @@ class ModularInput():
         close -- 
         out -- The stream to send the event to (defaults to standard output)
         host -- The host
-        encapsulate_value_in_double_spaces -- If true, the value will have double-spaces added around it. This is useful in cases where the app contains props & transforms that require the value to have double-spaces.
+        encapsulate_value_in_double_quotes -- If true, the value will have double-spaces added around it. This is useful in cases where the app contains props & transforms that require the value to have double-spaces.
         """
         
-        output = self.create_event_string(data_dict, stanza, sourcetype, source, index, host, unbroken, close, encapsulate_value_in_double_spaces=encapsulate_value_in_double_spaces)
+        output = self.create_event_string(data_dict, stanza, sourcetype, source, index, host, unbroken, close, encapsulate_value_in_double_quotes=encapsulate_value_in_double_quotes)
         
         out.write(output)
         out.flush()
@@ -662,8 +662,7 @@ class ModularInput():
         Set up the modular input.
         
         Arguments:
-        title -- The title of the modular input (e.g. "Database Connector")
-        description -- A description of the input (e.g. "Get data from a database")
+        scheme_args -- The scheme args indicating the run-time mode of the input
         args -- A list of Field instances for validating the arguments
         sleep_interval -- How often to sleep between runs
         logger_name -- The logger name to append to the logger
@@ -905,7 +904,7 @@ class ModularInput():
             
     def validate_parameters(self, stanza, parameters):
         """
-        Validate the parameter set for a stanza and returns a dictionary of cleaner parameters.
+        Validate the parameter set for a stanza and returns a dictionary of cleaned parameters.
         
         Arguments:
         stanza -- The stanza name
