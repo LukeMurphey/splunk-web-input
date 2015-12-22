@@ -1,11 +1,6 @@
 """
-This class provides a base class for search commands that handles much of the Splunk-to-Python interaction necessary for making a search command.
-
-See below for a basic example of a class that sub-classes SearchCommand:
-"""
-
-"""
-from search_command_example_app.search_command import SearchCommand
+from search_command import SearchCommand
+import sys
 
 class Echo(SearchCommand):
     
@@ -14,14 +9,18 @@ class Echo(SearchCommand):
         # Save the parameters
         self.what_to_echo = what_to_echo
         
-        # Initialize the class
+         # Initialize the class
         SearchCommand.__init__( self, run_in_preview=True, logger_name='echo_search_command')
     
-    def handle_results(self, results, in_preview, session_key):
-        self.output_results([{'echo' : self.what_to_echo}])
+    def handle_results(self, results, session_key, in_preview):
+        self.output_results({'echo' : self.what_to_echo})
         
 if __name__ == '__main__':
-    Echo.execute()
+    try:
+        Echo.execute()
+        sys.exit(0)
+    except Exception as e:
+        print e
 """
 
 import splunk.Intersplunk
@@ -39,7 +38,15 @@ class SearchCommand(object):
     
     VALID_PARAMS = [ PARAM_RUN_IN_PREVIEW, PARAM_DEBUG ]
     
-    def __init__(self, run_in_preview=False, logger_name='python_search_command'):
+    def __init__(self, run_in_preview=False, logger_name='python_search_command', log_level=logging.INFO ):
+        """
+        Constructs an instance of the search command.
+        
+        Arguments:
+        run_in_preview -- Indicates whether the search command should run in preview mode
+        logger_name -- The logger name to append to the logger
+        """
+        
         self.run_in_preview = False
         
         # Check and save the logger name
@@ -49,7 +56,7 @@ class SearchCommand(object):
             raise Exception("Logger name cannot be empty")
         
         self.logger_name = logger_name
-        
+        self.log_level = log_level
         # self.logger.info("args" + str(args))
     
     @property
@@ -61,7 +68,7 @@ class SearchCommand(object):
         
         logger = logging.getLogger(self.logger_name)
         logger.propagate = False # Prevent the log messages from being duplicated in the python.log file
-        logger.setLevel(logging.INFO)
+        logger.setLevel(self.log_level)
         
         file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', self.logger_name + '.log']), maxBytes=25000000, backupCount=5)
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -198,7 +205,7 @@ class SearchCommand(object):
         Output results to Splunk.
         
         Arguments:
-        results -- A dictionary of fields/values to send to Splunk.
+        results -- An array of dictionaries of fields/values to send to Splunk.
         """
         
         splunk.Intersplunk.outputResults(results)
