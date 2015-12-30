@@ -108,7 +108,10 @@ class TestWebInput(unittest.TestCase):
         self.assertEquals(result['timed_out'], True)
         
     def test_save_checkpoint(self):
-        WebInput.save_checkpoint_data(self.tmp_dir, "web_input://TextCritical.com", { 'last_run': 100 })
+        
+        web_input = WebInput(timeout=3)
+        
+        web_input.save_checkpoint_data(self.tmp_dir, "web_input://TextCritical.com", { 'last_run': 100 })
         self.assertEquals( WebInput.last_ran(self.tmp_dir, "web_input://TextCritical.com"), 100)
         
     def test_is_expired(self):
@@ -309,11 +312,21 @@ class TestWebInput(unittest.TestCase):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
         result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/header_reflection"), selector_field.to_python(".user-agent"), timeout=3, output_matches_as_mv=True, user_agent="test_scape_page_custom_user_agent")
-        print result
         
         #print result['match']
         self.assertEqual(len(result['match']), 1)
         self.assertEqual(result['match'][0], "test_scape_page_custom_user_agent")
+        
+    def test_scape_page_xml(self):
+        # http://lukemurphey.net/issues/1144
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True)
+        
+        self.assertEqual(len(result['match']), 1)
+        self.assertEqual(result['match'][0], "695")
         
     '''
     def test_html_to_json(self):

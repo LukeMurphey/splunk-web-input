@@ -30,6 +30,12 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/header_reflection":
             self.do_HEAD()
             self.wfile.write('<html><body><div class="user-agent">%s</div></body></html>' % str(self.headers['user-agent']))
+            
+        # Present XML file
+        if self.path == "/xml":
+            self.do_HEAD()
+            with open( os.path.join("web_files", "file.xml"), "r") as webfile:
+                self.wfile.write(webfile.read())#.replace('\n', '')
         
         # Present frontpage with user authentication.
         elif self.headers.getheader('Authorization') == None:

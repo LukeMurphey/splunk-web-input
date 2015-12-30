@@ -49,7 +49,7 @@ class SelectorField(Field):
     @classmethod
     def parse_selector(cls, value, name):
         try:
-            return CSSSelector(value)
+            return CSSSelector(value.lower()) # selectors 
         except AssertionError as e:
             raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), name, str(e)))
     
@@ -361,7 +361,7 @@ class WebInput(ModularInput):
                     
                     # Try to use the name attributes for determining the field name
                     for a in name_attributes:
-                        #print match
+                        
                         attributes = dict(match.attrib)
                         
                         if a in attributes:

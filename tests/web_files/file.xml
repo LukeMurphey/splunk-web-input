@@ -1,0 +1,37 @@
+<nutcallstatus>
+    <!--this is similar to status.xml, but with more values-->
+    <!--all temperatures are displayed in tenths F, regardless of setting of unit-->
+    <!--all temperatures sent by browser to unit should be in F.  you can send tenths F with a decimal place, ex: 123.5-->  
+    <COOK>
+       <COOK_NAME>Cook</COOK_NAME>
+       <COOK_TEMP>695</COOK_TEMP>
+       <COOK_SET>1000</COOK_SET>
+       <COOK_STATUS>0</COOK_STATUS>
+    </COOK>
+    <FOOD1>
+       <FOOD1_NAME>Food1</FOOD1_NAME>
+       <FOOD1_TEMP>OPEN</FOOD1_TEMP>
+       <FOOD1_SET>1800</FOOD1_SET>
+       <FOOD1_STATUS>4</FOOD1_STATUS>
+    </FOOD1>
+    <FOOD2>
+       <FOOD2_NAME>Food2</FOOD2_NAME>
+       <FOOD2_TEMP>OPEN</FOOD2_TEMP>
+       <FOOD2_SET>1800</FOOD2_SET>
+       <FOOD2_STATUS>4</FOOD2_STATUS>
+    </FOOD2>
+    <FOOD3>
+       <FOOD3_NAME>Food3</FOOD3_NAME>
+       <FOOD3_TEMP>OPEN</FOOD3_TEMP>
+       <FOOD3_SET>1800</FOOD3_SET>
+       <FOOD3_STATUS>4</FOOD3_STATUS>
+    </FOOD3>
+    <OUTPUT_PERCENT>100</OUTPUT_PERCENT>
+    <TIMER_CURR>00:00:00</TIMER_CURR>   
+    <TIMER_STATUS>0</TIMER_STATUS>
+    <DEG_UNITS>1</DEG_UNITS>
+    <COOK_CYCTIME>6</COOK_CYCTIME>
+    <COOK_PROPBAND>300</COOK_PROPBAND>
+    <COOK_RAMP>0</COOK_RAMP>
+ </nutcallstatus>
+ 
