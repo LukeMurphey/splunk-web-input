@@ -85,5 +85,9 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 1.1.2   | Fixed issue where fields without spaces were not being extracted as multi-value fields by default                |
 |---------|------------------------------------------------------------------------------------------------------------------|
-| 1.1.3   | Fixed issue where you had to re-type the password everytime you wanted to edit an input                          |
+| 1.1.3   | Fixed issue where you had to re-type the password every-time you wanted to edit an input                         |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 1.2.0   | Fixed issue where the selector would sometimes not match if the content was upper-case and the selector wasn't   |
+|         | Added a BNF file for the search command                                                                          |
+|         | Added the ability to use the tag names as the field names                                                        |
 +---------+------------------------------------------------------------------------------------------------------------------+
