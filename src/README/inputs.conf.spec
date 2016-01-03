@@ -24,3 +24,6 @@ name_attributes = <value>
 
 user_agent = <value>
 * Defines the user-agent string used by the HTTP client
+
+use_element_name = <value>
+* Indicates if the element name ought to be used as the source for the field name (useful for XML files)

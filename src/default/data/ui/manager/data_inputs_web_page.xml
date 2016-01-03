@@ -63,6 +63,12 @@
 	          <key name="exampleText">The value of the field name will be set to the value of the attribute in the matching element; enter multiple attributes separated by commas</key>
 	        </element>
 	        
+	        <element name="use_element_name" type="checkbox" label="Use Tag Name as Field Name">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")</key>
+	        </element>
+	        
 	      </elements>
 	    </element>
 	  	

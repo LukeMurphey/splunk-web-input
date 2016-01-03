@@ -1,6 +1,6 @@
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
-from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField
+from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
 from splunk.models.field import IntField as ModelIntField 
@@ -122,7 +122,8 @@ class WebInput(ModularInput):
                 Field("username", "Username", "The username to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("password", "Password", "The password to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-                Field("user_agent", "User Agent", "The user-agent to use when communicating with the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
+                Field("user_agent", "User Agent", "The user-agent to use when communicating with the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                BooleanField("use_element_name", "Use Element Name as Field Name", "Use the element's tag name as the field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -206,7 +207,7 @@ class WebInput(ModularInput):
             return None
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False):
         """
         Retrieve data from a website.
         
@@ -221,6 +222,7 @@ class WebInput(ModularInput):
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
         include_empty_matches -- Output matches that result in empty strings
         user_agent -- The string to use for the user-agent
+        use_element_name -- Use the element as the field name
         """
         
         if isinstance(url, basestring):
@@ -377,13 +379,30 @@ class WebInput(ModularInput):
                             elif field_name in result and output_matches_as_mv:
                                 result[field_name].append(match_text)
                                 
-                            # If the field doesn't exist
+                            # Otherwise, output it as a separate field
                             if output_matches_as_separate_fields:
                                 result['match_' + field_name + "_" + str(fields_included)] = match_text
+                                
+                    # Try to use the name of the element
+                    if use_element_name and not field_made:
                         
+                        # If the field does not exists, create it
+                        if not match.tag in result and output_matches_as_mv:
+                            result[match.tag] = [match_text]
+                        
+                        # If the field exists and we are adding them as mv, then add it
+                        elif output_matches_as_mv:
+                            result[match.tag].append(match_text)
+                        
+                        # Otherwise, output it as a separate field
+                        if output_matches_as_separate_fields:
+                            result['match_' + match.tag] = match_text
+                        
+                    # Otherwise, output the fields as generic fields
                     if not field_made:
+                        
                         if output_matches_as_mv:
-                            result['match'].append(match_text)
+                            result['match'].append(match_text) # Note: the 'match' in the dictionary will already be populated
                         
                         if output_matches_as_separate_fields:
                             result['match_' + str(fields_included)] = match_text
@@ -451,20 +470,21 @@ class WebInput(ModularInput):
     def run(self, stanza, cleaned_params, input_config):
         
         # Make the parameters
-        interval        = cleaned_params["interval"]
-        title           = cleaned_params["title"]
-        url             = cleaned_params["url"]
-        selector        = cleaned_params["selector"]
-        username        = cleaned_params.get("username", None)
-        password        = cleaned_params.get("password", None)
-        name_attributes = cleaned_params.get("name_attributes", [])
-        user_agent      = cleaned_params.get("user_agent", None)
-        timeout         = self.timeout
-        sourcetype      = cleaned_params.get("sourcetype", "web_input")
-        host            = cleaned_params.get("host", None)
-        index           = cleaned_params.get("index", "default")
-        conf_stanza     = cleaned_params.get("configuration", None)
-        source          = stanza
+        interval         = cleaned_params["interval"]
+        title            = cleaned_params["title"]
+        url              = cleaned_params["url"]
+        selector         = cleaned_params["selector"]
+        username         = cleaned_params.get("username", None)
+        password         = cleaned_params.get("password", None)
+        name_attributes  = cleaned_params.get("name_attributes", [])
+        user_agent       = cleaned_params.get("user_agent", None)
+        timeout          = self.timeout
+        sourcetype       = cleaned_params.get("sourcetype", "web_input")
+        host             = cleaned_params.get("host", None)
+        index            = cleaned_params.get("index", "default")
+        conf_stanza      = cleaned_params.get("configuration", None)
+        use_element_name = cleaned_params.get("use_element_name", False)
+        source           = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
             
@@ -482,7 +502,7 @@ class WebInput(ModularInput):
             result = None
             
             try:
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent)
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name)
                 
                 matches = 0
                 

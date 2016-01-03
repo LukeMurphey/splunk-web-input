@@ -257,6 +257,11 @@
 			data.password = $('#password_id').val();
 		}
 		
+		// Determine if we are using the use_element_name parameter
+		if( $('#use_element_name_id:checked') ){
+			data.use_element_name = '1';
+		}
+		
 		//data.include_empty_matches = true;
 		
 		$.ajax(

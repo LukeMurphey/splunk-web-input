@@ -327,6 +327,19 @@ class TestWebInput(unittest.TestCase):
         
         self.assertEqual(len(result['match']), 1)
         self.assertEqual(result['match'][0], "695")
+    
+    def test_scape_page_names_as_tag_name(self):
+        # http://lukemurphey.net/issues/1145
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        result = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True, use_element_name=True)
+        
+        self.assertEqual(len(result['match']), 1)
+        self.assertEqual(result['match'][0], "695")
+        self.assertEqual(len(result['cook_temp']), 1)
+        self.assertEqual(result['cook_temp'][0], "695")
         
     '''
     def test_html_to_json(self):
