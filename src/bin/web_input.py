@@ -207,6 +207,46 @@ class WebInput(ModularInput):
             return None
     
     @classmethod
+    def detect_encoding(cls, content, response, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
+        """
+        Detect the encoding that is used in the given website/webpage.
+        
+        
+        """
+        
+        # This will contain the detected encoding
+        encoding = None
+        
+        # Try getting the encoding from the "meta" attribute
+        if charset_detect_meta_enabled:
+            find_meta_charset = re.compile("<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE) #http://stackoverflow.com/questions/3458217/how-to-use-regular-expression-to-match-the-charset-string-in-html
+            matched_encoding = find_meta_charset.search(content)
+                
+            if matched_encoding:
+                encoding = matched_encoding.groups()[0]
+            
+        # Try getting the encoding from the content-type header
+        if encoding is None and charset_detect_content_type_header_enabled:
+            
+            if 'content-type' in response:
+                find_header_charset = re.compile("charset=(.*)",re.IGNORECASE)
+                matched_encoding = find_header_charset.search(response['content-type'])
+                
+                if matched_encoding:
+                    encoding = matched_encoding.groups()[0]
+            
+        # Try sniffing the encoding
+        if encoding is None and charset_detect_sniff_enabled:
+            encoding_detection = chardet.detect(content)
+            encoding = encoding_detection['encoding']
+            
+        # If all else fails, default to "Windows-1252"
+        if encoding is None:
+            encoding = "cp1252"
+            
+        return encoding
+    
+    @classmethod
     def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False):
         """
         Retrieve data from a website.
@@ -287,34 +327,7 @@ class WebInput(ModularInput):
             result['request_time'] = timer.msecs
             
             # Determine the encoding
-            encoding = None
-            
-            # Try getting the encoding from the "meta" attribute
-            if charset_detect_meta_enabled:
-                find_meta_charset = re.compile("<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE) #http://stackoverflow.com/questions/3458217/how-to-use-regular-expression-to-match-the-charset-string-in-html
-                matched_encoding = find_meta_charset.search(content)
-                    
-                if matched_encoding:
-                    encoding = matched_encoding.groups()[0]
-                
-            # Try getting the encoding from the content-type header
-            if encoding is None and charset_detect_content_type_header_enabled:
-                
-                if 'content-type' in response:
-                    find_header_charset = re.compile("charset=(.*)",re.IGNORECASE)
-                    matched_encoding = find_header_charset.search(response['content-type'])
-                    
-                    if matched_encoding:
-                        encoding = matched_encoding.groups()[0]
-                
-            # Try sniffing the encoding
-            if encoding is None and charset_detect_sniff_enabled:
-                encoding_detection = chardet.detect(content)
-                encoding = encoding_detection['encoding']
-                
-            # If all else fails, default to "Windows-1252"
-            if encoding is None:
-                encoding = "cp1252"
+            encoding = cls.detect_encoding(content, response, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
             
             # Store the encoding in the result
             result['encoding'] = encoding
