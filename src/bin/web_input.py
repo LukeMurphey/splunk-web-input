@@ -301,77 +301,12 @@ class WebInput(ModularInput):
         return links
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False):
-        """
-        Retrieve data from a website.
-        
-        Arguments:
-        url -- The url to connect to. This object ought to be an instance derived from using urlparse
-        selector -- A CSS selector that matches the data to retrieve
-        username -- The username to use for authentication
-        password -- The username to use for authentication
-        timeout -- The amount of time to quit waiting on a connection
-        name_attributes -- Attributes to use the values for assigning the names
-        output_matches_as_mv -- Output all of the matches with the same name ("match")
-        output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
-        charset_detect_meta_enabled -- Enable detection from the META attribute in the head tag
-        charset_detect_content_type_header_enabled -- Enable detection from the content-type header
-        charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
-        include_empty_matches -- Output matches that result in empty strings
-        proxy_type -- The type of proxy server (defaults to "http")
-        proxy_server -- The IP or domain name of the proxy server
-        proxy_port -- The port that the proxy server runs on
-        proxy_user -- The user name of the proxy server account
-        proxy_password -- The password of the proxy server account
-        user_agent -- The string to use for the user-agent
-        use_element_name -- Use the element as the field name
-        """
-        
-        if isinstance(url, basestring):
-            url = URLField.parse_url(url, "url")
-            
-        if isinstance(selector, basestring):
-            selector = SelectorField.parse_selector(selector, "selector")
-        
-        logger.debug('Running web input, url="%s"', url.geturl())
-        
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False):
         try:
-            # Determine which type of proxy is to be used (if any)
-            resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
             
-            # Setup the proxy info if so configured
-            if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
-                proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
-                logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
-            else:
-                # No proxy is being used
-                proxy_info = None
-                logger.debug("Not using a proxy server")
-                        
-            # Make the HTTP object
-            http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
-            
-            # Setup the credentials if necessary
-            if username is not None or password is not None:
-                
-                if username is None:
-                    username = ""
-                    
-                if password is None:
-                    password = ""
-                    
-                http.add_credentials(username, password)
-                
             # This will be where the result information will be stored
             result = {}
             
-            # Setup the headers as necessary
-            headers = {}
-            
-            if user_agent is not None:
-                logger.info("Setting user-agent=%s", user_agent)
-                headers['User-Agent'] = user_agent
-                        
             # Perform the request
             with Timer() as timer:
                 
@@ -493,8 +428,86 @@ class WebInput(ModularInput):
             if e.errno in [60, 61]:
                 result['timed_out'] = True
         
-        except Exception as e:
+        except Exception:
             logger.exception("A general exception was thrown when executing a web request")
+            raise
+        
+        return result  
+    
+    @classmethod
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False):
+        """
+        Retrieve data from a website.
+        
+        Arguments:
+        url -- The url to connect to. This object ought to be an instance derived from using urlparse
+        selector -- A CSS selector that matches the data to retrieve
+        username -- The username to use for authentication
+        password -- The username to use for authentication
+        timeout -- The amount of time to quit waiting on a connection
+        name_attributes -- Attributes to use the values for assigning the names
+        output_matches_as_mv -- Output all of the matches with the same name ("match")
+        output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
+        charset_detect_meta_enabled -- Enable detection from the META attribute in the head tag
+        charset_detect_content_type_header_enabled -- Enable detection from the content-type header
+        charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
+        include_empty_matches -- Output matches that result in empty strings
+        proxy_type -- The type of proxy server (defaults to "http")
+        proxy_server -- The IP or domain name of the proxy server
+        proxy_port -- The port that the proxy server runs on
+        proxy_user -- The user name of the proxy server account
+        proxy_password -- The password of the proxy server account
+        user_agent -- The string to use for the user-agent
+        use_element_name -- Use the element as the field name
+        """
+        
+        if isinstance(url, basestring):
+            url = URLField.parse_url(url, "url")
+            
+        if isinstance(selector, basestring):
+            selector = SelectorField.parse_selector(selector, "selector")
+        
+        logger.debug('Running web input, url="%s"', url.geturl())
+        
+        try:
+            # Determine which type of proxy is to be used (if any)
+            resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
+            
+            # Setup the proxy info if so configured
+            if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
+                proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
+                logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
+            else:
+                # No proxy is being used
+                proxy_info = None
+                logger.debug("Not using a proxy server")
+                        
+            # Make the HTTP object
+            http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
+            
+            # Setup the credentials if necessary
+            if username is not None or password is not None:
+                
+                if username is None:
+                    username = ""
+                    
+                if password is None:
+                    password = ""
+                    
+                http.add_credentials(username, password)
+            
+            # Setup the headers as necessary
+            headers = {}
+            
+            if user_agent is not None:
+                logger.info("Setting user-agent=%s", user_agent)
+                headers['User-Agent'] = user_agent
+                        
+            # Run the scraper and get the results
+            result = cls.get_result_single(http, url, selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name)
+        
+        except Exception:
+            logger.exception("A general exception was thrown when executing a web request") # TODO: remove this one or the one in get_result_single() 
             raise
         
         return result
