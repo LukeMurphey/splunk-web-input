@@ -125,13 +125,14 @@ class WebInputController(controllers.BaseController):
             if 'include_empty_matches' in kwargs:
                 include_empty_matches = util.normalizeBoolean(kwargs['include_empty_matches'], True)
                 
-            """
             # Get the use_element_name parameter
+            """
             use_element_name = None
             
             if( 'use_element_name' in kwargs):
                 use_element_name = util.normalizeBoolean(kwargs['use_element_name'], False)
             """
+            use_element_name = False
             
             # Get the proxy configuration
             conf_stanza = "default"
