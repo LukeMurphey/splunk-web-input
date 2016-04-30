@@ -15,6 +15,7 @@ import os
 import splunk
 import chardet
 import re
+from urlparse import urljoin
 
 import httplib2
 from httplib2 import socks
@@ -211,7 +212,12 @@ class WebInput(ModularInput):
         """
         Detect the encoding that is used in the given website/webpage.
         
-        
+        Arguments:
+        content -- The downloaded content (as raw bytes) http.request()
+        response -- The response object from http.request()
+        charset_detect_meta_enabled -- Enable detection from the META attribute in the head tag
+        charset_detect_content_type_header_enabled -- Enable detection from the content-type header
+        charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
         """
         
         # This will contain the detected encoding
@@ -247,6 +253,43 @@ class WebInput(ModularInput):
         return encoding
     
     @classmethod
+    def remove_anchor(cls, link):
+        m = re.search('([^#]*).*', link)
+        return m.group(1)
+    
+    @classmethod
+    def cleanup_link(cls, source_link, link):
+        return cls.remove_anchor(urljoin(source_link, link))
+    
+    @classmethod
+    def extract_links(cls, lxml_html_tree, links=None):
+        
+        # Set a default for the links argument
+        if links is None:
+            links = []
+        
+        # Get a selector grab the hrefs
+        selector = SelectorField.parse_selector("a[href]", "selector")
+        
+        # Get the matches
+        matches = selector(lxml_html_tree)
+        
+        for match in matches:
+            attributes = dict(match.attrib)
+            
+            # If the a tag has an href, then get it
+            if 'href' in attributes:
+                
+                # CLeanup the link to remove the local parts like the #
+                link = cls.cleanup_link(attributes['href'])
+                
+                # MAke sure the link wasn't already in the list
+                if link not in links:
+                    links.append(link)
+        
+        return links
+    
+    @classmethod
     def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False):
         """
         Retrieve data from a website.
@@ -260,7 +303,15 @@ class WebInput(ModularInput):
         name_attributes -- Attributes to use the values for assigning the names
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
+        charset_detect_meta_enabled -- Enable detection from the META attribute in the head tag
+        charset_detect_content_type_header_enabled -- Enable detection from the content-type header
+        charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
         include_empty_matches -- Output matches that result in empty strings
+        proxy_type -- The type of proxy server (defaults to "http")
+        proxy_server -- The IP or domain name of the proxy server
+        proxy_port -- The port that the proxy server runs on
+        proxy_user -- The user name of the proxy server account
+        proxy_password -- The password of the proxy server account
         user_agent -- The string to use for the user-agent
         use_element_name -- Use the element as the field name
         """

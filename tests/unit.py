@@ -341,6 +341,20 @@ class TestWebInput(unittest.TestCase):
         self.assertEqual(len(result['cook_temp']), 1)
         self.assertEqual(result['cook_temp'][0], "695")
         
+    def test_cleanup_link(self):
+        
+        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/", "http://textcritical.net/read#something"), "http://textcritical.net/read")
+        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/", "read/"), "http://textcritical.net/read/")
+        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/test/", "../read/"), "http://textcritical.net/read/")
+        self.assertEqual(WebInput.cleanup_link("http://textcritical.net", "read#test"), "http://textcritical.net/read")
+        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/test/", "read/"), "http://textcritical.net/test/read/")
+        
+    def test_remove_anchor(self):
+        
+        self.assertEqual(WebInput.remove_anchor("http://textcritical.net/read#something"), "http://textcritical.net/read")
+        self.assertEqual(WebInput.remove_anchor("http://textcritical.net/read/"), "http://textcritical.net/read/")
+        
+        
     '''
     def test_html_to_json(self):
         
