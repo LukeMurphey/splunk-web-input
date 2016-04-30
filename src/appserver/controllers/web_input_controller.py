@@ -99,7 +99,7 @@ class WebInputController(controllers.BaseController):
         Perform a page scrape and return the results (useful for previewing a web_input modular input configuration)
         """
         
-        result = {}
+        result = [{}]
         
         # Run the input
         try:
@@ -157,4 +157,4 @@ class WebInputController(controllers.BaseController):
             return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
         
         # Return the information
-        return self.render_json(result)
+        return self.render_json(result[0])

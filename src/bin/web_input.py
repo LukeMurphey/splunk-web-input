@@ -510,7 +510,7 @@ class WebInput(ModularInput):
             logger.exception("A general exception was thrown when executing a web request") # TODO: remove this one or the one in get_result_single() 
             raise
         
-        return result
+        return [result]
     
     @classmethod
     def unescape(cls, text):
@@ -604,9 +604,12 @@ class WebInput(ModularInput):
             # Process the result (if we got one)
             if result is not None:
                 
-                # Send the event
-                self.output_event(result, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
-            
+                # Process each event
+                for r in result:
+                    
+                    # Send the event
+                    self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
+                
                 # Get the time that the input last ran
                 last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
                 
