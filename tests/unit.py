@@ -8,6 +8,7 @@ import re
 import tempfile
 import threading
 import unicodedata
+import lxml.html
 from StringIO import StringIO
 
 sys.path.append( os.path.join("..", "src", "bin") )
@@ -343,16 +344,43 @@ class TestWebInput(unittest.TestCase):
         
     def test_cleanup_link(self):
         
-        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/", "http://textcritical.net/read#something"), "http://textcritical.net/read")
-        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/", "read/"), "http://textcritical.net/read/")
-        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/test/", "../read/"), "http://textcritical.net/read/")
-        self.assertEqual(WebInput.cleanup_link("http://textcritical.net", "read#test"), "http://textcritical.net/read")
-        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/test/", "read/"), "http://textcritical.net/test/read/")
+        self.assertEqual(WebInput.cleanup_link("http://textcritical.net/read#something", "http://textcritical.net/"), "http://textcritical.net/read")
+        self.assertEqual(WebInput.cleanup_link("read/", "http://textcritical.net/"), "http://textcritical.net/read/")
+        self.assertEqual(WebInput.cleanup_link("../read/", "http://textcritical.net/test/"), "http://textcritical.net/read/")
+        self.assertEqual(WebInput.cleanup_link("read#test", "http://textcritical.net/"), "http://textcritical.net/read")
+        self.assertEqual(WebInput.cleanup_link("read/", "http://textcritical.net/test/"), "http://textcritical.net/test/read/")
         
     def test_remove_anchor(self):
         
         self.assertEqual(WebInput.remove_anchor("http://textcritical.net/read#something"), "http://textcritical.net/read")
         self.assertEqual(WebInput.remove_anchor("http://textcritical.net/read/"), "http://textcritical.net/read/")
+        
+    def test_extract_links(self):
+        
+        tree = lxml.html.fromstring("""
+        <!DOCTYPE html>
+        <html>
+        <body>
+        
+        <h1>Test</h1>
+        
+        <a>Test link[1]</a>
+        <a href="http://textcritical.net">Test link[2]</a>
+        <a href="link_3">Test link[3]</a>
+        <a href="../link_4">Test link[4]</a>
+        <a href="../link_4">Test duplicate link[4]</a>
+        <a href="link_3#test">Test duplicate anchor link[3]</a>
+        </body>
+        </html>
+        """)
+        
+        links = WebInput.extract_links(tree, "http://textcritical.net/read/")
+        
+        self.assertEqual(len(links), 3)
+        
+        self.assertEqual(links[0], "http://textcritical.net")
+        self.assertEqual(links[1], "http://textcritical.net/read/link_3")
+        self.assertEqual(links[2], "http://textcritical.net/link_4")
         
         
     '''

@@ -253,16 +253,27 @@ class WebInput(ModularInput):
         return encoding
     
     @classmethod
+    def is_link_in_filter(cls, link, domain_limit):
+        
+        # Parse the link
+        
+        # Verify the link is within the 
+        pass
+    
+    @classmethod
     def remove_anchor(cls, link):
         m = re.search('([^#]*).*', link)
         return m.group(1)
     
     @classmethod
-    def cleanup_link(cls, source_link, link):
-        return cls.remove_anchor(urljoin(source_link, link))
+    def cleanup_link(cls, url, source_url):
+        if source_url is not None:
+            return cls.remove_anchor(urljoin(source_url, url))
+        else: 
+            return cls.remove_anchor(url)
     
     @classmethod
-    def extract_links(cls, lxml_html_tree, links=None):
+    def extract_links(cls, lxml_html_tree, source_url, links=None, domain_limit=None):
         
         # Set a default for the links argument
         if links is None:
@@ -281,7 +292,7 @@ class WebInput(ModularInput):
             if 'href' in attributes:
                 
                 # CLeanup the link to remove the local parts like the #
-                link = cls.cleanup_link(attributes['href'])
+                link = cls.cleanup_link(attributes['href'], source_url)
                 
                 # MAke sure the link wasn't already in the list
                 if link not in links:
