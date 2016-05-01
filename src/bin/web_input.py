@@ -15,7 +15,7 @@ import os
 import splunk
 import chardet
 import re
-from urlparse import urljoin
+from urlparse import urlparse, urljoin
 
 import httplib2
 from httplib2 import socks
@@ -253,27 +253,96 @@ class WebInput(ModularInput):
         return encoding
     
     @classmethod
-    def is_link_in_filter(cls, link, domain_limit):
+    def is_url_in_domain(cls, url, domain):
+        """
+        Determine if the URL is within the given domain.
+        
+        Arguments:
+        url -- A URL as a string.
+        domain -- A string representing a domain (like "textcritical.net")
+        """
+        
+        if domain is None:
+            return True
         
         # Parse the link
+        url_parsed = urlparse(url)
         
-        # Verify the link is within the 
-        pass
+        # Verify the link is within the domain
+        return url_parsed.netloc == domain
     
     @classmethod
-    def remove_anchor(cls, link):
-        m = re.search('([^#]*).*', link)
+    def wildcard_to_re(cls, wildcard):
+        """
+        Convert the given wildcard to a regular expression.
+        
+        Arguments:
+        wildcard -- A string representing a wild-card (like "http://textcritical.net*")
+        """
+        
+        r = re.escape(wildcard)
+        return r.replace('\*', ".*")
+    
+    @classmethod
+    def is_url_in_url_filter(cls, url, url_filter):
+        """
+        Determine if the URL is within the provided filter wild-card.
+        
+        Arguments:
+        url -- A URL as a string.
+        url_filter -- A string representing a wild-card (like "http://textcritical.net*")
+        """
+        
+        if url_filter is None:
+            return True
+        
+        # Convert the filter to a regular expression
+        url_filter_re = cls.wildcard_to_re(url_filter)
+        
+        # See if the filter matches
+        if re.match(url_filter_re, url):
+            return True
+        else:
+            return False
+    
+    @classmethod
+    def remove_anchor(cls, url):
+        """
+        Removing the anchor from a link.
+        
+        Arguments:
+        url -- A URL or partial URL
+        """
+        
+        m = re.search('([^#]*).*', url)
         return m.group(1)
     
     @classmethod
     def cleanup_link(cls, url, source_url):
+        """
+        Prepare a link for processing by removing the anchor and making it absolute.
+        
+        Arguments:
+        url -- A URL or partial URL
+        source_url -- The URL from which the URL was obtained from
+        """
+        
         if source_url is not None:
             return cls.remove_anchor(urljoin(source_url, url))
         else: 
             return cls.remove_anchor(url)
     
     @classmethod
-    def extract_links(cls, lxml_html_tree, source_url, links=None, domain_limit=None):
+    def extract_links(cls, lxml_html_tree, source_url, links=None, url_filter=None):
+        """
+        Get the results from performing a HTTP request and parsing the output.
+        
+        Arguments:
+        lxml_html_tree -- A parsed XML tree.
+        source_url -- The url from which the content came from; this should be a string.
+        links -- An array to put the links into
+        url_filter -- The URL to filter extraction to (a wild-card as a string)
+        """
         
         # Set a default for the links argument
         if links is None:
@@ -294,14 +363,34 @@ class WebInput(ModularInput):
                 # CLeanup the link to remove the local parts like the #
                 link = cls.cleanup_link(attributes['href'], source_url)
                 
-                # MAke sure the link wasn't already in the list
-                if link not in links:
+                # Make sure the link wasn't already in the list
+                if link not in links and cls.is_url_in_url_filter(link, url_filter): #cls.is_url_in_domain(source_url, domain_limit):
                     links.append(link)
         
         return links
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None):
+        """
+        Get the results from performing a HTTP request and parsing the output.
+        
+        Arguments:
+        http -- The HTTP object to perform the request with
+        url -- The url to connect to. This object ought to be an instance derived from using urlparse
+        selector -- A CSS selector that matches the data to retrieve
+        headers -- The HTTP headers
+        name_attributes -- Attributes to use the values for assigning the names
+        output_matches_as_mv -- Output all of the matches with the same name ("match")
+        output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
+        charset_detect_meta_enabled -- Enable detection from the META attribute in the head tag
+        charset_detect_content_type_header_enabled -- Enable detection from the content-type header
+        charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
+        include_empty_matches -- Output matches that result in empty strings
+        use_element_name -- Use the element as the field name
+        extracted_links -- The array to place the extract links (if not None)
+        url_filter -- The wild-card to filter extracted URLs to
+        """
+        
         try:
             
             # This will be where the result information will be stored
@@ -322,6 +411,7 @@ class WebInput(ModularInput):
             # Retrieve the meta-data
             result['response_code'] = response.status    
             result['request_time'] = timer.msecs
+            result['url'] = url.geturl()
             
             # Determine the encoding
             encoding = cls.detect_encoding(content, response, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
@@ -416,6 +506,17 @@ class WebInput(ModularInput):
                         
                         if output_matches_as_separate_fields:
                             result['match_' + str(fields_included)] = match_text
+                        
+                    # If we are to extract links, do it    
+                    if extracted_links is not None:
+                        
+                        for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
+                            
+                            # Add the extracted link if it is not already in the list
+                            if extracted not in extracted_links:
+                                
+                                # Add the link with a value of "False" (indicating that it hasn't been processed)
+                                extracted_links[extracted] = False
         
         # Handle time outs    
         except socket.timeout:
@@ -428,6 +529,9 @@ class WebInput(ModularInput):
             if e.errno in [60, 61]:
                 result['timed_out'] = True
         
+        except httplib2.RelativeURIError:
+            return None # Not a real URI
+        
         except Exception:
             logger.exception("A general exception was thrown when executing a web request")
             raise
@@ -435,7 +539,7 @@ class WebInput(ModularInput):
         return result  
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, url_filter=None):
         """
         Retrieve data from a website.
         
@@ -459,6 +563,8 @@ class WebInput(ModularInput):
         proxy_password -- The password of the proxy server account
         user_agent -- The string to use for the user-agent
         use_element_name -- Use the element as the field name
+        page_limit -- The page of pages to limit matches to
+        url_filter -- A wild-card to limit the extracted URLs to
         """
         
         if isinstance(url, basestring):
@@ -468,6 +574,8 @@ class WebInput(ModularInput):
             selector = SelectorField.parse_selector(selector, "selector")
         
         logger.debug('Running web input, url="%s"', url.geturl())
+        
+        results = []
         
         try:
             # Determine which type of proxy is to be used (if any)
@@ -504,13 +612,34 @@ class WebInput(ModularInput):
                 headers['User-Agent'] = user_agent
                         
             # Run the scraper and get the results
-            result = cls.get_result_single(http, url, selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name)
-        
+            extracted_links = {url.geturl():False}
+            
+            while len(results) < page_limit:
+                
+                url = None
+                
+                for k, v in extracted_links.items():
+                    if v == False:
+                        url = k
+                        
+                        # Track that the URL was checked
+                        extracted_links[k] = True
+                
+                # Stop if we have no more URLs to process
+                if url is None:
+                    break
+                
+                result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter)
+                
+                if result is not None:
+                    results.append(result)
+                    logger.info("Extracted URLs count=%r", len(extracted_links))
+                
         except Exception:
             logger.exception("A general exception was thrown when executing a web request") # TODO: remove this one or the one in get_result_single() 
             raise
         
-        return [result]
+        return results
     
     @classmethod
     def unescape(cls, text):

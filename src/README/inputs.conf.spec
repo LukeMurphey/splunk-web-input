@@ -27,3 +27,9 @@ user_agent = <value>
 
 use_element_name = <value>
 * Indicates if the element name ought to be used as the source for the field name (useful for XML files)
+
+page_limit = <value>
+* Indicates the maximum number of pages to discover from URL extraction
+
+url_filter = <value>
+* Indicates what URLs the spider should be limited to

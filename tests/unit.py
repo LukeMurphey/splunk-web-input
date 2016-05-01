@@ -403,6 +403,48 @@ class TestWebInput(unittest.TestCase):
         self.assertEqual(links[1], "http://textcritical.net/read/link_3")
         self.assertEqual(links[2], "http://textcritical.net/link_4")
         
+    def test_extract_links_filter(self):
+        
+        tree = lxml.html.fromstring("""
+        <!DOCTYPE html>
+        <html>
+        <body>
+        
+        <h1>Test</h1>
+        
+        <a>Test link[1]</a>
+        <a href="http://textcritical.net">Test link[2]</a>
+        <a href="link_3">Test link[3]</a>
+        <a href="http://textcritical.com">Test link[3]</a>
+        </body>
+        </html>
+        """)
+        
+        links = WebInput.extract_links(tree, "http://textcritical.net/read/", url_filter="http://textcritical.net")
+        
+        self.assertEqual(len(links), 2)
+        
+        self.assertEqual(links[0], "http://textcritical.net")
+        self.assertEqual(links[1], "http://textcritical.net/read/link_3")
+        
+    def test_scape_page_spider(self):
+        # http://lukemurphey.net/issues/762
+        web_input = WebInput(timeout=3)
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), timeout=3, output_matches_as_mv=True, page_limit=5)
+        result = results[0]
+        
+        self.assertEqual(len(results), 5)
+        self.assertEqual(len(result['match']), 3)
+        self.assertEqual(result['match'][0], "Source code")
+        
+    def test_is_url_in_url_filter(self):
+        self.assertTrue(WebInput.is_url_in_url_filter("http://textcritical.net/tree", "http://textcritical.net*"))
+        self.assertTrue(WebInput.is_url_in_url_filter("http://textcritical.net/tree", "http://textcritical.net/*"))
+        self.assertFalse(WebInput.is_url_in_url_filter("http://textcritical.net/", "http://textcritical.com/*"))
+        self.assertTrue(WebInput.is_url_in_url_filter("http://textcritical.com", "http://textcritical.*"))
         
     '''
     def test_html_to_json(self):
