@@ -727,6 +727,12 @@ class WebInput(ModularInput):
             result = None
             
             try:
+                
+                # Make sure the page_limit is not too small
+                if page_limit < 1:
+                    logger.warn("The parameter is too small for page_limit=%r", page_limit)
+                    page_limit = 1
+                
                 result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, url_filter=url_filter)
                 
                 matches = 0
