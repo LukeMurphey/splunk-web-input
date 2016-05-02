@@ -363,6 +363,31 @@ class TestWebInput(unittest.TestCase):
         self.assertEqual(len(result['cook_temp']), 1)
         self.assertEqual(result['cook_temp'][0], "695")
         
+    '''
+    def test_html_to_json(self):
+        
+        web_input = WebInput(timeout=3)
+        
+        content = """
+        <html>
+            <head>
+              <title>Some page</title>
+            </head>
+            <body>
+              <div class="header">This is the header</div>
+              <div class="footer" />
+            </body>
+        </html>
+        """
+        
+        tree = lxml.html.fromstring(content)
+        
+        html_as_json = WebInput.html_to_json(tree)
+    '''
+        
+class TestWebInputCrawling(unittest.TestCase):
+    
+        
     def test_cleanup_link(self):
         
         self.assertEqual(WebInput.cleanup_link("http://textcritical.net/read#something", "http://textcritical.net/"), "http://textcritical.net/read")
@@ -445,32 +470,22 @@ class TestWebInput(unittest.TestCase):
         self.assertTrue(WebInput.is_url_in_url_filter("http://textcritical.net/tree", "http://textcritical.net/*"))
         self.assertFalse(WebInput.is_url_in_url_filter("http://textcritical.net/", "http://textcritical.com/*"))
         self.assertTrue(WebInput.is_url_in_url_filter("http://textcritical.com", "http://textcritical.*"))
-        
-    '''
-    def test_html_to_json(self):
-        
+    
+    def test_scape_page_spider_depth_limit(self):
+        # http://lukemurphey.net/issues/1312
         web_input = WebInput(timeout=3)
         
-        content = """
-        <html>
-            <head>
-              <title>Some page</title>
-            </head>
-            <body>
-              <div class="header">This is the header</div>
-              <div class="footer" />
-            </body>
-        </html>
-        """
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), timeout=3, output_matches_as_mv=True, page_limit=5, depth_limit=0)
+        result = results[0]
         
-        tree = lxml.html.fromstring(content)
-        
-        html_as_json = WebInput.html_to_json(tree)
-    '''
+        self.assertEqual(len(results), 1)
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suites = []
     suites.append(loader.loadTestsFromTestCase(TestWebInput))
+    suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
     
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))
