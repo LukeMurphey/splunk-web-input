@@ -93,6 +93,27 @@
 	      </elements>
 	  	</element>
 	  	
+		<element name="selectionPolicyFields" type="fieldset">
+		  <key name="legend">Web Crawler</key>
+	      <view name="list"/>
+	      <view name="edit"/>
+	      <view name="create"/>
+	      <elements>
+	      
+	        <element name="page_limit" type="textfield" label="Page Limit">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">A limit on the number of pages that will be auto-discovered</key>
+	        </element>
+	        
+	        <element name="url_filter" type="textfield" label="URL Filter">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">A wild-card that will indicate which pages it should search for matches in</key>
+	        </element>
+	      </elements>
+	  	</element>
+	  	
 		<element name="advancedFields" type="fieldset">
 		  <key name="legend">Advanced</key>
 	      <view name="list"/>
