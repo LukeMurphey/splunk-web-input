@@ -90,4 +90,6 @@ Change History
 | 1.2.0   | Fixed issue where the selector would sometimes not match if the content was upper-case and the selector wasn't   |
 |         | Added a BNF file for the search command                                                                          |
 |         | Added the ability to use the tag names as the field names                                                        |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 2.0     | Added ability to crawl websites for matches                                                                      |
 +---------+------------------------------------------------------------------------------------------------------------------+
