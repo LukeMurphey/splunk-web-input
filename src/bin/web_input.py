@@ -88,6 +88,16 @@ class WebsiteInputConfig(SplunkAppObjModel):
     proxy_user     = ModelField()
     proxy_password = ModelField()
 
+class DiscoveredURL(object):
+    
+    depth = None
+    processed = False
+    
+    def __init__(self, depth, processed=False):
+        self.depth = depth
+        self.processed = False
+    
+
 class WebInput(ModularInput):
     """
     The web input modular input connects to a web-page obtains information from it.
@@ -126,6 +136,7 @@ class WebInput(ModularInput):
                 Field("user_agent", "User Agent", "The user-agent to use when communicating with the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 BooleanField("use_element_name", "Use Element Name as Field Name", "Use the element's tag name as the field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 IntegerField("page_limit", "Discovered page limit", "A limit on the number of pages that will be auto-discovered", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
                 ]
         
@@ -372,7 +383,7 @@ class WebInput(ModularInput):
         return links
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -389,8 +400,9 @@ class WebInput(ModularInput):
         charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
         include_empty_matches -- Output matches that result in empty strings
         use_element_name -- Use the element as the field name
-        extracted_links -- The array to place the extract links (if not None)
+        extracted_links -- The array to place the extract links (will only be done if not None)
         url_filter -- The wild-card to filter extracted URLs to
+        source_url_depth -- The depth level of the URL from which this URL was discovered from. This is used for tracking how depth the crawler should go.
         """
         
         try:
@@ -510,15 +522,17 @@ class WebInput(ModularInput):
                             result['match_' + str(fields_included)] = match_text
                         
                     # If we are to extract links, do it    
-                    if extracted_links is not None:
+                    if extracted_links is not None and source_url_depth is not None:
                         
                         for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
                             
                             # Add the extracted link if it is not already in the list
                             if extracted not in extracted_links:
                                 
-                                # Add the link with a value of "False" (indicating that it hasn't been processed)
-                                extracted_links[extracted] = False
+                                # Add the discovered URL (with the appropriate depth)
+                                extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
+                    else:
+                        logger.debug("Not extracting links since extracted_links is None")
         
         # Handle time outs    
         except socket.timeout:
@@ -541,7 +555,7 @@ class WebInput(ModularInput):
         return result  
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, url_filter=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None):
         """
         Retrieve data from a website.
         
@@ -566,6 +580,7 @@ class WebInput(ModularInput):
         user_agent -- The string to use for the user-agent
         use_element_name -- Use the element as the field name
         page_limit -- The page of pages to limit matches to
+        depth_limit == The limit on the depth of URLs found
         url_filter -- A wild-card to limit the extracted URLs to
         """
         
@@ -614,19 +629,22 @@ class WebInput(ModularInput):
                 headers['User-Agent'] = user_agent
                         
             # Run the scraper and get the results
-            extracted_links = {url.geturl():False}
-            
+            extracted_links = {url.geturl():DiscoveredURL(0)}
+
             while len(results) < page_limit:
                 
+                source_url_depth = 0
                 url = None
                 
                 for k, v in extracted_links.items():
                     
-                    if v == False:
+                    if v.processed == False:
                         url = k
+                        source_url_depth = v.depth
                         
                         # Track that the URL was checked since we are going to process it
-                        extracted_links[k] = True
+                        extracted_links[k].processed = True
+                        
                         
                         # Since we found one, stop looking for one to process
                         break
@@ -636,8 +654,14 @@ class WebInput(ModularInput):
                     logger.info("No more URLs in the list to process")
                     break
                 
-                result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter)
+                # Don't have the function extract URLs if the depth limit has been reached
+                logger.warn("source_url_depth=%r, depth_limit=%r", source_url_depth, depth_limit)
+                if source_url_depth >= depth_limit:
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth)
+                else:
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth)
                 
+                # Append the result
                 if result is not None:
                     results.append(result)
                 
@@ -709,6 +733,7 @@ class WebInput(ModularInput):
         use_element_name = cleaned_params.get("use_element_name", False)
         page_limit       = cleaned_params.get("page_limit", 1)
         url_filter       = cleaned_params.get("url_filter", None)
+        depth_limit      = cleaned_params.get("depth_limit", 25)
         source           = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
@@ -729,11 +754,16 @@ class WebInput(ModularInput):
             try:
                 
                 # Make sure the page_limit is not too small
-                if page_limit < 1:
+                if page_limit < 1 or page_limit is None or page_limit == "":
                     logger.warn("The parameter is too small for page_limit=%r", page_limit)
                     page_limit = 1
+                    
+                # Make sure the depth_limit is valid
+                if depth_limit < 1 or depth_limit is None or depth_limit == "":
+                    logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
+                    depth_limit = 50
                 
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, url_filter=url_filter)
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter)
                 
                 matches = 0
                 
