@@ -33,3 +33,6 @@ page_limit = <value>
 
 url_filter = <value>
 * Indicates what URLs the spider should be limited to
+
+depth_limit = <value>
+* Indicates how many pages deep to look for matches
