@@ -619,21 +619,25 @@ class WebInput(ModularInput):
                 url = None
                 
                 for k, v in extracted_links.items():
+                    
                     if v == False:
                         url = k
                         
-                        # Track that the URL was checked
+                        # Track that the URL was checked since we are going to process it
                         extracted_links[k] = True
+                        
+                        # Since we found one, stop looking for one to process
+                        break
                 
                 # Stop if we have no more URLs to process
                 if url is None:
+                    logger.info("No more URLs in the list to process")
                     break
                 
                 result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter)
                 
                 if result is not None:
                     results.append(result)
-                    logger.info("Extracted URLs count=%r", len(extracted_links))
                 
         except Exception:
             logger.exception("A general exception was thrown when executing a web request") # TODO: remove this one or the one in get_result_single() 
