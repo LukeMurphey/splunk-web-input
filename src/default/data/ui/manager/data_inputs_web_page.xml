@@ -106,6 +106,12 @@
 	          <key name="exampleText">A limit on the number of pages that will be auto-discovered</key>
 	        </element>
 	        
+	        <element name="depth_limit" type="textfield" label="Depth Limit">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">A limit on how deep to go when looking for pages</key>
+	        </element>
+	        
 	        <element name="url_filter" type="textfield" label="URL Filter">
 	          <view name="edit"/>
 	          <view name="create"/>
