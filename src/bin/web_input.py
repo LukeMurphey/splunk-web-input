@@ -15,6 +15,7 @@ import os
 import splunk
 import chardet
 import re
+from collections import OrderedDict
 from urlparse import urlparse, urljoin
 
 import httplib2
@@ -590,7 +591,7 @@ class WebInput(ModularInput):
         if isinstance(selector, basestring):
             selector = SelectorField.parse_selector(selector, "selector")
         
-        logger.debug('Running web input, url="%s"', url.geturl())
+        logger.info('Running web input, url="%s"', url.geturl())
         
         results = []
         
@@ -629,7 +630,8 @@ class WebInput(ModularInput):
                 headers['User-Agent'] = user_agent
                         
             # Run the scraper and get the results
-            extracted_links = {url.geturl():DiscoveredURL(0)}
+            extracted_links = OrderedDict()
+            extracted_links[url.geturl()] = DiscoveredURL(0)
 
             while len(results) < page_limit:
                 
@@ -655,7 +657,7 @@ class WebInput(ModularInput):
                     break
                 
                 # Don't have the function extract URLs if the depth limit has been reached
-                logger.warn("source_url_depth=%r, depth_limit=%r", source_url_depth, depth_limit)
+                
                 if source_url_depth >= depth_limit:
                     result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth)
                 else:
