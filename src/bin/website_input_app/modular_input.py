@@ -345,6 +345,32 @@ class DurationField(Field):
 
     def to_string(self, value):        
         return str(value)
+    
+class DeprecatedField(Field):
+    """
+    Represents a field that is no longer used. This should be used when you want the input to pass validation with arguments that are no longer used.
+    """
+    def __init__(self, name, title, description, none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False):
+        """
+        Create the field.
+        
+        Arguments:
+        name -- Set the name of the field (e.g. "database_server")
+        title -- Set the human readable title (e.g. "Database server")
+        description -- Set the human readable description of the field (e.g. "The IP or domain name of the database server")
+        none_allowed -- Is a value of none allowed?
+        empty_allowed -- Is an empty string allowed?
+        required_on_create -- Is this field required when creating?
+        required_on_edit -- Is this field required when editing?
+        """
+        
+        return super(DeprecatedField, self).__init__(name, title, description, none_allowed=none_allowed, empty_allowed=empty_allowed, required_on_create=required_on_create, required_on_edit=required_on_edit)
+    
+    def to_python(self, value):
+        return None
+    
+    def to_string(self, value):
+        return ""
 
 class ModularInputConfig():
     
@@ -583,7 +609,7 @@ class ModularInput():
         index -- The index to send the event to
         unbroken -- 
         close -- 
-        encapsulate_value_in_double_quotes -- If true, the value will have double-spaces added around it.
+        encapsulate_value_in_double_quotes -- If true, the value will have double-quotes added around it.
         """
         
         # Make the content of the event
@@ -649,7 +675,7 @@ class ModularInput():
         close -- 
         out -- The stream to send the event to (defaults to standard output)
         host -- The host
-        encapsulate_value_in_double_quotes -- If true, the value will have double-spaces added around it. This is useful in cases where the app contains props & transforms that require the value to have double-spaces.
+        encapsulate_value_in_double_quotes -- If true, the value will have double-quotes added around it. This is useful in cases where the app contains props & transforms that require the value to have double-spaces.
         """
         
         output = self.create_event_string(data_dict, stanza, sourcetype, source, index, host, unbroken, close, encapsulate_value_in_double_quotes=encapsulate_value_in_double_quotes)
