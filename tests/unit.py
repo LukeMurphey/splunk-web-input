@@ -54,7 +54,7 @@ class TestDurationField(unittest.TestCase):
         self.assertRaises( FieldValidationException, lambda: duration_field.to_python("1 treefrog") )
         self.assertRaises( FieldValidationException, lambda: duration_field.to_python("minute") )   
     
-class TestWebInput(unittest.TestCase):
+class UnitTestWithWebServer(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
@@ -97,6 +97,8 @@ class TestWebInput(unittest.TestCase):
     
     def get_test_dir(self):
         return os.path.dirname(os.path.abspath(__file__))
+    
+class TestWebInput(UnitTestWithWebServer):
     
     def test_get_file_path(self):
         self.assertEquals( WebInput.get_file_path( "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com"), "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input/2c70b6c76574eb4d825bfb194a460558.json")
@@ -473,8 +475,7 @@ class TestWebInputCrawling(unittest.TestCase):
     
     def test_scape_page_spider_depth_limit(self):
         # http://lukemurphey.net/issues/1312
-        web_input = WebInput(timeout=3)
-        
+
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
         results = WebInput.scrape_page( url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), timeout=3, output_matches_as_mv=True, page_limit=5, depth_limit=0)
@@ -482,10 +483,26 @@ class TestWebInputCrawling(unittest.TestCase):
         
         self.assertEqual(len(results), 1)
         
+class TestRawContent(UnitTestWithWebServer):
+    """
+    See http://lukemurphey.net/issues/1168
+    
+    """
+    
+    def test_scape_page_get_raw_content(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_scape_page_get_raw_content", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True, include_raw_content=True)
+        result = results[0]
+        
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['content'][0:15], "<nutcallstatus>")
+        
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suites = []
     suites.append(loader.loadTestsFromTestCase(TestWebInput))
     suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
+    suites.append(loader.loadTestsFromTestCase(TestRawContent))
     
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))
