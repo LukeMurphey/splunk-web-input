@@ -1,0 +1,42 @@
+<%page args="element" />
+<script type="text/javascript">
+
+
+	//policy = function(){
+	//  return $('#username_id').val().length > 0 || $('#password_id').val().length > 0;
+	//}
+
+	//addCheckboxWidget('item-authFields', policy);
+	$(document).ready(
+			function(){
+				
+				var name = $("#${element['fieldset_wrapper_id']} > fieldset > legend").text();
+						
+				var checked = false;
+					
+				% if 'check_policy' in element:
+				checked = ${element['check_policy']};
+				% endif
+				
+				var checked_val = "";
+					
+				if(checked){
+					checked_val = "checked";
+				}
+					
+				$("#${element['fieldset_wrapper_id']} > fieldset > legend").html('<input type="checkbox" ' + checked_val + ' style="float: left;" />' + name );
+					
+				$("#${element['fieldset_wrapper_id']} > fieldset > legend > input").click( function() {
+					if ($(this).is(':checked')) {
+						$("#${element['fieldset_wrapper_id']} > fieldset > div").show();
+					} else {
+					    $("#${element['fieldset_wrapper_id']} > fieldset > div").hide();
+					}
+				});
+					
+				if(!checked){
+					$("#${element['fieldset_wrapper_id']} > fieldset > div").hide();
+				}
+			}
+	);
+</script>

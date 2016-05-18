@@ -96,6 +96,13 @@
 	          <view name="create"/>
 	          <key name="exampleText">The password to use for authenticating (only HTTP authentication supported)</key>
 	        </element>
+	        
+	        <element name="hide_optional_auth" type="hide_optional_settings">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="fieldset_wrapper_id">item-authFields</key>
+	          <key name="check_policy">$('#username_id').val().length > 0 || $('#password_id').val().length > 0</key>
+	        </element>
 	      </elements>
 	  	</element>
 	  	
