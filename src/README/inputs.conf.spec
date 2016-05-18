@@ -36,3 +36,6 @@ url_filter = <value>
 
 depth_limit = <value>
 * Indicates how many pages deep to look for matches
+
+raw_content = <value>
+* Indicates if the raw content should be included too

@@ -69,6 +69,12 @@
 	          <key name="exampleText">Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")</key>
 	        </element>
 	        
+	        <element name="raw_content" type="checkbox" label="Include Raw Content">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">Return the raw content returned by the server (useful if you want to do your own parsing)</key>
+	        </element>
+	        
 	      </elements>
 	    </element>
 	  	

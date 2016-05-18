@@ -50,10 +50,12 @@ class SelectorField(Field):
     
     @classmethod
     def parse_selector(cls, value, name):
-        try:
-            return CSSSelector(value.lower()) # selectors 
-        except AssertionError as e:
-            raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), name, str(e)))
+        
+        if value is not None and len(value.strip()) != 0:
+            try:
+                return CSSSelector(value.lower()) # selectors 
+            except AssertionError as e:
+                raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), name, str(e)))
     
     def to_python(self, value):
         Field.to_python(self, value)
@@ -130,7 +132,7 @@ class WebInput(ModularInput):
                 Field("title", "Title", "A short description (typically just the domain name)", empty_allowed=False),
                 URLField("url", "URL", "The URL to connect to (must be be either HTTP or HTTPS protocol)", empty_allowed=False),
                 DurationField("interval", "Interval", "The interval defining how often to perform the check; can include time units (e.g. 15m for 15 minutes, 8h for 8 hours)", empty_allowed=False),
-                SelectorField("selector", "Selector", "A selector that will match the data you want to retrieve", none_allowed=False, empty_allowed=False),
+                SelectorField("selector", "Selector", "A selector that will match the data you want to retrieve", none_allowed=False, empty_allowed=True),
                 Field("username", "Username", "The username to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("password", "Password", "The password to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
@@ -138,7 +140,8 @@ class WebInput(ModularInput):
                 BooleanField("use_element_name", "Use Element Name as Field Name", "Use the element's tag name as the field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 IntegerField("page_limit", "Discovered page limit", "A limit on the number of pages that will be auto-discovered", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-                Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
+                Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -384,7 +387,7 @@ class WebInput(ModularInput):
         return links
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -404,6 +407,7 @@ class WebInput(ModularInput):
         extracted_links -- The array to place the extract links (will only be done if not None)
         url_filter -- The wild-card to filter extracted URLs to
         source_url_depth -- The depth level of the URL from which this URL was discovered from. This is used for tracking how depth the crawler should go.
+        include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         """
         
         try:
@@ -449,91 +453,98 @@ class WebInput(ModularInput):
                 logger.debug('The content is going to be parsed without decoding because the parser refused to parse it with encoding (http://goo.gl/4GRjJF), url="%s"', url.geturl())
                 tree = lxml.html.fromstring(content)
             
-            # Apply the selector to the DOM tree
-            matches = selector(tree)
+            # Include the raw content if requested
+            if include_raw_content:
+                result['content'] = content
             
-            # Get the text from matching nodes
-            if output_matches_as_mv:
-                result['match'] = []
+            # Perform extraction if a selector is provided
+            if selector is not None and tree is not None:
                 
-            # We are going to count how many fields we made
-            fields_included = 0
-            
-            # Store the raw match count (the nodes that the CSS matches)
-            result['raw_match_count'] = len(matches)
-            
-            for match in matches:
+                # Apply the selector to the DOM tree
+                matches = selector(tree)
                 
-                # Unescape the text in case it includes HTML entities
-                match_text = cls.unescape(WebInput.get_text(match))
+                # Get the text from matching nodes
+                if output_matches_as_mv:
+                    result['match'] = []
+                    
+                # We are going to count how many fields we made
+                fields_included = 0
                 
-                # Don't include the field if it is empty
-                if include_empty_matches or len(match_text) > 0:
+                # Store the raw match count (the nodes that the CSS matches)
+                result['raw_match_count'] = len(matches)
+                
+                for match in matches:
                     
-                    # Keep a count of how many fields we matched
-                    fields_included = fields_included + 1
+                    # Unescape the text in case it includes HTML entities
+                    match_text = cls.unescape(WebInput.get_text(match))
                     
-                    # Save the match
-                    field_made = False
-                    
-                    # Try to use the name attributes for determining the field name
-                    for a in name_attributes:
+                    # Don't include the field if it is empty
+                    if include_empty_matches or len(match_text) > 0:
                         
-                        attributes = dict(match.attrib)
+                        # Keep a count of how many fields we matched
+                        fields_included = fields_included + 1
                         
-                        if a in attributes:
+                        # Save the match
+                        field_made = False
+                        
+                        # Try to use the name attributes for determining the field name
+                        for a in name_attributes:
                             
-                            field_made = True
-                            field_name = cls.escape_field_name(attributes[a])
+                            attributes = dict(match.attrib)
+                            
+                            if a in attributes:
+                                
+                                field_made = True
+                                field_name = cls.escape_field_name(attributes[a])
+                                
+                                # If the field does not exists, create it
+                                if not field_name in result and output_matches_as_mv:
+                                    result[field_name] = [match_text]
+                                    
+                                # If the field exists and we are adding them as mv, then add it
+                                elif field_name in result and output_matches_as_mv:
+                                    result[field_name].append(match_text)
+                                    
+                                # Otherwise, output it as a separate field
+                                if output_matches_as_separate_fields:
+                                    result['match_' + field_name + "_" + str(fields_included)] = match_text
+                                    
+                        # Try to use the name of the element
+                        if use_element_name and not field_made:
                             
                             # If the field does not exists, create it
-                            if not field_name in result and output_matches_as_mv:
-                                result[field_name] = [match_text]
-                                
+                            if not match.tag in result and output_matches_as_mv:
+                                result[match.tag] = [match_text]
+                            
                             # If the field exists and we are adding them as mv, then add it
-                            elif field_name in result and output_matches_as_mv:
-                                result[field_name].append(match_text)
-                                
+                            elif output_matches_as_mv:
+                                result[match.tag].append(match_text)
+                            
                             # Otherwise, output it as a separate field
                             if output_matches_as_separate_fields:
-                                result['match_' + field_name + "_" + str(fields_included)] = match_text
-                                
-                    # Try to use the name of the element
-                    if use_element_name and not field_made:
-                        
-                        # If the field does not exists, create it
-                        if not match.tag in result and output_matches_as_mv:
-                            result[match.tag] = [match_text]
-                        
-                        # If the field exists and we are adding them as mv, then add it
-                        elif output_matches_as_mv:
-                            result[match.tag].append(match_text)
-                        
-                        # Otherwise, output it as a separate field
-                        if output_matches_as_separate_fields:
-                            result['match_' + match.tag] = match_text
-                        
-                    # Otherwise, output the fields as generic fields
-                    if not field_made:
-                        
-                        if output_matches_as_mv:
-                            result['match'].append(match_text) # Note: the 'match' in the dictionary will already be populated
-                        
-                        if output_matches_as_separate_fields:
-                            result['match_' + str(fields_included)] = match_text
-                        
-                    # If we are to extract links, do it    
-                    if extracted_links is not None and source_url_depth is not None:
-                        
-                        for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
+                                result['match_' + match.tag] = match_text
                             
-                            # Add the extracted link if it is not already in the list
-                            if extracted not in extracted_links:
+                        # Otherwise, output the fields as generic fields
+                        if not field_made:
+                            
+                            if output_matches_as_mv:
+                                result['match'].append(match_text) # Note: the 'match' in the dictionary will already be populated
+                            
+                            if output_matches_as_separate_fields:
+                                result['match_' + str(fields_included)] = match_text
+                            
+                        # If we are to extract links, do it    
+                        if extracted_links is not None and source_url_depth is not None:
+                            
+                            for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
                                 
-                                # Add the discovered URL (with the appropriate depth)
-                                extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
-                    else:
-                        logger.debug("Not extracting links since extracted_links is None")
+                                # Add the extracted link if it is not already in the list
+                                if extracted not in extracted_links:
+                                    
+                                    # Add the discovered URL (with the appropriate depth)
+                                    extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
+                        else:
+                            logger.debug("Not extracting links since extracted_links is None")
         
         # Handle time outs    
         except socket.timeout:
@@ -556,7 +567,7 @@ class WebInput(ModularInput):
         return result  
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False):
         """
         Retrieve data from a website.
         
@@ -583,6 +594,7 @@ class WebInput(ModularInput):
         page_limit -- The page of pages to limit matches to
         depth_limit == The limit on the depth of URLs found
         url_filter -- A wild-card to limit the extracted URLs to
+        include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         """
         
         if isinstance(url, basestring):
@@ -647,7 +659,6 @@ class WebInput(ModularInput):
                         # Track that the URL was checked since we are going to process it
                         extracted_links[k].processed = True
                         
-                        
                         # Since we found one, stop looking for one to process
                         break
                 
@@ -657,11 +668,10 @@ class WebInput(ModularInput):
                     break
                 
                 # Don't have the function extract URLs if the depth limit has been reached
-                
                 if source_url_depth >= depth_limit:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content)
                 else:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content)
                 
                 # Append the result
                 if result is not None:
@@ -736,6 +746,7 @@ class WebInput(ModularInput):
         page_limit       = cleaned_params.get("page_limit", 1)
         url_filter       = cleaned_params.get("url_filter", None)
         depth_limit      = cleaned_params.get("depth_limit", 25)
+        raw_content      = cleaned_params.get("raw_content", False)
         source           = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
@@ -765,12 +776,14 @@ class WebInput(ModularInput):
                     logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
                     depth_limit = 50
                 
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter)
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content)
                 
                 matches = 0
                 
                 if 'match' in result:
                     matches = len(result['match'])
+                else:
+                    logger.debug("No match returned in the result")
                 
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
             except Exception:

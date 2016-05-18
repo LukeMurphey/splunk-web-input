@@ -573,6 +573,19 @@ class ModularInput():
         # Return the content as a string WITHOUT the XML header.
         return doc.documentElement.toxml()
     
+    def escape_endlines(self, s):
+        """
+        If the string contains spaces, then add double quotes around the string. This is useful when outputting fields and values to Splunk since a space will cause Splunk to not recognize the entire value.
+        
+        Arguments:
+        s -- A string to escape.
+        """
+        
+        if s is not None:
+            return re.sub('[\n\r]', '', str(s))
+        else:
+            return s
+    
     def escape_spaces(self, s, encapsulate_in_double_quotes=False):
         """
         If the string contains spaces, then add double quotes around the string. This is useful when outputting fields and values to Splunk since a space will cause Splunk to not recognize the entire value.
@@ -597,12 +610,12 @@ class ModularInput():
         else:
             return s
     
-    def create_event_string(self, data_dict, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_quotes=False):
+    def create_event_string(self, data, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_quotes=False, escape_endlines=True):
         """
         Create a string representing the event.
         
         Argument:
-        data_dict -- A dictionary containing the fields
+        data -- A dictionary containing the fields or a string with the raw event
         stanza -- The stanza used for the input
         sourcetype -- The sourcetype
         source -- The source field value
@@ -610,31 +623,59 @@ class ModularInput():
         unbroken -- 
         close -- 
         encapsulate_value_in_double_quotes -- If true, the value will have double-quotes added around it.
+        escape_endlines -- Escape the endlines (removes them)
         """
         
         # Make the content of the event
         data_str = ''
         
-        for k, v in data_dict.items():
-            
-            # If the value is a list, then write out each matching value with the same name (as mv)
-            if isinstance(v, list) and not isinstance(v, basestring):
-                values = v
-            else:
-                values = [v]
-            
-            k_escaped = self.escape_spaces(k)
-            
-            # Write out each value
-            for v in values:
-                v_escaped = self.escape_spaces(v, encapsulate_in_double_quotes=encapsulate_value_in_double_quotes)
+        # If the data is a dict, then accumulate the fields into a string of KV pairs
+        if isinstance(data, dict):
+            for k, v in data.items():
                 
+                # If the value is a list, then write out each matching value with the same name (as mv)
+                if isinstance(v, list) and not isinstance(v, basestring):
+                    values = v
+                else:
+                    values = [v]
                 
-                if len(data_str) > 0:
-                    data_str += ' '
+                k_escaped = self.escape_spaces(k)
                 
-                data_str += '%s=%s' % (k_escaped, v_escaped)
+                # Write out each value
+                for v in values:
+                    
+                    # Escape the endlines
+                    if escape_endlines:
+                        v_escaped = self.escape_endlines(v)
+                    else:
+                        v_escaped = v
+                    
+                    # Escape the spaces if necessary
+                    v_escaped = self.escape_spaces(v_escaped, encapsulate_in_double_quotes=encapsulate_value_in_double_quotes)
+                    
+                    # Add a little space between KV pairs
+                    if len(data_str) > 0:
+                        data_str += ' '
+                    
+                    data_str += '%s=%s' % (k_escaped, v_escaped)
         
+        # If the input is a string, then include it raw
+        elif isinstance(data, basestring):
+            
+            # Escape the endlines
+            if escape_endlines:
+                data_str = self.escape_endlines(data)
+            else:
+                data_str = data
+        
+        else:
+            
+            # Escape the endlines
+            if escape_endlines:
+                data_str = self.escape_endlines(data)
+            else:
+                data_str = data
+            
         # Make the event
         event_dict = {'stanza': stanza,
                       'data' : data_str}
@@ -661,12 +702,12 @@ class ModularInput():
         # added with a "</done>" tag.
         return self._print_event(self.document, event)
         
-    def output_event(self, data_dict, stanza, index=None, sourcetype=None, source=None, host=None, unbroken=False, close=False, out=sys.stdout, encapsulate_value_in_double_quotes=False ):
+    def output_event(self, data, stanza, index=None, sourcetype=None, source=None, host=None, unbroken=False, close=False, out=sys.stdout, encapsulate_value_in_double_quotes=False ):
         """
-        Output the given even so that Splunk can see it.
+        Output the given event (based on the dictionary of fields provided) so that Splunk can see it.
         
         Arguments:
-        data_dict -- A dictionary containing the fields
+        data -- A dictionary containing the fields or a string with the raw event
         stanza -- The stanza used for the input
         sourcetype -- The sourcetype
         source -- The source to use
@@ -678,7 +719,7 @@ class ModularInput():
         encapsulate_value_in_double_quotes -- If true, the value will have double-quotes added around it. This is useful in cases where the app contains props & transforms that require the value to have double-spaces.
         """
         
-        output = self.create_event_string(data_dict, stanza, sourcetype, source, index, host, unbroken, close, encapsulate_value_in_double_quotes=encapsulate_value_in_double_quotes)
+        output = self.create_event_string(data, stanza, sourcetype, source, index, host, unbroken, close, encapsulate_value_in_double_quotes=encapsulate_value_in_double_quotes)
         
         out.write(output)
         out.flush()
