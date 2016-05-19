@@ -13,9 +13,19 @@
 				var name = $("#${element['fieldset_wrapper_id']} > fieldset > legend").text();
 						
 				var checked = false;
-					
+				
 				% if 'check_policy' in element:
-				checked = ${element['check_policy']};
+					checked = ${element['check_policy']};
+				% elif 'hide_if_empty' not in element or not element['hide_if_empty']:
+				$("#${element['fieldset_wrapper_id']} input[type=text]:not(.optional_control)").each(function(index, element) {
+					if($(element).val().length > 0){
+						checked = true;
+					}
+				});
+				
+				if($("#${element['fieldset_wrapper_id']} input[type=checkbox]:not(.optional_control):checked").length > 0) {
+					checked = true;
+				};
 				% endif
 				
 				var checked_val = "";
@@ -23,8 +33,8 @@
 				if(checked){
 					checked_val = "checked";
 				}
-					
-				$("#${element['fieldset_wrapper_id']} > fieldset > legend").html('<input type="checkbox" ' + checked_val + ' style="float: left;" />' + name );
+				
+				$("#${element['fieldset_wrapper_id']} > fieldset > legend").html('<input type="checkbox" class="optional_control" ' + checked_val + ' style="float: left;" />' + name );
 					
 				$("#${element['fieldset_wrapper_id']} > fieldset > legend > input").click( function() {
 					if ($(this).is(':checked')) {
