@@ -47,11 +47,17 @@
 	            <view name="edit"/>
 		  	</element>
 		  	
+	        <element name="raw_content" type="checkbox" label="Include Raw Content">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">Include the original raw content returned by the server in the result (useful if you want to do your own parsing)</key>
+	        </element>
+		  	
 	      </elements>
 	  	</element>
 	  	
 		<element name="outputFields" type="fieldset">
-		  <key name="legend">Output</key>
+		  <key name="legend">Output Formatting (Advanced)</key>
 	      <view name="list"/>
 	      <view name="edit"/>
 	      <view name="create"/>
@@ -66,13 +72,7 @@
 	        <element name="use_element_name" type="checkbox" label="Use Tag Name as Field Name">
 	          <view name="edit"/>
 	          <view name="create"/>
-	          <key name="exampleText">Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")</key>
-	        </element>
-	        
-	        <element name="raw_content" type="checkbox" label="Include Raw Content">
-	          <view name="edit"/>
-	          <view name="create"/>
-	          <key name="exampleText">Return the raw content returned by the server (useful if you want to do your own parsing)</key>
+	          <key name="exampleText"><![CDATA[Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")]]></key>
 	        </element>
 	        
 	        <element name="hide_optional_output" type="hide_optional_settings">
