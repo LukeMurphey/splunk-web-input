@@ -39,3 +39,6 @@ depth_limit = <value>
 
 raw_content = <value>
 * Indicates if the raw content should be included too
+
+text_separator = <value>
+* Defines the string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")

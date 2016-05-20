@@ -75,6 +75,12 @@
 	          <key name="exampleText"><![CDATA[Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")]]></key>
 	        </element>
 	        
+	        <element name="text_separator" type="textfield" label="Text Separator">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText"><![CDATA[Sets the string that will be placed between the extracted values (e.g. a separator of ":" for a match against "&lt;a&gt;tree&lt;/a&gt;&lt;a&gt;frog&lt;/a&gt;" would return "tree:frog")]]></key>
+	        </element>
+	        
 	        <element name="hide_optional_output" type="hide_optional_settings">
 	          <view name="edit"/>
 	          <view name="create"/>

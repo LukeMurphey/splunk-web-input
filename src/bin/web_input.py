@@ -141,7 +141,8 @@ class WebInput(ModularInput):
                 IntegerField("page_limit", "Discovered page limit", "A limit on the number of pages that will be auto-discovered", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-                BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
+                BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -164,13 +165,47 @@ class WebInput(ModularInput):
         return os.path.join( checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json" )
        
     @classmethod
-    def get_text(cls, element):
+    def append_if_not_empty(cls, str1, str2, separator):
+        """
+        
+        Arguments:
+        str1 -- The first string
+        str2 -- The second string
+        separator -- The separator to put between the strings if they aren't blank
+        """
+        
+        if str1 is None:
+            str1 = ""
+            
+        if str2 is None:
+            str2 = ""
+        
+        if separator is None:
+            separator = " "
+            
+        if len(str1) > 0 and len(str2) > 0:
+            return str1 + separator + str2
+        if len(str1) > 0:
+            return str1
+        if len(str2) > 0:
+            return str2
+        else:
+            return ""
+            
+       
+    @classmethod
+    def get_text(cls, element, text_separator=" "):
         """
         Get the accumulated text from the child nodes.
         
         Arguments:
         element -- The element to get the text from
+        text_separator -- The content to put between each text node that matches within a given selector
         """
+        
+        # Assign a default value to the separator
+        if text_separator is None:
+            text_separator = " "
         
         if element.text is not None:
             text = element.text.strip()
@@ -179,14 +214,14 @@ class WebInput(ModularInput):
         
         # Iterate through the child nodes and add up the text
         for child_element in element:
-            text = text + " " + WebInput.get_text(child_element)
+            
+            text = cls.append_if_not_empty(text, WebInput.get_text(child_element), text_separator)
             
             # Get the tail text
             if child_element.tail:
                 tail_text = child_element.tail.strip()
                 
-                if len(tail_text) > 0:
-                    text = text + " " + tail_text
+                text = cls.append_if_not_empty(text, tail_text, text_separator)
             
         return text.strip()
        
@@ -387,7 +422,7 @@ class WebInput(ModularInput):
         return links
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -408,6 +443,7 @@ class WebInput(ModularInput):
         url_filter -- The wild-card to filter extracted URLs to
         source_url_depth -- The depth level of the URL from which this URL was discovered from. This is used for tracking how depth the crawler should go.
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
+        text_separator -- The content to put between each text node that matches within a given selector
         """
         
         try:
@@ -476,7 +512,7 @@ class WebInput(ModularInput):
                 for match in matches:
                     
                     # Unescape the text in case it includes HTML entities
-                    match_text = cls.unescape(WebInput.get_text(match))
+                    match_text = cls.unescape(WebInput.get_text(match, text_separator))
                     
                     # Don't include the field if it is empty
                     if include_empty_matches or len(match_text) > 0:
@@ -567,7 +603,7 @@ class WebInput(ModularInput):
         return result  
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None):
         """
         Retrieve data from a website.
         
@@ -595,6 +631,7 @@ class WebInput(ModularInput):
         depth_limit == The limit on the depth of URLs found
         url_filter -- A wild-card to limit the extracted URLs to
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
+        text_separator -- The content to put between each text node that matches within a given selector
         """
         
         if isinstance(url, basestring):
@@ -669,9 +706,9 @@ class WebInput(ModularInput):
                 
                 # Don't have the function extract URLs if the depth limit has been reached
                 if source_url_depth >= depth_limit:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator)
                 else:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator)
                 
                 # Append the result
                 if result is not None:
@@ -747,6 +784,7 @@ class WebInput(ModularInput):
         url_filter       = cleaned_params.get("url_filter", None)
         depth_limit      = cleaned_params.get("depth_limit", 25)
         raw_content      = cleaned_params.get("raw_content", False)
+        text_separator   = cleaned_params.get("text_separator", " ")
         source           = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
@@ -776,7 +814,7 @@ class WebInput(ModularInput):
                     logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
                     depth_limit = 50
                 
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content)
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator)
                 
                 matches = 0
                 

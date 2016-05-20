@@ -388,7 +388,9 @@ class TestWebInput(UnitTestWithWebServer):
     '''
         
 class TestWebInputCrawling(unittest.TestCase):
-    
+    """
+    http://lukemurphey.net/issues/762
+    """
         
     def test_cleanup_link(self):
         
@@ -485,8 +487,7 @@ class TestWebInputCrawling(unittest.TestCase):
         
 class TestRawContent(UnitTestWithWebServer):
     """
-    See http://lukemurphey.net/issues/1168
-    
+    http://lukemurphey.net/issues/1168
     """
     
     def test_scape_page_get_raw_content(self):
@@ -498,11 +499,39 @@ class TestRawContent(UnitTestWithWebServer):
         self.assertEqual(len(results), 1)
         self.assertEqual(result['content'][0:15], "<nutcallstatus>")
         
+class TestCustomSeparator(UnitTestWithWebServer):
+    """
+    See http://lukemurphey.net/issues/763
+    """
+    
+    def test_custom_separator(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_custom_separator", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/xml"), selector_field.to_python("FOOD1"), timeout=3, output_matches_as_mv=True, text_separator=":")
+        result = results[0]
+        
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['match'][0], "Food1:OPEN:1800:4")
+        
+    def test_append_if_not_empty_both_have_values(self):
+        self.assertEqual(WebInput.append_if_not_empty("tree", "frog", ":"), "tree:frog")
+        
+    def test_append_if_first_has_value(self):
+        self.assertEqual(WebInput.append_if_not_empty("tree", "", ":"), "tree")
+        
+    def test_append_if_second_has_value(self):
+        self.assertEqual(WebInput.append_if_not_empty("", "frog", ":"), "frog")
+        
+    def test_append_if_neither_has_value(self):
+        self.assertEqual(WebInput.append_if_not_empty("", "", ":"), "")
+        
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suites = []
-    suites.append(loader.loadTestsFromTestCase(TestWebInput))
-    suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
-    suites.append(loader.loadTestsFromTestCase(TestRawContent))
+    #suites.append(loader.loadTestsFromTestCase(TestWebInput))
+    #suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
+    #suites.append(loader.loadTestsFromTestCase(TestRawContent))
+    suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
+    
     
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))
