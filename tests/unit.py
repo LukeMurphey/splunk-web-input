@@ -490,10 +490,19 @@ class TestRawContent(UnitTestWithWebServer):
     http://lukemurphey.net/issues/1168
     """
     
-    def test_scape_page_get_raw_content(self):
+    def test_get_raw_content(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
-        selector_field = SelectorField( "test_scape_page_get_raw_content", "title", "this is a test" )
+        selector_field = SelectorField( "test_get_raw_content", "title", "this is a test" )
         results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True, include_raw_content=True)
+        result = results[0]
+        
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['content'][0:15], "<nutcallstatus>")
+        
+    def test_get_raw_content_empty_selector(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_get_raw_content_empty_selector", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/xml"), selector_field.to_python(""), timeout=3, output_matches_as_mv=True, include_raw_content=True)
         result = results[0]
         
         self.assertEqual(len(results), 1)
@@ -530,8 +539,8 @@ if __name__ == "__main__":
     suites = []
     #suites.append(loader.loadTestsFromTestCase(TestWebInput))
     #suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
-    #suites.append(loader.loadTestsFromTestCase(TestRawContent))
-    suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
+    suites.append(loader.loadTestsFromTestCase(TestRawContent))
+    #suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
     
     
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))

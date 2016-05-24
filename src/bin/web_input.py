@@ -769,7 +769,7 @@ class WebInput(ModularInput):
         interval         = cleaned_params["interval"]
         title            = cleaned_params["title"]
         url              = cleaned_params["url"]
-        selector         = cleaned_params["selector"]
+        selector         = cleaned_params.get("selector", None)
         username         = cleaned_params.get("username", None)
         password         = cleaned_params.get("password", None)
         name_attributes  = cleaned_params.get("name_attributes", [])
