@@ -262,6 +262,11 @@
 			data.use_element_name = '1';
 		}
 		
+		// Get the text separator
+		if(  $('#text_separator_id').val().length > 0 ){
+			data.text_separator = $('#text_separator_id').val();
+		}
+		
 		//data.include_empty_matches = true;
 		
 		$.ajax(

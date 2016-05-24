@@ -134,6 +134,12 @@ class WebInputController(controllers.BaseController):
             """
             use_element_name = False
             
+            # Get the text_separator parameter
+            text_separator = " "
+            
+            if( 'text_separator' in kwargs):
+                text_separator = kwargs['text_separator']
+            
             # Get the proxy configuration
             conf_stanza = "default"
             
@@ -144,7 +150,7 @@ class WebInputController(controllers.BaseController):
                 return self.render_error_json(_("Proxy server information could not be obtained"))
             
             # Scrape the page
-            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name)
+            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, text_separator=text_separator)
             
         except FieldValidationException, e:
             cherrypy.response.status = 202
