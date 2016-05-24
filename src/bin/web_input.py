@@ -31,7 +31,7 @@ def setup_logger():
     
     logger = logging.getLogger('web_input_modular_input')
     logger.propagate = False # Prevent the log messages from being duplicated in the python.log file
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     
     file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', 'web_input_modular_input.log']), maxBytes=25000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -486,7 +486,7 @@ class WebInput(ModularInput):
                 # The app handles this by attempting to parse the content a second time if it failed when using Unicode. This is necessary because I cannot allow
                 # lxml to discover the encoding on its own since it doesn't know what the HTTP headers are and cannot sniff the encoding as well as the input does
                 # (which uses several methods to determine the encoding).
-                logger.debug('The content is going to be parsed without decoding because the parser refused to parse it with encoding (http://goo.gl/4GRjJF), url="%s"', url.geturl())
+                logger.info('The content is going to be parsed without decoding because the parser refused to parse it with encoding (http://goo.gl/4GRjJF), url="%s"', url.geturl())
                 tree = lxml.html.fromstring(content)
             
             # Include the raw content if requested
@@ -651,11 +651,11 @@ class WebInput(ModularInput):
             # Setup the proxy info if so configured
             if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
                 proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
-                logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
+                logger.info('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
             else:
                 # No proxy is being used
                 proxy_info = None
-                logger.debug("Not using a proxy server")
+                logger.info("Not using a proxy server")
                         
             # Make the HTTP object
             http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
@@ -751,7 +751,7 @@ class WebInput(ModularInput):
         try:
             website_input_config = WebsiteInputConfig.get( WebsiteInputConfig.build_id( stanza, "website_input", "nobody"), sessionKey=session_key )
             
-            logger.debug("Proxy information loaded, stanza=%s", stanza)
+            logger.info("Proxy information loaded, stanza=%s", stanza)
             
         except splunk.ResourceNotFound:
             logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
@@ -818,8 +818,8 @@ class WebInput(ModularInput):
                 
                 matches = 0
                 
-                if 'match' in result:
-                    matches = len(result['match'])
+                if result:
+                    matches = len(result)
                 else:
                     logger.debug("No match returned in the result")
                 
