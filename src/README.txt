@@ -92,4 +92,9 @@ Change History
 |         | Added the ability to use the tag names as the field names                                                        |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 2.0     | Added ability to crawl websites for matches                                                                      |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 3.0     | Simplified the data input configuration screen                                                                   |
+|         | Added ability to include the raw content                                                                         |
+|         | Added ability to specify a custom string that will separate extracted values                                     |
+|         | Fixed incorrect reporting of matches count                                                                       |
 +---------+------------------------------------------------------------------------------------------------------------------+
