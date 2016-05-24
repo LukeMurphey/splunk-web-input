@@ -97,4 +97,6 @@ Change History
 |         | Added ability to include the raw content                                                                         |
 |         | Added ability to specify a custom string that will separate extracted values                                     |
 |         | Fixed incorrect reporting of matches count                                                                       |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 3.0     | Ability to render content using a browser                                                                        |
 +---------+------------------------------------------------------------------------------------------------------------------+
