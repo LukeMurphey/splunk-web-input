@@ -14,6 +14,7 @@ import time
 import os
 import splunk
 import chardet
+from selenium import webdriver
 import re
 from collections import OrderedDict
 from urlparse import urlparse, urljoin
@@ -23,6 +24,7 @@ from httplib2 import socks
 import lxml.html
 
 from cssselector import CSSSelector
+from tarfile import SUPPORTED_TYPES
 
 def setup_logger():
     """
@@ -119,6 +121,14 @@ class WebInput(ModularInput):
                             'response_code',
                             'raw_match_count'
                             ]
+    
+    FIREFOX = "firefox"
+    PYTHON = "python"
+    SAFARI = "safari"
+    INTERNET_EXPLORER = "internet_explorer"
+    CHROME = "chrome"
+    
+    SUPPORTED_BROWSERS= [PYTHON, FIREFOX]
     
     def __init__(self, timeout=30, **kwargs):
 
@@ -422,7 +432,48 @@ class WebInput(ModularInput):
         return links
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None):
+    def get_result_built_in_client(cls, http, url, headers, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
+        
+        response, content = http.request( url.geturl(), 'GET', headers=headers)
+        
+        encoding = cls.detect_encoding(content, response, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
+        
+        return response.status, content, encoding
+    
+    @classmethod
+    def get_result_browser(cls, url, browser="firefox", sleep_seconds=5):
+        
+        driver = None
+        
+        try:
+            # Assign a default argument for browser
+            if browser is None:
+                browser = cls.FIREFOX
+            else: 
+                browser = browser.lower().strip()
+            
+            # Make the browser
+            if browser == cls.FIREFOX:
+                driver = webdriver.Firefox()
+            else:
+                raise Exception("Browser '%s' not recognized" % (browser))
+            
+            # Load the page
+            driver.get(url.geturl())
+            
+            # Wait for the content to load
+            time.sleep(sleep_seconds)
+            
+            # Get the content
+            content = driver.execute_script("return document.documentElement.outerHTML")
+            
+            return content
+        finally:
+            if driver is not None:
+                driver.close()
+    
+    @classmethod
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -444,6 +495,8 @@ class WebInput(ModularInput):
         source_url_depth -- The depth level of the URL from which this URL was discovered from. This is used for tracking how depth the crawler should go.
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
+        browser -- The browser to use
+        timeout -- The timeout to use for waiting for content via the browser
         """
         
         try:
@@ -454,22 +507,24 @@ class WebInput(ModularInput):
             # Perform the request
             with Timer() as timer:
                 
-                response, content = http.request( url.geturl(), 'GET', headers=headers)
+                response_code, content, encoding = cls.get_result_built_in_client( http, url, headers, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
                 
-                # Get the hash of the content
-                response_md5 = hashlib.md5(content).hexdigest()
-                response_sha224 = hashlib.sha224(content).hexdigest()
+            # Get the content via the browser too if requested
+            # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
+            if browser is not None and browser.strip() != cls.PYTHON:
+                content = cls.get_result_browser(url, browser, timeout)
                 
-                # Get the size of the content
-                result['response_size'] = len(content)
+            # Get the size of the content
+            result['response_size'] = len(content)
             
             # Retrieve the meta-data
-            result['response_code'] = response.status    
+            result['response_code'] = response_code   
             result['request_time'] = timer.msecs
             result['url'] = url.geturl()
             
-            # Determine the encoding
-            encoding = cls.detect_encoding(content, response, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
+            # Get the hash of the content
+            result['content_md5'] = hashlib.md5(content).hexdigest()
+            result['content_sha224'] = hashlib.sha224(content).hexdigest()
             
             # Store the encoding in the result
             result['encoding'] = encoding
@@ -603,7 +658,7 @@ class WebInput(ModularInput):
         return result  
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None):
         """
         Retrieve data from a website.
         
@@ -632,6 +687,7 @@ class WebInput(ModularInput):
         url_filter -- A wild-card to limit the extracted URLs to
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
+        browser -- The browser to use
         """
         
         if isinstance(url, basestring):
@@ -706,9 +762,9 @@ class WebInput(ModularInput):
                 
                 # Don't have the function extract URLs if the depth limit has been reached
                 if source_url_depth >= depth_limit:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser)
                 else:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser)
                 
                 # Append the result
                 if result is not None:

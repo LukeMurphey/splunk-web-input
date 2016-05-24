@@ -87,6 +87,7 @@ class UnitTestWithWebServer(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.httpd.shutdown()
+        cls.httpd = None
     
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp( prefix="TestWebInput" )
@@ -101,7 +102,7 @@ class UnitTestWithWebServer(unittest.TestCase):
 class TestWebInput(UnitTestWithWebServer):
     
     def test_get_file_path(self):
-        self.assertEquals( WebInput.get_file_path( "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com"), "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input/2c70b6c76574eb4d825bfb194a460558.json")
+        self.assertEquals( WebInput.get_file_path( "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com"), os.path.join("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "2c70b6c76574eb4d825bfb194a460558.json"))
         
     def test_input_timeout(self):
         url_field = URLField( "test_input_timeout", "title", "this is a test" )
@@ -534,13 +535,36 @@ class TestCustomSeparator(UnitTestWithWebServer):
     def test_append_if_neither_has_value(self):
         self.assertEqual(WebInput.append_if_not_empty("", "", ":"), "")
         
+class TestBrowserRendering(UnitTestWithWebServer):
+    """
+    http://lukemurphey.net/issues/1323
+    """
+    
+    def test_scrape_page_firefox(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_custom_separator", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/html"), selector_field.to_python("h1"), timeout=3, output_matches_as_mv=True, browser=WebInput.FIREFOX)
+        result = results[0]
+        
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['match'][0], "Heading")
+    
+    def test_get_result_firefox(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        
+        content = WebInput.get_result_browser(url_field.to_python("http://127.0.0.1:8888/html"), browser="firefox", sleep_seconds=1)
+        f = open('../tmp/output.html', 'w')
+        f.write(content)
+        self.assertEqual(content[0:42], '<html webdriver="true"><head></head><body>')
+        
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suites = []
-    suites.append(loader.loadTestsFromTestCase(TestWebInput))
-    suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
-    suites.append(loader.loadTestsFromTestCase(TestRawContent))
-    suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
+    #suites.append(loader.loadTestsFromTestCase(TestWebInput))
+    #suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
+    #suites.append(loader.loadTestsFromTestCase(TestRawContent))
+    #suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
+    suites.append(loader.loadTestsFromTestCase(TestBrowserRendering))
     
     
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))

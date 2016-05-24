@@ -36,6 +36,12 @@ class Handler(BaseHTTPRequestHandler):
             self.do_HEAD()
             with open( os.path.join("web_files", "file.xml"), "r") as webfile:
                 self.wfile.write(webfile.read())#.replace('\n', '')
+                
+        # Present HTML file
+        if self.path == "/html":
+            self.do_HEAD()
+            with open( os.path.join("web_files", "simple.html"), "r") as webfile:
+                self.wfile.write(webfile.read())
         
         # Present frontpage with user authentication.
         elif self.headers.getheader('Authorization') == None:
