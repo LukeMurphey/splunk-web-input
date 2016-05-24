@@ -537,10 +537,10 @@ class TestCustomSeparator(UnitTestWithWebServer):
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suites = []
-    #suites.append(loader.loadTestsFromTestCase(TestWebInput))
-    #suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
+    suites.append(loader.loadTestsFromTestCase(TestWebInput))
+    suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
     suites.append(loader.loadTestsFromTestCase(TestRawContent))
-    #suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
+    suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
     
     
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))
