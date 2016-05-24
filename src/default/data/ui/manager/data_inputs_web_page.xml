@@ -57,7 +57,7 @@
 	  	</element>
 	  	
 		<element name="outputFields" type="fieldset">
-		  <key name="legend">Output Formatting (Advanced)</key>
+		  <key name="legend">Output Formatting</key>
 	      <view name="list"/>
 	      <view name="edit"/>
 	      <view name="create"/>
