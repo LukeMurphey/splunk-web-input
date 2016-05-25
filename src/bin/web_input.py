@@ -507,7 +507,7 @@ class WebInput(ModularInput):
                 driver.close()
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -531,6 +531,8 @@ class WebInput(ModularInput):
         text_separator -- The content to put between each text node that matches within a given selector
         browser -- The browser to use
         timeout -- The timeout to use for waiting for content via the browser
+        username -- The username to use for authentication
+        password -- The username to use for authentication
         """
         
         try:
@@ -548,7 +550,7 @@ class WebInput(ModularInput):
             # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
             if browser is not None and browser.strip() != cls.PYTHON:
                 try:
-                    content = cls.get_result_browser(url, browser, timeout)
+                    content = cls.get_result_browser(url, browser, timeout, username, password)
                     result['browser'] = browser
                 except:
                     logger.exception("Unable to get the content using the browser=%s", browser)
