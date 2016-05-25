@@ -123,12 +123,12 @@ class WebInput(ModularInput):
                             ]
     
     FIREFOX = "firefox"
-    PYTHON = "integrated_client"
+    INTEGRATED_CLIENT = "integrated_client"
     SAFARI = "safari"
     INTERNET_EXPLORER = "internet_explorer"
     CHROME = "chrome"
     
-    SUPPORTED_BROWSERS= [PYTHON, FIREFOX]
+    SUPPORTED_BROWSERS= [INTEGRATED_CLIENT, FIREFOX]
     
     def __init__(self, timeout=30, **kwargs):
 
@@ -153,6 +153,9 @@ class WebInput(ModularInput):
                 Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
+                Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
+                IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
+                BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -538,17 +541,17 @@ class WebInput(ModularInput):
         try:
             
             # This will be where the result information will be stored
-            result = {}
+            result = OrderedDict()
             
             # Perform the request
             with Timer() as timer:
                 
                 response_code, content, encoding = cls.get_result_built_in_client( http, url, headers, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
-                result['browser'] = cls.PYTHON
+                result['browser'] = cls.INTEGRATED_CLIENT
                 
             # Get the content via the browser too if requested
             # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
-            if browser is not None and browser.strip() != cls.PYTHON:
+            if browser is not None and browser.strip() != cls.INTEGRATED_CLIENT:
                 try:
                     content = cls.get_result_browser(url, browser, timeout, username, password)
                     result['browser'] = browser
@@ -871,7 +874,7 @@ class WebInput(ModularInput):
         password         = cleaned_params.get("password", None)
         name_attributes  = cleaned_params.get("name_attributes", [])
         user_agent       = cleaned_params.get("user_agent", None)
-        timeout          = self.timeout
+        timeout          = cleaned_params.get("timeout", self.timeout)
         sourcetype       = cleaned_params.get("sourcetype", "web_input")
         host             = cleaned_params.get("host", None)
         index            = cleaned_params.get("index", "default")
@@ -882,6 +885,8 @@ class WebInput(ModularInput):
         depth_limit      = cleaned_params.get("depth_limit", 25)
         raw_content      = cleaned_params.get("raw_content", False)
         text_separator   = cleaned_params.get("text_separator", " ")
+        browser          = cleaned_params.get("browser", self.INTEGRATED_CLIENT)
+        output_as_mv     = cleaned_params.get("output_as_mv", True)
         source           = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
@@ -910,8 +915,16 @@ class WebInput(ModularInput):
                 if depth_limit < 1 or depth_limit is None or depth_limit == "":
                     logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
                     depth_limit = 50
+                    
+                # Determine how to make the match fields
+                output_matches_as_mv = True
+                output_matches_as_separate_fields = False
                 
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator)
+                if not output_as_mv:
+                    output_matches_as_mv = False
+                    output_matches_as_separate_fields = True
+                
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields)
                 
                 matches = 0
                 

@@ -42,3 +42,12 @@ raw_content = <value>
 
 text_separator = <value>
 * Defines the string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")
+
+browser = <value>
+* The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client
+
+timeout = <value>
+* Defines how long (in seconds) to wait until ending the extraction; increase this if you are using a browser to execute Javascript and the view doesn't render quickly enough
+
+output_as_mv = <value>
+* Indicates whether the output will in a multi-value field
