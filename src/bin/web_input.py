@@ -478,7 +478,35 @@ class WebInput(ModularInput):
         return response.status, content, encoding
     
     @classmethod
-    def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None):
+    def get_firefox_proxy_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+        profile = None
+        
+        # Return none if no proxy is defined
+        if proxy_server is None or proxy_port is None:
+            return None
+        
+        # Use a socks proxy
+        elif proxy_type == "socks4" or proxy_type == "socks5":
+            profile = webdriver.FirefoxProfile()
+            
+            profile.set_preference('network.proxy.type', 1)
+            profile.set_preference('network.proxy.socks', proxy_server)
+            profile.set_preference('network.proxy.socks_port', int(proxy_port))
+            
+        # Use an HTTP proxy
+        elif proxy_type == "http":
+            profile = webdriver.FirefoxProfile()
+            
+            profile.set_preference('network.proxy.type', 1)
+            profile.set_preference('network.proxy.http', proxy_server)
+            profile.set_preference('network.proxy.http_port', int(proxy_port)) 
+            profile.set_preference('network.proxy.ssl', proxy_server)
+            profile.set_preference('network.proxy.ssl_port', int(proxy_port)) 
+            
+        return profile
+    
+    @classmethod
+    def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         
         driver = None
         
@@ -491,7 +519,13 @@ class WebInput(ModularInput):
             
             # Make the browser
             if browser == cls.FIREFOX:
-                driver = webdriver.Firefox()
+                profile = cls.get_firefox_proxy_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+                
+                if profile is not None:
+                    logger.info("Using a proxy with Firefox")
+                    driver = webdriver.Firefox(profile)
+                else:
+                    driver = webdriver.Firefox()
             else:
                 raise Exception("Browser '%s' not recognized" % (browser))
             
@@ -510,7 +544,7 @@ class WebInput(ModularInput):
                 driver.close()
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -536,6 +570,11 @@ class WebInput(ModularInput):
         timeout -- The timeout to use for waiting for content via the browser
         username -- The username to use for authentication
         password -- The username to use for authentication
+        proxy_type -- The type of proxy server (defaults to "http")
+        proxy_server -- The IP or domain name of the proxy server
+        proxy_port -- The port that the proxy server runs on
+        proxy_user -- The user name of the proxy server account
+        proxy_password -- The password of the proxy server account
         """
         
         try:
@@ -553,7 +592,7 @@ class WebInput(ModularInput):
             # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
             if browser is not None and browser.strip() != cls.INTEGRATED_CLIENT:
                 try:
-                    content = cls.get_result_browser(url, browser, timeout, username, password)
+                    content = cls.get_result_browser(url, browser, timeout, username, password, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                     result['browser'] = browser
                 except:
                     logger.exception("Unable to get the content using the browser=%s", browser)
@@ -806,9 +845,9 @@ class WebInput(ModularInput):
                 
                 # Don't have the function extract URLs if the depth limit has been reached
                 if source_url_depth >= depth_limit:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
                 else:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
                 
                 # Append the result
                 if result is not None:
