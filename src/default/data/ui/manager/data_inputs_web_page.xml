@@ -117,6 +117,38 @@
 	      </elements>
 	  	</element>
 	  	
+		<element name="browserFields" type="fieldset">
+		  <key name="legend">HTTP Client</key>
+	      <view name="list"/>
+	      <view name="edit"/>
+	      <view name="create"/>
+	      <elements>
+	      
+	        <element name="browser" type="select" label="Browser">
+	          <view name="edit"/>
+	          <view name="create"/>
+		      <options>
+		      	<opt value="integrated_client" label="Built-in client"/>
+		      	<opt value="firefox" label="Firefox"/>
+		      </options>
+	          <key name="exampleText">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</key>
+	        </element>
+	        
+	        <element name="timeout" type="textfield" label="Timeout">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">How long (in seconds) to wait until ending the extraction; increase this if you are using a browser to execute Javascript and the view doesn't render quickly enough</key>
+	        </element>
+	        
+	        <element name="hide_optional_browser" type="hide_optional_settings">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="fieldset_wrapper_id">item-browserFields</key>
+	          <key name="check_policy"><![CDATA[$('#browser_id').val() !== "" && $('#browser_id').val() !== "integrated_client"]]></key>
+	        </element>
+	      </elements>
+	  	</element>
+	  	
 		<element name="selectionPolicyFields" type="fieldset">
 		  <key name="legend">Web Crawler</key>
 	      <view name="list"/>
@@ -210,6 +242,7 @@
 		  		</key>
 		  	    <view name="create"/>
 	            <view name="edit"/>
+	            <key name="exampleText">A custom user-agent is only used when the built-in HTTP client is used</key>
 		  	</element>
 	        
 	      </elements>
