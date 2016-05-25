@@ -5,7 +5,14 @@ from splunk.util import normalizeBoolean
 
 class WebScraper(SearchCommand):
     
-    def __init__(self, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, text_separator=" ", include_raw_content=False, browser=None):
+    def __init__(self, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, text_separator=" ", include_raw_content=False, browser=None, output_as_mv=False):
+        
+        if normalizeBoolean(output_as_mv):
+            output_matches_as_mv = True
+            output_matches_as_separate_fields = False
+        else:
+            output_matches_as_mv = False
+            output_matches_as_separate_fields = True
         
         # Save the parameters
         self.params = {
@@ -29,7 +36,9 @@ class WebScraper(SearchCommand):
                        "url_filter" : url_filter,
                        "include_raw_content" : normalizeBoolean(include_raw_content),
                        "text_separator" : text_separator,
-                       "browser" : browser
+                       "browser" : browser,
+                       "output_matches_as_mv" : output_matches_as_mv,
+                       "output_matches_as_separate_fields" : output_matches_as_separate_fields
                        }
         
         SearchCommand.__init__(self, run_in_preview=True, logger_name="web_scrape")
