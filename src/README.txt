@@ -107,7 +107,7 @@ Change History
 |         | Added ability to specify a custom string that will separate extracted values                                     |
 |         | Fixed incorrect reporting of matches count                                                                       |
 |---------|------------------------------------------------------------------------------------------------------------------|
-| 3.0     | Rendering using a browser (to get page contents after JS rendering has executed)                                 |
+| 3.0     | Added rendering using a browser (to get page contents after JS rendering has executed)                           |
 |         | MD5 and SHA224 hashes are now included in the results                                                            |
 |         | Added ability to output matches as separate fields                                                               |
 |         | Matches are now listed in results in order that they discovered                                                  |
