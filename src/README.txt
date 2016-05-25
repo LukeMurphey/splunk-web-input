@@ -37,6 +37,15 @@ You can access the source-code and get technical details about the app at:
 
 
 ================================================
+Known Issues
+================================================
+
+* FireFox does not recognize username and password authentication for proxy configurations. You will need to setup the browser directly with a custom proxy setting before running the input.
+
+     
+
+
+================================================
 Change History
 ================================================
 
