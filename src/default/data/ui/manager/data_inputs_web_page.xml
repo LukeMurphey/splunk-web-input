@@ -151,7 +151,7 @@
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-browserFields</key>
-	          <key name="check_policy"><![CDATA[$('#browser_id').val() !== "" && $('#browser_id').val() !== "integrated_client"]]></key>
+	          <key name="check_policy"><![CDATA[($('#browser_id').val() !== "" && $('#browser_id').val() !== "integrated_client") || $('#timeout_id').val() !== "5"]]></key>
 	        </element>
 	      </elements>
 	  	</element>
