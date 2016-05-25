@@ -75,6 +75,12 @@
 	          <key name="exampleText"><![CDATA[Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")]]></key>
 	        </element>
 	        
+	        <element name="output_as_mv" type="checkbox" label="Output as Multi-value Field">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText"><![CDATA[Outputs the matches as a multi-value field (otherwise, separate fields will be created)]]></key>
+	        </element>
+	        
 	        <element name="text_separator" type="textfield" label="Text Separator">
 	          <view name="edit"/>
 	          <view name="create"/>
@@ -85,6 +91,7 @@
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-outputFields</key>
+	          <key name="check_policy"><![CDATA[$('#name_attributes_id').val() !== "" || $('#text_separator_id').val() !== "" || !$('#output_as_mv_id').is(":checked") || $('#use_element_name_id').is(":checked") ]]></key>
 	        </element>
 	        
 	      </elements>
