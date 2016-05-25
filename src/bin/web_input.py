@@ -17,7 +17,7 @@ import chardet
 from selenium import webdriver
 import re
 from collections import OrderedDict
-from urlparse import urlparse, urljoin
+from urlparse import urlparse, urljoin, urlunsplit, urlsplit
 
 import httplib2
 from httplib2 import socks
@@ -123,7 +123,7 @@ class WebInput(ModularInput):
                             ]
     
     FIREFOX = "firefox"
-    PYTHON = "python"
+    PYTHON = "integrated_client"
     SAFARI = "safari"
     INTERNET_EXPLORER = "internet_explorer"
     CHROME = "chrome"
@@ -173,6 +173,40 @@ class WebInput(ModularInput):
         """
         
         return os.path.join( checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json" )
+       
+    @classmethod
+    def add_auth_to_url(cls, url, username, password):
+        """
+        Add the username and password to the URL. For example, convert http://test.com to http://admin:opensesame@test.com.
+        
+        Arguments:
+        url -- A string version of the URL
+        username -- The username
+        password -- The password
+        """
+        
+        if username is not None and password is not None and username != "" and password != "":
+            
+            # Split up the URL
+            u = urlsplit(url)
+            
+            # Now, build a new URL with the new username and password
+            split = []
+            
+            for item in (u[:]):
+                split.append(item)
+            
+            # Replace the netloc with one that contains the username and password. Note that this will drop the existing username and password if it exists
+            if u.port is None: #(u.port == 80 and u.scheme == "http") or (u.port == 443 and u.scheme == "https"):
+                split[1] = username + ":" + password + "@" + u.hostname
+            else:
+                split[1] = username + ":" + password + "@" + u.hostname + ":" + str(u.port)
+                
+            return urlunsplit(split)
+            
+            #return re.sub("://", "://" + username + ":" + password + "@", url, 1)
+        else:
+            return url
        
     @classmethod
     def append_if_not_empty(cls, str1, str2, separator):
@@ -441,7 +475,7 @@ class WebInput(ModularInput):
         return response.status, content, encoding
     
     @classmethod
-    def get_result_browser(cls, url, browser="firefox", sleep_seconds=5):
+    def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None):
         
         driver = None
         
@@ -459,7 +493,7 @@ class WebInput(ModularInput):
                 raise Exception("Browser '%s' not recognized" % (browser))
             
             # Load the page
-            driver.get(url.geturl())
+            driver.get(cls.add_auth_to_url(url.geturl(), username, password))
             
             # Wait for the content to load
             time.sleep(sleep_seconds)
@@ -508,11 +542,16 @@ class WebInput(ModularInput):
             with Timer() as timer:
                 
                 response_code, content, encoding = cls.get_result_built_in_client( http, url, headers, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
+                result['browser'] = cls.PYTHON
                 
             # Get the content via the browser too if requested
             # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
             if browser is not None and browser.strip() != cls.PYTHON:
-                content = cls.get_result_browser(url, browser, timeout)
+                try:
+                    content = cls.get_result_browser(url, browser, timeout)
+                    result['browser'] = browser
+                except:
+                    logger.exception("Unable to get the content using the browser=%s", browser)
                 
             # Get the size of the content
             result['response_size'] = len(content)

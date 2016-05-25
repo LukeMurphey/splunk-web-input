@@ -388,6 +388,21 @@ class TestWebInput(UnitTestWithWebServer):
         html_as_json = WebInput.html_to_json(tree)
     '''
         
+    def test_add_auth_to_url(self):
+        self.assertEqual(WebInput.add_auth_to_url("http://tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
+        self.assertEqual(WebInput.add_auth_to_url("http://tree.com:8888", "admin", "changeme"), "http://admin:changeme@tree.com:8888")
+        
+    def test_add_auth_to_url_existing_user_pass(self):
+        self.assertEqual(WebInput.add_auth_to_url("http://user:abc1234@tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
+        
+    def test_add_auth_to_url_no_username(self):
+        self.assertEqual(WebInput.add_auth_to_url("http://tree.com", None, "changeme"), "http://tree.com")
+        self.assertEqual(WebInput.add_auth_to_url("http://tree.com", "", "changeme"), "http://tree.com")
+        
+    def test_add_auth_to_url_no_password(self):
+        self.assertEqual(WebInput.add_auth_to_url("http://tree.com", "admin", None), "http://tree.com")
+        self.assertEqual(WebInput.add_auth_to_url("http://tree.com", "admin", ""), "http://tree.com")
+        
 class TestWebInputCrawling(unittest.TestCase):
     """
     http://lukemurphey.net/issues/762
@@ -534,13 +549,15 @@ class TestCustomSeparator(UnitTestWithWebServer):
         
     def test_append_if_neither_has_value(self):
         self.assertEqual(WebInput.append_if_not_empty("", "", ":"), "")
-        
+    
 class TestBrowserRendering(UnitTestWithWebServer):
     """
     http://lukemurphey.net/issues/1323
     """
     
-    def test_scrape_page_firefox(self):
+    BROWSER = None
+    
+    def test_scrape_page(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_custom_separator", "title", "this is a test" )
         results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/html"), selector_field.to_python("h1"), timeout=3, output_matches_as_mv=True, browser=WebInput.FIREFOX)
@@ -549,22 +566,39 @@ class TestBrowserRendering(UnitTestWithWebServer):
         self.assertEqual(len(results), 1)
         self.assertEqual(result['match'][0], "Heading")
     
-    def test_get_result_firefox(self):
+    def test_get_result(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         
-        content = WebInput.get_result_browser(url_field.to_python("http://127.0.0.1:8888/html"), browser="firefox", sleep_seconds=1)
-        f = open('../tmp/output.html', 'w')
-        f.write(content)
+        content = WebInput.get_result_browser(url_field.to_python("http://127.0.0.1:8888/html"), browser=self.BROWSER, sleep_seconds=1)
+        
         self.assertEqual(content[0:42], '<html webdriver="true"><head></head><body>')
+        
+    def test_get_result_basic_auth(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        
+        content = WebInput.get_result_browser(url_field.to_python("http://admin:changeme@127.0.0.1:8888/"), browser=self.BROWSER, sleep_seconds=1)
+        
+        self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
+        
+    def test_get_result_basic_auth_as_args(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        
+        content = WebInput.get_result_browser(url_field.to_python("http://127.0.0.1:8888/"), browser=self.BROWSER, sleep_seconds=2, username="admin", password="changeme")
+        
+        self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
+        
+class TestBrowserRenderingFirefox(TestBrowserRendering):
+    BROWSER = WebInput.FIREFOX
         
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suites = []
-    #suites.append(loader.loadTestsFromTestCase(TestWebInput))
+    suites.append(loader.loadTestsFromTestCase(TestWebInput))
     #suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
     #suites.append(loader.loadTestsFromTestCase(TestRawContent))
     #suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
-    suites.append(loader.loadTestsFromTestCase(TestBrowserRendering))
+    #suites.append(loader.loadTestsFromTestCase(TestBrowserRenderingFirefox))
+    
     
     
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))
