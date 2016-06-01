@@ -20,7 +20,7 @@ from collections import OrderedDict
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
 
 import httplib2
-from httplib2 import socks
+from httplib2 import socks, SSLHandshakeError
 import lxml.html
 
 from cssselector import CSSSelector
@@ -707,18 +707,19 @@ class WebInput(ModularInput):
                             if output_matches_as_separate_fields:
                                 result['match_' + str(fields_included)] = match_text
                             
-                        # If we are to extract links, do it    
-                        if extracted_links is not None and source_url_depth is not None:
+            # If we are to extract links, do it
+            if tree is not None:
+                if extracted_links is not None and source_url_depth is not None:
+                    
+                    for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
+                        
+                        # Add the extracted link if it is not already in the list
+                        if extracted not in extracted_links:
                             
-                            for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
-                                
-                                # Add the extracted link if it is not already in the list
-                                if extracted not in extracted_links:
-                                    
-                                    # Add the discovered URL (with the appropriate depth)
-                                    extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
-                        else:
-                            logger.debug("Not extracting links since extracted_links is None")
+                            # Add the discovered URL (with the appropriate depth)
+                            extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
+                else:
+                    logger.debug("Not extracting links since extracted_links is None")
         
         # Handle time outs    
         except socket.timeout:
@@ -730,6 +731,10 @@ class WebInput(ModularInput):
             
             if e.errno in [60, 61]:
                 result['timed_out'] = True
+        
+        except httplib2.SSLHandshakeError as e:
+            logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
+            return None # Unable to connect to this site due to an SSL issue
         
         except httplib2.RelativeURIError:
             return None # Not a real URI
@@ -893,10 +898,10 @@ class WebInput(ModularInput):
             logger.info("Proxy information loaded, stanza=%s", stanza)
             
         except splunk.ResourceNotFound:
-            logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
+            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s, error="not found"', stanza)
             raise
         except splunk.SplunkdConnectionException:
-            logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
+            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s error="splunkd connection error"', stanza)
             raise
         
         return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password

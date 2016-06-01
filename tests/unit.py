@@ -440,6 +440,15 @@ class TestWebInputCrawling(unittest.TestCase):
         results = WebInput.scrape_page( url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), timeout=3, output_matches_as_mv=True, page_limit=5, depth_limit=0)
         self.assertEqual(len(results), 1)
         
+    def test_scape_page_spider_from_non_matching_links(self):
+        # http://lukemurphey.net/issues/1366
+
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://textcritical.net"), selector_field.to_python(".ajah-loading"), timeout=3, output_matches_as_mv=True, page_limit=5, depth_limit=3)
+        
+        self.assertGreater(len(results), 1) # This should return only one result if link extraction only applies to matched pages 
+        
 class TestRawContent(UnitTestWithWebServer):
     """
     http://lukemurphey.net/issues/1168

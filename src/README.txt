@@ -111,4 +111,6 @@ Change History
 |         | MD5 and SHA224 hashes are now included in the results                                                            |
 |         | Added ability to output matches as separate fields                                                               |
 |         | Matches are now listed in results in order that they discovered                                                  |
+|         | The crawler now discovers URLs in pages that didn't match the selector                                           |
+|         | SSL handshake errors no longer terminate a page scraping session                                                 |
 +---------+------------------------------------------------------------------------------------------------------------------+
