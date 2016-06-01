@@ -113,4 +113,5 @@ Change History
 |         | Matches are now listed in results in order that they discovered                                                  |
 |         | The crawler now discovers URLs in pages that didn't match the selector                                           |
 |         | SSL handshake errors no longer terminate a page scraping session                                                 |
+|         | Added extra logging for errors when attempting to load proxy configuration                                       |
 +---------+------------------------------------------------------------------------------------------------------------------+
