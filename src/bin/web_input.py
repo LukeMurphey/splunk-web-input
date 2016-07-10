@@ -14,15 +14,17 @@ import time
 import os
 import splunk
 import chardet
+from selenium import webdriver
 import re
 from collections import OrderedDict
-from urlparse import urlparse, urljoin
+from urlparse import urlparse, urljoin, urlunsplit, urlsplit
 
 import httplib2
-from httplib2 import socks
+from httplib2 import socks, SSLHandshakeError
 import lxml.html
 
 from cssselector import CSSSelector
+from tarfile import SUPPORTED_TYPES
 
 def setup_logger():
     """
@@ -120,6 +122,14 @@ class WebInput(ModularInput):
                             'raw_match_count'
                             ]
     
+    FIREFOX = "firefox"
+    INTEGRATED_CLIENT = "integrated_client"
+    SAFARI = "safari"
+    INTERNET_EXPLORER = "internet_explorer"
+    CHROME = "chrome"
+    
+    SUPPORTED_BROWSERS= [INTEGRATED_CLIENT, FIREFOX]
+    
     def __init__(self, timeout=30, **kwargs):
 
         scheme_args = {'title': "Web-pages",
@@ -143,6 +153,9 @@ class WebInput(ModularInput):
                 Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
+                Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
+                IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
+                BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -163,6 +176,40 @@ class WebInput(ModularInput):
         """
         
         return os.path.join( checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json" )
+       
+    @classmethod
+    def add_auth_to_url(cls, url, username, password):
+        """
+        Add the username and password to the URL. For example, convert http://test.com to http://admin:opensesame@test.com.
+        
+        Arguments:
+        url -- A string version of the URL
+        username -- The username
+        password -- The password
+        """
+        
+        if username is not None and password is not None and username != "" and password != "":
+            
+            # Split up the URL
+            u = urlsplit(url)
+            
+            # Now, build a new URL with the new username and password
+            split = []
+            
+            for item in (u[:]):
+                split.append(item)
+            
+            # Replace the netloc with one that contains the username and password. Note that this will drop the existing username and password if it exists
+            if u.port is None: #(u.port == 80 and u.scheme == "http") or (u.port == 443 and u.scheme == "https"):
+                split[1] = username + ":" + password + "@" + u.hostname
+            else:
+                split[1] = username + ":" + password + "@" + u.hostname + ":" + str(u.port)
+                
+            return urlunsplit(split)
+            
+            #return re.sub("://", "://" + username + ":" + password + "@", url, 1)
+        else:
+            return url
        
     @classmethod
     def append_if_not_empty(cls, str1, str2, separator):
@@ -422,7 +469,82 @@ class WebInput(ModularInput):
         return links
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None):
+    def get_result_built_in_client(cls, http, url, headers, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
+        
+        response, content = http.request( url.geturl(), 'GET', headers=headers)
+        
+        encoding = cls.detect_encoding(content, response, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
+        
+        return response.status, content, encoding
+    
+    @classmethod
+    def get_firefox_proxy_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+        profile = None
+        
+        # Return none if no proxy is defined
+        if proxy_server is None or proxy_port is None:
+            return None
+        
+        # Use a socks proxy
+        elif proxy_type == "socks4" or proxy_type == "socks5":
+            profile = webdriver.FirefoxProfile()
+            
+            profile.set_preference('network.proxy.type', 1)
+            profile.set_preference('network.proxy.socks', proxy_server)
+            profile.set_preference('network.proxy.socks_port', int(proxy_port))
+            
+        # Use an HTTP proxy
+        elif proxy_type == "http":
+            profile = webdriver.FirefoxProfile()
+            
+            profile.set_preference('network.proxy.type', 1)
+            profile.set_preference('network.proxy.http', proxy_server)
+            profile.set_preference('network.proxy.http_port', int(proxy_port)) 
+            profile.set_preference('network.proxy.ssl', proxy_server)
+            profile.set_preference('network.proxy.ssl_port', int(proxy_port)) 
+            
+        return profile
+    
+    @classmethod
+    def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+        
+        driver = None
+        
+        try:
+            # Assign a default argument for browser
+            if browser is None:
+                browser = cls.FIREFOX
+            else: 
+                browser = browser.lower().strip()
+            
+            # Make the browser
+            if browser == cls.FIREFOX:
+                profile = cls.get_firefox_proxy_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+                
+                if profile is not None:
+                    logger.info("Using a proxy with Firefox")
+                    driver = webdriver.Firefox(profile)
+                else:
+                    driver = webdriver.Firefox()
+            else:
+                raise Exception("Browser '%s' not recognized" % (browser))
+            
+            # Load the page
+            driver.get(cls.add_auth_to_url(url.geturl(), username, password))
+            
+            # Wait for the content to load
+            time.sleep(sleep_seconds)
+            
+            # Get the content
+            content = driver.execute_script("return document.documentElement.outerHTML")
+            
+            return content
+        finally:
+            if driver is not None:
+                driver.close()
+    
+    @classmethod
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -444,32 +566,48 @@ class WebInput(ModularInput):
         source_url_depth -- The depth level of the URL from which this URL was discovered from. This is used for tracking how depth the crawler should go.
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
+        browser -- The browser to use
+        timeout -- The timeout to use for waiting for content via the browser
+        username -- The username to use for authentication
+        password -- The username to use for authentication
+        proxy_type -- The type of proxy server (defaults to "http")
+        proxy_server -- The IP or domain name of the proxy server
+        proxy_port -- The port that the proxy server runs on
+        proxy_user -- The user name of the proxy server account
+        proxy_password -- The password of the proxy server account
         """
         
         try:
             
             # This will be where the result information will be stored
-            result = {}
+            result = OrderedDict()
             
             # Perform the request
             with Timer() as timer:
                 
-                response, content = http.request( url.geturl(), 'GET', headers=headers)
+                response_code, content, encoding = cls.get_result_built_in_client( http, url, headers, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
+                result['browser'] = cls.INTEGRATED_CLIENT
                 
-                # Get the hash of the content
-                response_md5 = hashlib.md5(content).hexdigest()
-                response_sha224 = hashlib.sha224(content).hexdigest()
+            # Get the content via the browser too if requested
+            # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
+            if browser is not None and browser.strip() != cls.INTEGRATED_CLIENT:
+                try:
+                    content = cls.get_result_browser(url, browser, timeout, username, password, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+                    result['browser'] = browser
+                except:
+                    logger.exception("Unable to get the content using the browser=%s", browser)
                 
-                # Get the size of the content
-                result['response_size'] = len(content)
+            # Get the size of the content
+            result['response_size'] = len(content)
             
             # Retrieve the meta-data
-            result['response_code'] = response.status    
+            result['response_code'] = response_code   
             result['request_time'] = timer.msecs
             result['url'] = url.geturl()
             
-            # Determine the encoding
-            encoding = cls.detect_encoding(content, response, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
+            # Get the hash of the content
+            result['content_md5'] = hashlib.md5(content).hexdigest()
+            result['content_sha224'] = hashlib.sha224(content).hexdigest()
             
             # Store the encoding in the result
             result['encoding'] = encoding
@@ -569,18 +707,19 @@ class WebInput(ModularInput):
                             if output_matches_as_separate_fields:
                                 result['match_' + str(fields_included)] = match_text
                             
-                        # If we are to extract links, do it    
-                        if extracted_links is not None and source_url_depth is not None:
+            # If we are to extract links, do it
+            if tree is not None:
+                if extracted_links is not None and source_url_depth is not None:
+                    
+                    for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
+                        
+                        # Add the extracted link if it is not already in the list
+                        if extracted not in extracted_links:
                             
-                            for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
-                                
-                                # Add the extracted link if it is not already in the list
-                                if extracted not in extracted_links:
-                                    
-                                    # Add the discovered URL (with the appropriate depth)
-                                    extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
-                        else:
-                            logger.debug("Not extracting links since extracted_links is None")
+                            # Add the discovered URL (with the appropriate depth)
+                            extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
+                else:
+                    logger.debug("Not extracting links since extracted_links is None")
         
         # Handle time outs    
         except socket.timeout:
@@ -593,6 +732,10 @@ class WebInput(ModularInput):
             if e.errno in [60, 61]:
                 result['timed_out'] = True
         
+        except httplib2.SSLHandshakeError as e:
+            logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
+            return None # Unable to connect to this site due to an SSL issue
+        
         except httplib2.RelativeURIError:
             return None # Not a real URI
         
@@ -603,7 +746,7 @@ class WebInput(ModularInput):
         return result  
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None):
         """
         Retrieve data from a website.
         
@@ -632,6 +775,7 @@ class WebInput(ModularInput):
         url_filter -- A wild-card to limit the extracted URLs to
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
+        browser -- The browser to use
         """
         
         if isinstance(url, basestring):
@@ -706,9 +850,9 @@ class WebInput(ModularInput):
                 
                 # Don't have the function extract URLs if the depth limit has been reached
                 if source_url_depth >= depth_limit:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
                 else:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator)
+                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
                 
                 # Append the result
                 if result is not None:
@@ -754,10 +898,10 @@ class WebInput(ModularInput):
             logger.info("Proxy information loaded, stanza=%s", stanza)
             
         except splunk.ResourceNotFound:
-            logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
+            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s, error="not found"', stanza)
             raise
         except splunk.SplunkdConnectionException:
-            logger.error("Unable to find the proxy configuration for the specified configuration stanza=%s", stanza)
+            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s error="splunkd connection error"', stanza)
             raise
         
         return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
@@ -774,7 +918,7 @@ class WebInput(ModularInput):
         password         = cleaned_params.get("password", None)
         name_attributes  = cleaned_params.get("name_attributes", [])
         user_agent       = cleaned_params.get("user_agent", None)
-        timeout          = self.timeout
+        timeout          = cleaned_params.get("timeout", self.timeout)
         sourcetype       = cleaned_params.get("sourcetype", "web_input")
         host             = cleaned_params.get("host", None)
         index            = cleaned_params.get("index", "default")
@@ -785,6 +929,8 @@ class WebInput(ModularInput):
         depth_limit      = cleaned_params.get("depth_limit", 25)
         raw_content      = cleaned_params.get("raw_content", False)
         text_separator   = cleaned_params.get("text_separator", " ")
+        browser          = cleaned_params.get("browser", self.INTEGRATED_CLIENT)
+        output_as_mv     = cleaned_params.get("output_as_mv", True)
         source           = stanza
         
         if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
@@ -813,8 +959,16 @@ class WebInput(ModularInput):
                 if depth_limit < 1 or depth_limit is None or depth_limit == "":
                     logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
                     depth_limit = 50
+                    
+                # Determine how to make the match fields
+                output_matches_as_mv = True
+                output_matches_as_separate_fields = False
                 
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator)
+                if not output_as_mv:
+                    output_matches_as_mv = False
+                    output_matches_as_separate_fields = True
+                
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields)
                 
                 matches = 0
                 

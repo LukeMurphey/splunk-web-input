@@ -267,7 +267,15 @@
 			data.text_separator = $('#text_separator_id').val();
 		}
 		
-		//data.include_empty_matches = true;
+		// Get the browser
+		if(  $('#browser_id').val().length > 0 ){
+			data.browser = $('#browser_id').val();
+		}
+		
+		// Get the timeout
+		if(  $('#timeout_id').val().length > 0 ){
+			data.timeout = $('#timeout_id').val();
+		}
 		
 		$.ajax(
 				{

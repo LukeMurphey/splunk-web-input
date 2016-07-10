@@ -37,6 +37,30 @@ You can access the source-code and get technical details about the app at:
 
 
 ================================================
+FAQ
+================================================
+
+Q: How do I enable the use of a proxy server?
+
+A: To use a proxy server, re-run the app setup page and enter the information for a proxy server.
+
+----------------------------------------------------------------------------------------------
+
+Q: Can I allow non-admin users to make and edit inputs?
+
+A: Yes, just assign users the "edit_modinput_web_input" capability. You will likely want to give them the "list_inputs" capability too.
+
+
+
+================================================
+Known Issues
+================================================
+
+* FireFox does not recognize username and password authentication for proxy configurations. You will need to setup the browser directly with a custom proxy setting before running the input.
+
+     
+
+================================================
 Change History
 ================================================
 
@@ -97,4 +121,14 @@ Change History
 |         | Added ability to include the raw content                                                                         |
 |         | Added ability to specify a custom string that will separate extracted values                                     |
 |         | Fixed incorrect reporting of matches count                                                                       |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 3.0     | Added rendering using a browser (to get page contents after JS rendering has executed)                           |
+|         | MD5 and SHA224 hashes are now included in the results                                                            |
+|         | Added ability to output matches as separate fields                                                               |
+|         | Matches are now listed in results in order that they discovered                                                  |
+|         | The crawler now discovers URLs in pages that didn't match the selector                                           |
+|         | SSL handshake errors no longer terminate a page scraping session                                                 |
+|         | Added extra logging for errors when attempting to load proxy configuration                                       |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 3.1     | Added ability to grant access to make inputs to non-admin users                                                  |
 +---------+------------------------------------------------------------------------------------------------------------------+

@@ -75,6 +75,12 @@
 	          <key name="exampleText"><![CDATA[Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")]]></key>
 	        </element>
 	        
+	        <element name="output_as_mv" type="checkbox" label="Output as Multi-value Field">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText"><![CDATA[Outputs the matches as a multi-value field (otherwise, separate fields will be created)]]></key>
+	        </element>
+	        
 	        <element name="text_separator" type="textfield" label="Text Separator">
 	          <view name="edit"/>
 	          <view name="create"/>
@@ -85,6 +91,7 @@
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-outputFields</key>
+	          <key name="check_policy"><![CDATA[$('#name_attributes_id').val() !== "" || $('#text_separator_id').val() !== "" || !$('#output_as_mv_id').is(":checked") || $('#use_element_name_id').is(":checked") ]]></key>
 	        </element>
 	        
 	      </elements>
@@ -113,6 +120,38 @@
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-authFields</key>
+	        </element>
+	      </elements>
+	  	</element>
+	  	
+		<element name="browserFields" type="fieldset">
+		  <key name="legend">HTTP Client</key>
+	      <view name="list"/>
+	      <view name="edit"/>
+	      <view name="create"/>
+	      <elements>
+	      
+	        <element name="browser" type="select" label="Browser">
+	          <view name="edit"/>
+	          <view name="create"/>
+		      <options>
+		      	<opt value="integrated_client" label="Built-in client"/>
+		      	<opt value="firefox" label="Firefox"/>
+		      </options>
+	          <key name="exampleText">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</key>
+	        </element>
+	        
+	        <element name="timeout" type="textfield" label="Timeout">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">How long (in seconds) to wait until ending the extraction; increase this if you are using a browser to execute Javascript and the view doesn't render quickly enough</key>
+	        </element>
+	        
+	        <element name="hide_optional_browser" type="hide_optional_settings">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="fieldset_wrapper_id">item-browserFields</key>
+	          <key name="check_policy"><![CDATA[($('#browser_id').val() !== "" && $('#browser_id').val() !== "integrated_client") || $('#timeout_id').val() !== "5"]]></key>
 	        </element>
 	      </elements>
 	  	</element>
@@ -210,6 +249,7 @@
 		  		</key>
 		  	    <view name="create"/>
 	            <view name="edit"/>
+	            <key name="exampleText">A custom user-agent is only used when the built-in HTTP client is used</key>
 		  	</element>
 	        
 	      </elements>
