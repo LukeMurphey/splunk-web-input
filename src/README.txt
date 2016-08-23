@@ -18,7 +18,7 @@ Some websites disallow web-scraping in the terms of use. Make sure to check the 
 Configuring Splunk
 ================================================
 
-This app exposes a new input type that can be configured in the Splunk Manager. To configure it, create a new input in the Manager under Data inputs � Web-pages.
+This app exposes a new input type that can be configured in the Splunk Manager. To configure it, create a new input in the Manager under Data inputs > Web-pages.
 
 
 
@@ -131,4 +131,6 @@ Change History
 |         | Added extra logging for errors when attempting to load proxy configuration                                       |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 3.1     | Added ability to grant access to make inputs to non-admin users                                                  |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 3.1.1   | Fixed problem where you could not create new inputs                                                              |
 +---------+------------------------------------------------------------------------------------------------------------------+
