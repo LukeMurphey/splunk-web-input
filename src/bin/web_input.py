@@ -627,10 +627,6 @@ class WebInput(ModularInput):
                 logger.info('The content is going to be parsed without decoding because the parser refused to parse it with encoding (http://goo.gl/4GRjJF), url="%s"', url.geturl())
                 tree = lxml.html.fromstring(content)
             
-            # Include the raw content if requested
-            if include_raw_content:
-                result['content'] = content
-            
             # Perform extraction if a selector is provided
             if selector is not None and tree is not None:
                 
@@ -706,6 +702,10 @@ class WebInput(ModularInput):
                             
                             if output_matches_as_separate_fields:
                                 result['match_' + str(fields_included)] = match_text
+            
+            # Include the raw content if requested
+            if include_raw_content:
+                result['content'] = content
                             
             # If we are to extract links, do it
             if tree is not None:
@@ -848,11 +848,28 @@ class WebInput(ModularInput):
                     logger.info("No more URLs in the list to process")
                     break
                 
+                # Make the keyword argument list
+                kw = {
+                        'url_filter' : url_filter,
+                        'source_url_depth': source_url_depth,
+                        'include_raw_content': include_raw_content,
+                        'text_separator': text_separator,
+                        'timeout':timeout,
+                        'browser': browser,
+                        'proxy_type': proxy_type,
+                        'proxy_server': proxy_server,
+                        'proxy_port': proxy_port,
+                        'proxy_user': proxy_user,
+                        'proxy_password': proxy_password,
+                        'extracted_links': extracted_links
+                      }
+                
                 # Don't have the function extract URLs if the depth limit has been reached
                 if source_url_depth >= depth_limit:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=None, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
-                else:
-                    result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, extracted_links=extracted_links, url_filter=url_filter, source_url_depth=source_url_depth, include_raw_content=include_raw_content, text_separator=text_separator, timeout=timeout, browser=browser, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password)
+                    kw['extracted_links'] = None
+                
+                # Perform the scrape
+                result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, **kw)
                 
                 # Append the result
                 if result is not None:
