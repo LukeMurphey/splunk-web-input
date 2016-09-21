@@ -72,12 +72,21 @@
 	color: #C42323;
 	font-weight: bold;
 }
+
+#preview_options{
+	padding-top: 2px;
+	padding-bottom: 15px;
+	width: 350px;
+	float: left;
+}
 </style>
 
-<label><div></div></label>
-<div>
-	<a id="preview_web_input_results" href="#">Preview results</a>
+<label>Preview</label>
+<div id="preview_options">
+	<a id="preview_web_input_results" href="#">View results</a> or
+	<a id="preview_web_input_results_in_search" href="#">open in search</a>
 </div>
+<div style="clear:both"></div>
 <script type="text/javascript">
 
 	var entityMap = {
@@ -301,19 +310,79 @@
 	$(document).ready(
 			function(){
 				
+				function openPreviewDialog(){
+					_mypopup = new  Splunk.Popup('<div id="web_input_preview_dialog_content">Loading preview...</div>',
+						    {
+						            title : "Preview Results",
+						            pclass : "web_input_preview_dialog",
+						            cloneFlag : false
+						    });
+					
+					doPreview();
+				}
+				
 				$('#preview_web_input_results').click(
+						openPreviewDialog
+				);
+				
+				$('#preview_web_input_results_in_search').click(
 						function() {
-							_mypopup = new  Splunk.Popup('<div id="web_input_preview_dialog_content">Loading preview...</div>',
-								    {
-								            title : "Preview Results",
-								            pclass : "web_input_preview_dialog",
-								            cloneFlag : false
-								    });
 							
-							//$("#web_input_preview_dialog_content").html(renderResult({response_code: 200, request_size: 14414, match: ["lukemurphey.net"]}));
-							doPreview();
+							if( !validateInput() ){
+								openPreviewDialog();
+								return;
+							}
+							
+							var args = {
+									"#url_id": "url",
+									"#selector_id": "selector",
+									"#use_element_name_id" : "use_element_name",
+									"#text_separator_id" : "text_separator",
+									"#username_id": "username",
+									"#password_id": "password",
+									"#browser_id": "browser",
+									"#timeout_id": "timeout",
+									"#page_limit_id": "page_limit",
+									"#depth_limit_id": "depth_limit",
+									"#url_filter_id": "url_filter"
+							}
+							
+							var bool_args = {
+									"#raw_content_id" : "include_raw_content",
+									"#output_as_mv_id" : "output_as_mv",
+									"#use_element_name_id": "use_element_name"
+							}
+							
+							var arg_str = "";
+							
+							// Make up the arguments
+							for(var k in args){
+								var value = $(k).val();
+								var param_name = args[k];
+								
+								if(value.length > 0){
+									arg_str = arg_str + param_name + '="' + value + '" ';
+								}
+							}
+							
+							for(var k in bool_args){
+								var param_name = bool_args[k];
+								
+								if($(k).is(":checked")){
+									arg_str = arg_str + param_name + '=1 ';
+								}
+								else{
+									arg_str = arg_str + param_name + '=0 ';
+								}
+							}
+							
+							var url = "../../../../../app/search/search?q=" + encodeURIComponent("| webscrape " + arg_str);
+							var win = window.open(url, '_blank');
+							win.focus();
 						}
 				);
+				
+				
 			}
 	);
 </script>
