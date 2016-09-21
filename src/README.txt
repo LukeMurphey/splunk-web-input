@@ -135,4 +135,7 @@ Change History
 | 3.1.1   | Fixed problem where you could not create new inputs                                                              |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 3.1.2   | Fixed problem where matches were not visible when the content is very long                                       |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 3.2     | Added ability to view results in search from the modular input creation page                                     |
+|         | Improved search BNF                                                                                              |
 +---------+------------------------------------------------------------------------------------------------------------------+
