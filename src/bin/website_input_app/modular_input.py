@@ -12,6 +12,7 @@ import json
 from urlparse import urlparse
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
+from splunk.util import normalizeBoolean as normBool
 
 class FieldValidationException(Exception):
     pass
@@ -588,7 +589,7 @@ class ModularInput():
     
     def escape_spaces(self, s, encapsulate_in_double_quotes=False):
         """
-        If the string contains spaces, then add double quotes around the string. This is useful when outputting fields and values to Splunk since a space will cause Splunk to not recognize the entire value.
+        If the string contains spaces or is empty, then add double quotes around the string. This is useful when outputting fields and values to Splunk since a space will cause Splunk to not recognize the entire value.
         
         Arguments:
         s -- A string to escape.
@@ -604,7 +605,7 @@ class ModularInput():
             s = s.replace('"', '\\"')
             s = s.replace("'", "\\'")
         
-        if s is not None and (" " in s or encapsulate_in_double_quotes):
+        if s is not None and (" " in s or encapsulate_in_double_quotes or s == ""):
             return '"' + s + '"'
         
         else:
@@ -739,7 +740,7 @@ class ModularInput():
         default_scheme_args = {
                                "use_external_validation" : "true",
                                "streaming_mode" : "xml",
-                               "use_single_instance" : "true"
+                               "use_single_instance" : True
         }
         
         scheme_args = dict(default_scheme_args.items() + scheme_args.items())
@@ -747,7 +748,10 @@ class ModularInput():
         # Set the scheme arguments.
         for arg in scheme_args:
             setattr(self, arg, self._is_valid_param(arg, scheme_args.get(arg)))
-                
+              
+        # Convert over the use_single_instance argument to a boolean
+        self.use_single_instance = normBool(self.use_single_instance)
+        
         if args is None:
             self.args = []
         else:
@@ -829,6 +833,12 @@ class ModularInput():
     def logger(self, logger):
         self._logger = logger
         
+    def bool_to_str(self, s):
+        if s:
+            return "true"
+        else:
+            return "false"
+        
     def get_scheme(self):
         """
         Get the scheme of the inputs parameters and return as a string.
@@ -873,7 +883,7 @@ class ModularInput():
         element_use_single_instance = doc.createElement("use_single_instance")
         element_scheme.appendChild(element_use_single_instance)
         
-        element_use_single_instance_text = doc.createTextNode(self.use_single_instance)
+        element_use_single_instance_text = doc.createTextNode(self.bool_to_str(self.use_single_instance))
         element_use_single_instance.appendChild(element_use_single_instance_text)
         
         # Create the elements to stored args element
@@ -899,6 +909,11 @@ class ModularInput():
         """
         
         for arg in self.args:
+            
+            # Skip the interval argument if in multi-instance mode since Splunk will complain otherwise
+            if not self.use_single_instance and arg.name == "interval":
+                continue
+            
             element_arg = doc.createElement("arg")
             element_arg.setAttribute("name", arg.name)
             
@@ -996,6 +1011,11 @@ class ModularInput():
             if name in all_args:
                 cleaned_params[name] = all_args[name].to_python(value)
                 
+            # Allow the interval argument since it is internal but allowed even if not explicitly declared
+            elif name == "interval" and self.use_single_instance == False:
+                self.logger.warn("use_single_instance=%r", self.use_single_instance)
+                pass
+            
             # Throw an exception if the argument could not be found
             else:
                 raise FieldValidationException("The parameter '%s' is not a valid argument" % (name))
