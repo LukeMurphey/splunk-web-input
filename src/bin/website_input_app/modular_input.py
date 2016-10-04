@@ -1,7 +1,6 @@
 import logging
 from logging import handlers
 from xml.dom.minidom import Document
-import traceback
 import xml.dom
 import sys
 import re
