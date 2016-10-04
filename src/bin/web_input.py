@@ -18,13 +18,12 @@ from selenium import webdriver
 import re
 from collections import OrderedDict
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
-
+from website_input_app.event_writer import StashNewWriter
 import httplib2
-from httplib2 import socks, SSLHandshakeError
+from httplib2 import socks
 import lxml.html
 
 from cssselector import CSSSelector
-from tarfile import SUPPORTED_TYPES
 
 def setup_logger():
     """
@@ -107,6 +106,8 @@ class WebInput(ModularInput):
     """
     The web input modular input connects to a web-page obtains information from it.
     """
+    
+    OUTPUT_USING_STASH = True
     
     RESERVED_FIELD_NAMES = [
                             # Splunk reserved fields:
@@ -1005,8 +1006,18 @@ class WebInput(ModularInput):
                 for r in result:
                     
                     # Send the event
-                    self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
-                
+                    if self.OUTPUT_USING_STASH:
+                    
+                        # Write the event as a stash new file
+                        writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype)
+                        logger.info("Wrote stash file=%s", writer.write_event(r))
+                        
+                    else:
+                        
+                        # Write the event using the built-in modular input method
+                        self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
+
+                    
                 # Get the time that the input last ran
                 last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
                 
