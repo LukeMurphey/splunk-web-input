@@ -253,6 +253,7 @@
 		}
 		
 		var data = {};
+		data.include_first_result_only = '1';
 		data.url = $('#url_id').val();
 		data.selector= $('#selector_id').val();
 		
@@ -269,7 +270,7 @@
 		
 		// Determine if we are using the use_element_name parameter
 		if( $('#use_element_name_id:checked') ){
-			data.use_element_name = '1';
+			//data.use_element_name = '1';
 		}
 		
 		// Get the text separator

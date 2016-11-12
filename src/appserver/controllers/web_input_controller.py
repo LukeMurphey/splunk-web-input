@@ -180,7 +180,7 @@ class WebInputController(controllers.BaseController):
             return self.render_error_json(_("Unable to proxy the request"))
     
     @expose_page(must_login=True, methods=['GET', 'POST']) 
-    def scrape_page(self, url, selector, **kwargs):
+    def scrape_page(self, **kwargs):
         """
         Perform a page scrape and return the results (useful for previewing a web_input modular input configuration)
         """
@@ -191,67 +191,105 @@ class WebInputController(controllers.BaseController):
         try:
             web_input = WebInput(timeout=10)
             
-            # Get the authentication information, if available
-            username = None
-            password = None
+            kw = {}
             
+            # Get the URL or URI
+            url = None
+            
+            if( 'url' in kwargs):
+                url = kwargs['url']
+            elif( 'uri' in kwargs):
+                url = kwargs['uri']
+                
+            if url is None:
+                cherrypy.response.status = 202
+                return self.render_error_json(_("No URL was provided"))
+                
+            # Get the selector
+            selector = "*"
+            if( 'selector' in kwargs):
+                selector = kwargs['selector']
+            
+            # Get the authentication information, if available
             if( 'password' in kwargs and 'username' in kwargs):
-                username = kwargs['username']
-                password = kwargs['password']
+                kw['username'] = kwargs['username']
+                kw['password'] = kwargs['password']
                 
             # Get the user-agent string
-            user_agent = None
-            
             if( 'user_agent' in kwargs):
-                user_agent = kwargs['user_agent']
+                kw['user_agent'] = kwargs['user_agent']
             
             # Determine if we should include empty matches
-            include_empty_matches = False
-            
             if 'include_empty_matches' in kwargs:
-                include_empty_matches = util.normalizeBoolean(kwargs['include_empty_matches'], True)
+                kw['include_empty_matches'] = util.normalizeBoolean(kwargs['include_empty_matches'], True)
                 
             # Get the use_element_name parameter
-            """
-            use_element_name = None
-            
             if( 'use_element_name' in kwargs):
-                use_element_name = util.normalizeBoolean(kwargs['use_element_name'], False)
-            """
-            use_element_name = False
+                kw['use_element_name'] = util.normalizeBoolean(kwargs['use_element_name'], False)
             
             # Get the text_separator parameter
-            text_separator = " "
-            
             if( 'text_separator' in kwargs):
-                text_separator = kwargs['text_separator']
+                kw['text_separator'] = kwargs['text_separator']
                 
             # Get the timeout parameter
-            timeout = 5
+            kw['timeout'] = 5
             
             if( 'timeout' in kwargs):
                 try:
-                    timeout = int(kwargs['timeout'])
+                    kw['timeout'] = int(kwargs['timeout'])
                 except:
                     pass # timeout is invalid. Ignore this for now, it will get picked up when the user attempts to save the input
                 
             # Get the browser parameter
-            browser = " "
-            
             if( 'browser' in kwargs):
-                browser = kwargs['browser']
+                kw['browser'] = kwargs['browser']
+                
+            # Get the page_limit parameter
+            if( 'page_limit' in kwargs):
+                kw['page_limit'] = int(kwargs['page_limit'])
+                
+            # Get the depth_limit parameter
+            if( 'depth_limit' in kwargs):
+                kw['depth_limit'] = int(kwargs['depth_limit'])
+                
+            # Get the depth_limit parameter
+            if( 'url_filter' in kwargs):
+                kw['url_filter'] = kwargs['url_filter']
+                
+            # Get the name_attributes parameter
+            if( 'name_attributes' in kwargs):
+                kw['name_attributes'] = kwargs['name_attributes']
+                
+            # Get the user_agent parameter
+            if( 'user_agent' in kwargs):
+                kw['user_agent'] = kwargs['user_agent']
+
+            # Get the raw_content parameter
+            if( 'raw_content' in kwargs):
+                kw['raw_content'] = kwargs['raw_content']
+                
+            # Get the text_separator parameter
+            if( 'text_separator' in kwargs):
+                kw['text_separator'] = kwargs['text_separator']
             
             # Get the proxy configuration
             conf_stanza = "default"
             
             try:
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
+                
+                kw['proxy_type'] = proxy_type
+                kw['proxy_server'] = proxy_server
+                kw['proxy_port'] = proxy_port
+                kw['proxy_user'] = proxy_user
+                kw['proxy_password'] = proxy_password
+                
             except splunk.ResourceNotFound:
                 cherrypy.response.status = 202
                 return self.render_error_json(_("Proxy server information could not be obtained"))
             
             # Scrape the page
-            result = WebInput.scrape_page( url, selector, username=username, password=password, include_empty_matches=include_empty_matches, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, text_separator=text_separator, browser=browser, timeout=timeout)
+            result = WebInput.scrape_page( url, selector, **kw)
             
         except FieldValidationException, e:
             cherrypy.response.status = 202
@@ -264,4 +302,7 @@ class WebInputController(controllers.BaseController):
             return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
         
         # Return the information
-        return self.render_json(result[0])
+        if 'include_first_result_only' in kwargs:
+            return self.render_json(result[0])
+        else:
+            return self.render_json(result)

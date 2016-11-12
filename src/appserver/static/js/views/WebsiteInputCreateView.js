@@ -15,6 +15,7 @@ define([
     "splunkjs/mvc/simplesplunkview",
     'views/shared/controls/StepWizardControl',
     "splunkjs/mvc/simpleform/input/dropdown",
+    "splunkjs/mvc/simpleform/input/text",
     'text!../app/website_input/js/templates/WebsiteInputCreateView.html',
     "bootstrap.dropdown",
     "css!../app/website_input/css/WebsiteInputCreateView.css"
@@ -29,6 +30,7 @@ define([
     SimpleSplunkView,
     StepWizardControl,
     DropdownInput,
+    TextInput,
     Template
 ){
 	
@@ -37,6 +39,20 @@ define([
 	    initialize: function() {
 	      SplunkDsBaseCollection.prototype.initialize.apply(this, arguments);
 	    }
+	});
+	
+	var ScrapePageResults = Backbone.Collection.extend({
+		initialize: function(models, options) {
+		   this.provided_options = options;
+	    },
+		//model: ScrapePageResult,
+	    //url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page?url=http%3A%2F%2Flukemurphey.net&selector=.box+li&page_limit=5&depth_limit=4"),
+	    url : function() {
+	    	//debugger;
+	    	var url = Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page?") + jQuery.param(this.provided_options);
+	    	console.log(url);
+	        return url; //url=http%3A%2F%2Flukemurphey.net&selector=.box+li&page_limit=5&depth_limit=4");
+	     } 
 	});
 	
     // Define the custom view class
@@ -50,7 +66,8 @@ define([
         events: {
         	"change #inputURL" : "updatePreview",
         	"click #do-preview" : "clickUpdatePreview",
-        	"click .preview-url" : "clickUpdatePreview"
+        	"click .preview-url" : "clickUpdatePreview",
+        	"click .clearSelector" : "clearSelector"
         },
         
         initialize: function() {
@@ -77,6 +94,77 @@ define([
                   console.error("Unable to fetch the indexes");
                 }
             });
+        	
+
+        },
+        
+        /**
+         * Add the given item to the associative array if it is non-blank
+         */
+        addIfNonEmpty: function(d, name, inputid){
+        	
+        	if($(inputid, this.$el).val().length > 0){
+        		d[name] = $(inputid, this.$el).val();
+        	}
+        	
+        },
+        
+        /**
+         * Update the list of preview URLs
+         */
+        updatePreviewURLs: function(){
+        	
+        	// Make the args
+        	var args = {'selector' : "*"};
+        	
+        	this.addIfNonEmpty(args, 'page_limit', '#inputPageLimit');
+        	this.addIfNonEmpty(args, 'depth_limit', '#inputDepthLimit');
+        	this.addIfNonEmpty(args, 'url_filter', '#inputURLFilter');
+        	this.addIfNonEmpty(args, 'uri', '#inputURL');
+        	this.addIfNonEmpty(args, 'username', '#inputUsername');
+        	this.addIfNonEmpty(args, 'password', '#inputPassword');
+        	this.addIfNonEmpty(args, 'page_limit', '#inputPageLimit');
+        	
+        	// Get the results
+        	this.results = new ScrapePageResults([], args);
+        	
+        	this.results.fetch({
+                success: function() {
+                	var html = "";
+                	var option_template = _.template('<li><a href="#" data-url="<%- url %>" class="preview-url"><%- url %></a></li>');
+                	
+                	for(var c=0; c < this.results.models.length; c++){
+                		html += option_template({
+                			"url" : this.results.models[c].get("url")
+                		})
+                	}
+                	
+                	$('.preview-url-dropdown-selector').html(html);
+                	
+                  console.info("Successfully retrieved the results");
+                }.bind(this),
+                error: function() {
+                  console.error("Unable to fetch the results");
+                }.bind(this)
+            });
+        },
+        
+        
+        
+        /**
+         * Update the selector in the preview panel.
+         */
+        refreshSelector: function(selector){
+        	$("#_sg_div > input:nth-of-type(1)", frames[0].window.document).val(selector);
+        	// TODO trigger updating of the gadget
+        },
+        
+        /**
+         * Clear the given selector.
+         */
+        clearSelector: function(){
+        	debugger;
+        	$("#_sg_div > input:nth-of-type(2)", frames[0].window.document).trigger("click");
         },
         
         /**
@@ -203,7 +291,7 @@ define([
                     // Get the response from the validation attempt (if a validateStep function is defined)
                     var validation_response = true;
                     
-                    if(this.hasOwnProperty('validateStep')){
+                    if(typeof this.validateStep !== undefined){
                     	validation_response = this.validateStep(selectedModel, isSteppingNext);
                     }
                     
@@ -306,16 +394,15 @@ define([
         /**
          * Validate that changing steps is allowed.
          */
-        validateStepTODO: function(selectedModel, isSteppingNext){
+        validateStep: function(selectedModel, isSteppingNext){
         	
-        	// Stop if we are on the ingredients step and the checkbox isn't checked
-        	if(selectedModel.get("value") === 'ingredients' && !$("#have-ingredients", this.$el).is(":checked")){
-        		alert("Check the checkbox when you have the ingredients!");
-        		return false;
+        	// Update the preview URLs if moving from the URL step
+        	if(selectedModel.get("value") === 'url-edit' && isSteppingNext){
+        		this.updatePreviewURLs();
         	}
-        	else{
-        		return true;
-        	}
+        	
+        	
+        	return true;
         },
         
         /**
@@ -797,6 +884,51 @@ define([
                 "el": $('#indexesInput', this.$el),
                 "choices": this.getChoices(this.indexes)
             }, {tokens: true}).render();
+            
+        	// Make the sourcetype input
+        	var sourcetype_input = new TextInput({
+                "id": "sourcetype",
+                "searchWhenChanged": false,
+                "el": $('#sourcetypeInput', this.$el)
+            }, {tokens: true}).render();
+    		
+        	sourcetype_input.on("change", function(newValue) {
+            	//this.validateForm(); // TODO add validation
+            }.bind(this));
+        	
+        	// Make the host input
+        	var host_input = new TextInput({
+                "id": "host",
+                "searchWhenChanged": false,
+                "el": $('#hostInput', this.$el)
+            }, {tokens: true}).render();
+    		
+        	host_input.on("change", function(newValue) {
+            	//this.validateForm(); // TODO add validation
+            }.bind(this));
+        	
+        	// Make the name input
+        	var name_input = new TextInput({
+                "id": "name",
+                "searchWhenChanged": false,
+                "el": $('#nameInput', this.$el)
+            }, {tokens: true}).render();
+    		
+        	name_input.on("change", function(newValue) {
+            	//this.validateForm(); // TODO add validation
+            }.bind(this));
+        	
+        	// Make the title input
+        	var title_input = new TextInput({
+                "id": "title",
+                "searchWhenChanged": false,
+                "el": $('#titleInput', this.$el)
+            }, {tokens: true}).render();
+    		
+        	title_input.on("change", function(newValue) {
+            	//this.validateForm(); // TODO add validation
+            }.bind(this));
+        	
         	
             // Initialize the steps model
             this.initializeSteps();

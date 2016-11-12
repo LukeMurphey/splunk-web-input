@@ -96,7 +96,7 @@
 		    <div class="controls">
 		    	<div class="input-append">
 				<input id="inputSelector" type="text" value="" >
-				<button class="btn" type="button">Clear</button>
+				<button class="btn clearSelector" type="button">Clear</button>
 				<div class="btn-group">
 				    <button class="btn dropdown-toggle" data-toggle="dropdown">
 				      Select Preview URL
@@ -178,11 +178,29 @@
 	
 	<form class="form-horizontal">
 		<div class="control-group">
-			<label class="control-label" for="lookup-app">Index</label>
+			<label class="control-label" for="indexesInput">Index</label>
 			<div class="controls">
 				<div class="input input-dropdown" id="indexesInput"></div>
 				<span class="hide help-inline"></span>
 				<span class="help-block">Indicates which index to put the resulting data</span>
+			</div>
+		</div>
+		
+		<div class="control-group">
+			<label class="control-label" for="sourcetypeInput">Sourcetype</label>
+			<div class="controls">
+				<div class="input" id="sourcetypeInput"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Indicates the sourcetype of the data</span>
+			</div>
+		</div>
+		
+		<div class="control-group">
+			<label class="control-label" for="hostInput">Host</label>
+			<div class="controls">
+				<div class="input" id="hostInput"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Indicates the host value of the data</span>
 			</div>
 		</div>
 	</form>
@@ -193,7 +211,26 @@
 	<div class="help-text">
 		Optionally set input title or name.
 	</div>
-
+	
+	<form class="form-horizontal">
+		<div class="control-group hide-if-existing">
+			<label class="control-label" for="nameInput">Name</label>
+			<div class="controls">
+				<div class="input" id="nameInput"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Define the stanza name of the input</span>
+			</div>
+		</div>
+		
+		<div class="control-group">
+			<label class="control-label" for="titleInput">Title</label>
+			<div class="controls">
+				<div class="input" id="titleInput"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Provides a description of the input</span>
+			</div>
+		</div>
+	</form>
 </div>
 
 <div class="wizard-content" id="final">
