@@ -24,6 +24,7 @@ from httplib2 import socks
 import lxml.html
 
 from cssselector import CSSSelector
+from __builtin__ import classmethod
 
 def setup_logger():
     """
@@ -745,6 +746,51 @@ class WebInput(ModularInput):
             raise
         
         return result  
+    
+    @classmethod
+    def get_http_client(cls, username=None, password=None, timeout=30, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+        """
+        Retrieve data from a website.
+        
+        Arguments:
+        username -- The username to use for authentication
+        password -- The username to use for authentication
+        proxy_type -- The type of proxy server (defaults to "http")
+        proxy_server -- The IP or domain name of the proxy server
+        proxy_port -- The port that the proxy server runs on
+        proxy_user -- The user name of the proxy server account
+        proxy_password -- The password of the proxy server account
+        user_agent -- The string to use for the user-agent
+        """
+        
+        # Determine which type of proxy is to be used (if any)
+        resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
+            
+        # Setup the proxy info if so configured
+        if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
+            proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
+            logger.info('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
+        else:
+            # No proxy is being used
+            proxy_info = None
+            logger.info("Not using a proxy server")
+                        
+        # Make the HTTP object
+        http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
+        
+        # Setup the credentials if necessary
+        if username is not None or password is not None:
+                
+            if username is None:
+                username = ""
+                    
+            if password is None:
+                password = ""
+                    
+            http.add_credentials(username, password)
+        
+        # Return the client
+        return http
     
     @classmethod
     def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None):

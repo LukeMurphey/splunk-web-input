@@ -1,9 +1,10 @@
 import logging
 import os
 import sys
-import json
+import lxml.html
 import cherrypy
 import traceback
+import urlparse
 
 from splunk.appserver.mrsparkle.lib import jsonresponse
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
@@ -92,6 +93,91 @@ class WebInputController(controllers.BaseController):
                             capabilities.extend(val)
             
         return capabilities     
+    
+    @expose_page(must_login=True, methods=['GET']) 
+    def load_page(self, url, **kwargs):
+        """
+        Proxy a web-page through so that a UI can be displayed for showing potential results.
+        """
+        
+        try:
+                
+            # --------------------------------------
+            # 1: Make sure that user has permission to make inputs. We don't want to allow people to use this as a general proxy.
+            # --------------------------------------
+            
+            #edit_modinput_web_input
+            
+            # --------------------------------------
+            # 2: Perform a request for the page
+            # --------------------------------------
+            
+            # Get the proxy configuration
+            conf_stanza = "default"
+                
+            try:
+                web_input = WebInput(timeout=10)
+                proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
+            except splunk.ResourceNotFound:
+                cherrypy.response.status = 202
+                return self.render_error_json(_("Proxy server information could not be obtained"))
+            
+            http = WebInput.get_http_client(None, None, 30, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+            
+            # Setup the headers as necessary
+            user_agent = None
+            headers = {}
+                
+            if user_agent is not None:
+                logger.info("Setting user-agent=%s", user_agent)
+                headers['User-Agent'] = user_agent
+            
+            # Get the page
+            response, content = http.request(url, 'GET', headers=headers)
+            
+            # --------------------------------------
+            # 3: Rewrite the links so that they also use the 
+            # --------------------------------------
+            
+            if 'text/html' in response['content-type']:
+                
+                # Discover the encoding
+                encoding = WebInput.detect_encoding(content, response)
+                content_decoded = content.decode(encoding=encoding, errors='replace')
+                
+                # Parse the content
+                html = lxml.html.document_fromstring(content_decoded)
+                
+                rewrite_using_internal_proxy = True
+                
+                if rewrite_using_internal_proxy:
+                    def relocate_href(link):
+                        link = urlparse.urljoin(url, link)
+                        if not link.endswith(".css") and not link.endswith(".js"):
+                            return "/custom/website_input/web_input_controller/load_page?url=" + link #TODO replace with something that supports custom root endpoints
+                        else:
+                            return link
+                    html.rewrite_links(relocate_href)
+                    #html.make_links_absolute("/custom/website_input/web_input_controller/load_page?url=")
+                else:
+                    html.make_links_absolute(url)
+                
+                content = lxml.html.tostring(html)
+            
+            # --------------------------------------
+            # 4: Respond with the results
+            # --------------------------------------
+            if 'content-type' in response:
+                cherrypy.response.headers['Content-Type'] = response['content-type']
+            else:
+                cherrypy.response.headers['Content-Type'] = 'text/html'
+                
+            return content
+        
+        except:
+            logger.exception("Error when attempting to proxy an HTTP request")
+            cherrypy.response.status = 500
+            return self.render_error_json(_("Unable to proxy the request"))
     
     @expose_page(must_login=True, methods=['GET', 'POST']) 
     def scrape_page(self, url, selector, **kwargs):
