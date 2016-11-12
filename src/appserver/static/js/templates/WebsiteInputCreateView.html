@@ -1,0 +1,206 @@
+<div id="step-control-wizard"></div>
+
+<div class="wizard-content" id="url-edit">
+	<h2>Enter URL</h2>
+	<div class="help-text">
+		Specify the page you want to extract data from.
+	</div>
+	
+	<form class="form-horizontal">
+	  <div class="control-group">
+	    <label class="control-label" for="inputURL">URL</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputURL" placeholder="e.g. http://textcritical.net" value="http://textcritical.net">
+	    </div>
+	  </div>
+	
+	  <div class="control-group">
+	    <label class="control-label"> <h4>Web Crawling</h4></label>
+	    <div class="controls">
+	      
+	    </div>
+	  </div>
+	
+	  <div class="control-group">
+	    <label class="control-label" for="inputPageLimit">Page Limit</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputPageLimit">
+	      <span class="help-block">A limit on the number of pages that will be auto-discovered</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputDepthLimit">Depth Limit</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputDepthLimit">
+	      <span class="help-block">A limit on how deep to go when looking for pages</span>
+	    </div>
+	  </div>
+
+	  <div class="control-group">
+	    <label class="control-label" for="inputURLFilter">URL Filter</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputURLFilter" placeholder="e.g. http://textcritical.net/*">
+	      <span class="help-block">A wild-card that will indicate which pages it should search for matches in</span>
+	    </div>
+	  </div>
+	</form>
+
+</div>
+
+<div class="wizard-content" id="auth-edit">
+	<h2>Enter Credentials</h2>
+	<div class="help-text">
+		Enter credentials for authenticating to the website. Only HTTP credentials are currently supported.
+	</div>
+	
+	<form class="form-horizontal">
+	  <div class="control-group">
+	    <label class="control-label" for="inputUsername">Username</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputUsername">
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputPassword">Password</label>
+	    <div class="controls">
+	      <input type="password" class="input-xlarge" id="inputPassword">
+	    </div>
+	  </div>
+	</form>
+
+</div>
+
+<div class="wizard-content" id="selector-edit">
+	<h2>Extract Data</h2>
+	<div class="help-text">
+		Create a CSS selector to extract that data from the web-page.
+	</div>
+
+	<!--  
+	<form class="form-horizontal">
+		 <div class="control-group">
+		    <label class="control-label" for="inputURL">URL</label>
+		    <div class="controls">
+		      <input type="text" id="inputURL" placeholder="Enter URL (e.g. http://textcritical.net)" />
+		    </div>
+		 </div>
+	</form>
+	-->
+
+	<div class="form-horizontal" > <!-- onsubmit="return false" -->
+		
+		<div class="control-group">
+		    <label class="control-label" for="inputSelector">Selector</label>
+		    <div class="controls">
+		    	<div class="input-append">
+				<input id="inputSelector" type="text" value="" >
+				<button class="btn" type="button">Clear</button>
+				<div class="btn-group">
+				    <button class="btn dropdown-toggle" data-toggle="dropdown">
+				      Select Preview URL
+				      <span class="caret"></span>
+				    </button>
+					<ul class="dropdown-menu preview-url-dropdown-selector">
+	                  <li><a href="#" data-url="http://LukeMurphey.net" class="preview-url">http://LukeMurphey.net</a></li>
+	                </ul>
+				  </div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!--  
+	<input id="url"></input>
+	<a href="#" class="btn btn-primary" id="do-preview">Do Preview</a>
+	-->
+	
+	<div class="preview-panel-holder">
+		<iframe id="preview-panel"></iframe>
+	</div>
+</div>
+
+<div class="wizard-content" id="output-edit">
+	<h2>Customize Output</h2>
+	<div class="help-text">
+		Optionally customize the output of the matched data.
+	</div>
+	
+    <form class="form-horizontal">
+	  <div class="control-group">
+	    <label class="control-label" for="inputIncludeRaw">Include raw output</label>
+	    <div class="controls">
+	      <input type="checkbox" id="inputIncludeRaw">
+	      <span class="help-block">Include the original raw content returned by the server in the result (useful if you want to do your own parsing)</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputUseTagAsField">Use tag name as field name</label>
+	    <div class="controls">
+	      <input type="checkbox" id="inputUseTagAsField">
+	      <span class="help-block">Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputMV">Output results as multi-value field</label>
+	    <div class="controls">
+	      <input type="checkbox" id="inputMV">
+	      <span class="help-block">Outputs the matches as a multi-value field (otherwise, separate fields will be created)</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputNameAttributes">Name attributes (to use HTML attributes to assign field names)</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputNameAttributes" placeholder="e.g. class,id">
+	      <span class="help-block">The value of the field name will be set to the value of the attribute in the matching element; enter multiple attributes separated by commas</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputTextSeparator">Text separator</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputTextSeparator">
+	      <span class="help-block">Sets the string that will be placed between the extracted values (e.g. a separator of ":" for a match against "&lt;a&gt;tree&lt;/a&gt;&lt;a&gt;frog&lt;/a&gt;" would return "tree:frog")</span>
+	    </div>
+	  </div>
+	</form>
+
+</div>
+
+<div class="wizard-content" id="index-edit">
+	<h2>Input Settings</h2>
+	<div class="help-text">
+		Optionally set additional input parameters for this data input.
+	</div>
+	
+	<form class="form-horizontal">
+		<div class="control-group">
+			<label class="control-label" for="lookup-app">Index</label>
+			<div class="controls">
+				<div class="input input-dropdown" id="indexesInput"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Indicates which index to put the resulting data</span>
+			</div>
+		</div>
+	</form>
+</div>
+
+<div class="wizard-content" id="name-edit">
+	<h2>Save Input</h2>
+	<div class="help-text">
+		Optionally set input title or name.
+	</div>
+
+</div>
+
+<div class="wizard-content" id="final">
+
+	<h2>Done</h2>
+	<div class="help-text">
+		Input was successfully saved.
+	</div>
+</div>
+

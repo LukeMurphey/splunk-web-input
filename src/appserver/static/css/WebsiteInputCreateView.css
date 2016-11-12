@@ -1,0 +1,29 @@
+.preview-panel-holder{
+	clear:both;
+}
+
+#preview-panel{
+	width: 100%;
+	border: 0px;
+	height: 600px;
+	background-color: white;
+}
+
+.wizard-content{
+	background-color: white;
+	padding: 12px;
+	border-top: 1px solid #ccc;
+}
+
+.help-text{
+	margin-bottom: 32px;
+}
+
+#preview-panel{
+	
+}
+
+.preview-url-dropdown-selector{
+    margin-top: 0px;
+    margin-left: -73px;
+}

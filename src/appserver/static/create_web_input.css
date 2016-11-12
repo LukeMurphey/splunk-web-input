@@ -1,0 +1,29 @@
+/*
+ * The following improves the styling of the dashboard by removing the white border and padding.
+ */
+#content1{
+    background-color: #eee;
+}
+
+.dashboard-header{
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.fieldset{
+    padding-left: 20px;
+}
+
+.dashboard-body{
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+#dashboard > .fieldset{
+	margin-bottom: 0px;
+}
+
+#content1 > .panel-body.html{
+	padding-left: 0px;
+	padding-right: 0px;
+}
