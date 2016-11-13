@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import lxml.html
+from lxml.html.clean import Cleaner
 import cherrypy
 import traceback
 import urlparse
@@ -108,6 +109,11 @@ class WebInputController(controllers.BaseController):
             
             #edit_modinput_web_input
             
+            # Don't allow proxying of the javascript files
+            #if url.endswith(".js"):
+                #cherrypy.response.headers['Content-Type'] = 'application/javascript'
+                #return ""
+            
             # --------------------------------------
             # 2: Perform a request for the page
             # --------------------------------------
@@ -153,7 +159,10 @@ class WebInputController(controllers.BaseController):
                 if rewrite_using_internal_proxy:
                     def relocate_href(link):
                         link = urlparse.urljoin(url, link)
-                        if not link.endswith(".css") and not link.endswith(".js"):
+                        
+                        if link.endswith(".js"):
+                            return ""
+                        if not link.endswith(".css"): #and not link.endswith(".js"):
                             return "/custom/website_input/web_input_controller/load_page?url=" + link #TODO replace with something that supports custom root endpoints
                         else:
                             return link
@@ -162,7 +171,11 @@ class WebInputController(controllers.BaseController):
                 else:
                     html.make_links_absolute(url)
                 
-                content = lxml.html.tostring(html)
+                # Remove the script blocks
+                cleaner = Cleaner(page_structure=False, kill_tags=["script"], javascript=False, links=False, style=False)
+                
+                # Get the content
+                content = lxml.html.tostring(cleaner.clean_html(html))
             
             # --------------------------------------
             # 4: Respond with the results
@@ -172,6 +185,12 @@ class WebInputController(controllers.BaseController):
             else:
                 cherrypy.response.headers['Content-Type'] = 'text/html'
                 
+            # --------------------------------------
+            # 5: Clear Javascript files
+            # --------------------------------------
+            #if response.get('content-type', "") == "application/javascript" or response.get('content-type', "") == "application/x-javascript" or response.get('content-type', "") == "text/javascript":
+            #    return ""
+            
             return content
         
         except:
