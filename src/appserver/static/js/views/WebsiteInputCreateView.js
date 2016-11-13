@@ -67,7 +67,8 @@ define([
         	"change #inputURL" : "updatePreview",
         	"click #do-preview" : "clickUpdatePreview",
         	"click .preview-url" : "clickUpdatePreview",
-        	"click .clearSelector" : "clearSelector"
+        	"click .clearSelector" : "clearSelector",
+        	"change #inputSelector" : "changeInputSelector"
         },
         
         initialize: function() {
@@ -79,6 +80,7 @@ define([
         	this.capabilities = null;
         	this.inputs = null;
         	this.existing_input_names = [];
+        	this.selector_gadget_added_interval = null;
         	
         	//this.getExistingInputs();
         	
@@ -149,14 +151,21 @@ define([
             });
         },
         
-        
+        /**
+         * Handle changes to the input selector.
+         */
+        changeInputSelector: function(ev){
+        	this.refreshSelector($("#inputSelector").val());
+        },
         
         /**
          * Update the selector in the preview panel.
          */
         refreshSelector: function(selector){
-        	$("#_sg_div > input:nth-of-type(1)", frames[0].window.document).val(selector);
-        	// TODO trigger updating of the gadget
+        	$(frames[0].window.selector_gadget.path_output_field).val(selector);
+        	//$("#_sg_div > input:nth-of-type(1)", frames[0].window.document).val(selector);
+        	// Trigger updating of the gadget
+        	frames[0].window.selector_gadget.refreshFromPath()
         },
         
         /**
@@ -231,10 +240,39 @@ define([
          */
         updatePreview: function(url){
         	
+        	// Tell the iframe to load the URL
         	$("#preview-panel", this.$el).attr("src", Splunk.util.make_url("/custom/website_input/web_input_controller/load_page?url=") + url);
+        	
+        	// Load the selector gadget as necessary when the page gets ready enough
+        	if(this.selector_gadget_added_interval === null){
+            	this.selector_gadget_added_interval = setInterval(function() {
+            		
+            		// See if the selector gadget exists
+            		if(typeof frames[0].window.selector_gadget !== 'undefined'){
+            			//clearInterval(this.selector_gadget_added_interval);
+            			return;
+            		}
+            		
+            		// See if the document is ready and update it if it is
+            		if( (frames[0].window.document.readyState === 'loaded'
+            			|| frames[0].window.document.readyState === 'interactive'
+            			|| frames[0].window.document.readyState === 'complete')
+            			&& frames[0].window.document.body !== null
+            			&& frames[0].window.document.body.innerHTML.length > 0
+            			&& typeof frames[0].window.selector_gadget === 'undefined' ){
+            			
+            			console.log("Loading the selector gadget into the preview frame")
+            			this.startSelectorGadget();
+            		}
+            	}.bind(this), 2000);
+        	}
+        	
+        	/*
         	setTimeout(function(){
         		this.startSelectorGadget();        		
         	}.bind(this), 2000);
+        	*/
+        	
         	return;
         	
         	var data = {
@@ -843,16 +881,20 @@ define([
         		// Get the current value
         		var value = $("#_sg_path_field", frames[0].window.document).val();
         		
-        		// See if the value is blank
-        		if(value === "No valid path found."){
-        			this.previous_value = "";
-        			$("#inputSelector", this.$el).val("");
-        		}
-        		
-        		// Otherwise, do something since the value changed
-        		else if(value !== this.previous_value){
-        			$("#inputSelector", this.$el).val(value);
-        			this.previous_value = value;
+        		// Do something since the value changed
+        		if(value !== this.previous_value){
+        			
+	        		// See if the value is blank
+	        		if(value === "No valid path found."){
+	        			$("#inputSelector", this.$el).val("");
+	        		}
+	        		
+	        		// Otherwise, do something since the value changed
+	        		else{
+	        			$("#inputSelector", this.$el).val(value);
+	        		}
+	        		
+	        		this.previous_value = value;
         		}
         	}, 100);
     		
