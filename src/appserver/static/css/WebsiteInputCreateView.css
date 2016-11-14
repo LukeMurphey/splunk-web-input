@@ -15,6 +15,12 @@
 	border-top: 1px solid #ccc;
 }
 
+.required-input:after {
+	content:" *";
+	color: #d6563c;
+	font-weight: 700;
+}
+
 .help-text{
 	margin-bottom: 32px;
 }
