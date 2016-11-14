@@ -465,6 +465,12 @@ define([
         	// Update the preview URLs if moving from the URL step
         	if(selectedModel.get("value") === 'url-edit' && isSteppingNext){
         		
+        		// Validate the interval
+        		if($("#inputInterval").val().length === 0){
+        			this.addValidationError($("#inputInterval"), "Enter a valid interval");
+        			issues += 1;
+        		}
+        		
         		// Validate the URL
         		if($("#inputURL").val().length === 0){
         			this.addValidationError($("#inputURL"), "Enter a valid URL");
@@ -513,7 +519,21 @@ define([
         	
         	// Validate step 5
         	
-        	// Validate step 6
+        	// Validate step 6, complete save
+        	if(selectedModel.get("value") === 'name-edit' && isSteppingNext){
+        		var promise = $.Deferred();
+            	
+        		$.when(this.createInput(data)).then(function(){
+        			promise.resolve();
+        		})
+        		.fail(function(msg){
+        			promise.reject();
+        		});
+        		
+            	return promise;
+        	}
+        	
+        	
         	
         	// Stop if issues are found
     		if(issues > 0){
@@ -741,7 +761,7 @@ define([
         	// Input basics
         	this.addIfInputIsNonEmpty(data, "selector", '#inputSelector');
         	this.addIfInputIsNonEmpty(data, "url", '#inputURL');
-        	//this.addIfInputIsNonEmpty(data, "interval", '#inputInterval');
+        	this.addIfInputIsNonEmpty(data, "interval", '#inputInterval');
         	//this.addIfInputIsNonEmpty(data, "title", '#inputTitle');
         	this.addIfInputIsNonEmpty(data, "timeout", '#inputURLFilter');
         	//this.addIfInputIsNonEmpty(data, "browser", '#inputBrowser');
@@ -786,8 +806,8 @@ define([
         	
         	// Perform the call
         	$.ajax({
-        			url: splunkd_utils.fullpath("/servicesNS/admin/website_monitoring/data/inputs/web_input"),
-        			data: data,
+        			url: splunkd_utils.fullpath("/servicesNS/admin/website_input/data/inputs/web_input"),
+        			data: config,
         			type: 'POST',
         			
         			// On success
@@ -804,7 +824,7 @@ define([
         					this.showWarningMessage("You do not have permission to make inputs");
         				}
         				else if( jqXHR.status == 409){
-        					console.info('Input already exists, skipping this one');
+        					console.info('Input already exists');
         				}
         				
         				promise.resolve();
@@ -814,10 +834,21 @@ define([
         			// On error
         			error: function(jqXHR, textStatus, errorThrown){
         				
-        				// These responses indicate that the user doesn't have permission of the input already exists
-        				if( jqXHR.status != 403 && jqXHR.status != 409 ){
-        					console.info('Input creation failed');
+        				// Handle the case where the user lacks permission
+        				if( jqXHR.status != 403){
+        					promise.reject("You do not have permission to make inputs");
         				}
+        				
+        				// Handle the case where the name already exists
+        				else if( jqXHR.status != 409 ){
+        					promise.reject("An input with the given name already exists");
+        				}
+        				
+        				// Handle general errors
+        				else{
+        					promise.reject("The input could not be created");
+        				}
+        				
     					
         			}.bind(this)
         	});
