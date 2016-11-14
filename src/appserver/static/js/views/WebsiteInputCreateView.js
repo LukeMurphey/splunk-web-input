@@ -378,7 +378,7 @@ define([
             
             // Step 3
             this.steps.add(this.createStep({
-                label: 'Extract Data',
+                label: 'Define CSS Selector',
                 value: 'selector-edit',
                 showNextButton: true,
                 showPreviousButton: true,
@@ -396,7 +396,7 @@ define([
             
             // Step 5
             this.steps.add(this.createStep({
-                label: 'Input Settings',
+                label: 'Define Input Settings',
                 value: 'index-edit',
                 showNextButton: true,
                 showPreviousButton: true,
@@ -414,7 +414,7 @@ define([
             
             // Step 7
             this.steps.add(this.createStep({
-                label: 'Done',
+                label: 'Finish',
                 value: 'final',
                 showNextButton: false,
                 showPreviousButton: true,
@@ -429,6 +429,25 @@ define([
         clearValidationError: function(inputID){
         	// Remove the error class
         	$(inputID).parent().parent().removeClass("error");
+        },
+        
+        /**
+         * Clear all validation errors.
+         */
+        clearValidationErrors: function(){
+        	// Remove the error class
+        	$.each( $('input'), function( i, val ) {
+        		
+        		// Make sure this is a control group
+        		if($(val).parent().parent().hasClass("control-group")){
+            		// Remove the error class
+            		$(val).parent().parent().removeClass("error");
+            		
+            		// Clear the error message
+            		$('.help-inline', $(val).parent()).text("");
+        		}
+
+        	});
         },
         
         /**
@@ -464,6 +483,9 @@ define([
         	// Validate step 1
         	// Update the preview URLs if moving from the URL step
         	if(selectedModel.get("value") === 'url-edit' && isSteppingNext){
+        		
+        		// Clear existing validation errors
+        		this.clearValidationErrors();
         		
         		// Validate the interval
         		if($("#inputInterval").val().length === 0){
@@ -757,6 +779,7 @@ define([
         	//this.addIfInputIsNonEmpty(data, "index", '#inputIndex');
         	//this.addIfInputIsNonEmpty(data, "source", '#inputSource');
         	//this.addIfInputIsNonEmpty(data, "host", '#inputHost');
+        	//this.addIfInputIsNonEmpty(data, "name", '#inputName');
         	
         	// Input basics
         	this.addIfInputIsNonEmpty(data, "selector", '#inputSelector');
