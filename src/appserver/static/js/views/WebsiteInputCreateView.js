@@ -443,7 +443,7 @@ define([
         	if($(".help-inline", $(inputID).parent()).length === 0){
         		
         		// Add the inline help box
-            	$(inputID).parent().append('<span class="help-inline"></span>')
+            	$('<span class="help-inline"></span>').insertAfter(inputID)
         	}
         	
         	// Set the message
@@ -471,13 +471,21 @@ define([
         			issues += 1;
         		}
         		
-        		
         		// Validate the depth limit
+        		if($("#inputDepthLimit").val().length !== 0 && $("#inputDepthLimit").val().match(/^[0-9+]$/gi) === null){
+        			this.addValidationError($("#inputDepthLimit"), "Enter a valid integer");
+        			issues += 1;
+        		}
         		
-        		// Validate the depth limit
+        		// Validate the page limit
+        		if($("#inputPageLimit").val().length !== 0 && $("#inputPageLimit").val().match(/^[0-9+]$/gi) === null){
+        			this.addValidationError($("#inputPageLimit"), "Enter a valid integer");
+        			issues += 1;
+        		}
         		
         		// Validate the URL filter
         		
+        		// Stop if issues are found
         		if(issues > 0){
         			return false;
         		}
@@ -487,10 +495,19 @@ define([
         	}
         	
         	
-        	
         	// Validate step 2
+        	// No validation yet
         	
         	// Validate step 3
+        	if(selectedModel.get("value") === 'selector-edit' && isSteppingNext){
+        		
+        		// Validate the selector
+        		if($("#inputSelector").val().length === 0){
+        			$("#inputSelector").parent().parent().addClass("error");
+        			issues += 1;
+        		}
+        		
+        	}
         	
         	// Validate step 4
         	
@@ -498,7 +515,13 @@ define([
         	
         	// Validate step 6
         	
-        	return true;
+        	// Stop if issues are found
+    		if(issues > 0){
+    			return false;
+    		}
+    		else{
+    			return true;
+    		}
         },
         
         /**
