@@ -103,7 +103,7 @@ define([
         /**
          * Add the given item to the associative array if it is non-blank
          */
-        addIfNonEmpty: function(d, name, inputid){
+        addIfInputIsNonEmpty: function(d, name, inputid){
         	
         	if($(inputid, this.$el).val().length > 0){
         		d[name] = $(inputid, this.$el).val();
@@ -119,13 +119,13 @@ define([
         	// Make the args
         	var args = {'selector' : "*"};
         	
-        	this.addIfNonEmpty(args, 'page_limit', '#inputPageLimit');
-        	this.addIfNonEmpty(args, 'depth_limit', '#inputDepthLimit');
-        	this.addIfNonEmpty(args, 'url_filter', '#inputURLFilter');
-        	this.addIfNonEmpty(args, 'uri', '#inputURL');
-        	this.addIfNonEmpty(args, 'username', '#inputUsername');
-        	this.addIfNonEmpty(args, 'password', '#inputPassword');
-        	this.addIfNonEmpty(args, 'page_limit', '#inputPageLimit');
+        	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
+        	this.addIfInputIsNonEmpty(args, 'depth_limit', '#inputDepthLimit');
+        	this.addIfInputIsNonEmpty(args, 'url_filter', '#inputURLFilter');
+        	this.addIfInputIsNonEmpty(args, 'uri', '#inputURL');
+        	this.addIfInputIsNonEmpty(args, 'username', '#inputUsername');
+        	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
+        	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
         	
         	// Get the results
         	this.results = new ScrapePageResults([], args);
@@ -266,12 +266,6 @@ define([
             		}
             	}.bind(this), 2000);
         	}
-        	
-        	/*
-        	setTimeout(function(){
-        		this.startSelectorGadget();        		
-        	}.bind(this), 2000);
-        	*/
         	
         	return;
         	
@@ -430,15 +424,79 @@ define([
         },
         
         /**
+         * Clear the validation error.
+         */
+        clearValidationError: function(inputID){
+        	// Remove the error class
+        	$(inputID).parent().parent().removeClass("error");
+        },
+        
+        /**
+         * Add the validation error.
+         */
+        addValidationError: function(inputID, message){
+        	
+        	// Add the error class to the 
+        	$(inputID).parent().parent().addClass("error");
+        	
+        	// Determine if the input has the inline help box
+        	if($(".help-inline", $(inputID).parent()).length === 0){
+        		
+        		// Add the inline help box
+            	$(inputID).parent().append('<span class="help-inline"></span>')
+        	}
+        	
+        	// Set the message
+        	$(".help-inline", $(inputID).parent()).text(message);
+        	
+        },
+        
+        /**
          * Validate that changing steps is allowed.
          */
         validateStep: function(selectedModel, isSteppingNext){
         	
+        	// Get the copy of the config
+        	var data = this.makeConfig();
+        	
+        	var issues = 0;
+        	
+        	// Validate step 1
         	// Update the preview URLs if moving from the URL step
         	if(selectedModel.get("value") === 'url-edit' && isSteppingNext){
-        		this.updatePreviewURLs();
+        		
+        		// Validate the URL
+        		if($("#inputURL").val().length === 0){
+        			this.addValidationError($("#inputURL"), "Enter a valid URL");
+        			issues += 1;
+        		}
+        		
+        		
+        		// Validate the depth limit
+        		
+        		// Validate the depth limit
+        		
+        		// Validate the URL filter
+        		
+        		if(issues > 0){
+        			return false;
+        		}
+        		else{
+        			this.updatePreviewURLs();
+        		}
         	}
         	
+        	
+        	
+        	// Validate step 2
+        	
+        	// Validate step 3
+        	
+        	// Validate step 4
+        	
+        	// Validate step 5
+        	
+        	// Validate step 6
         	
         	return true;
         },
@@ -634,63 +692,84 @@ define([
         },
         
         /**
+         * Add the given item to the associative array if it is non-blank
+         */
+        addIfNonEmpty: function(d, name, value){
+        	
+        	if(value){
+        		d[name] = value;
+        	}
+        	
+        },
+        
+        /**
+         * Make an associative array representing the configuration that is being requested to persist.
+         */
+        makeConfig: function(){
+        	
+        	// Make the data that will be posted to the server
+        	var data = {};
+        	
+        	// Generic options
+        	//this.addIfInputIsNonEmpty(data, "index", '#inputIndex');
+        	//this.addIfInputIsNonEmpty(data, "source", '#inputSource');
+        	//this.addIfInputIsNonEmpty(data, "host", '#inputHost');
+        	
+        	// Input basics
+        	this.addIfInputIsNonEmpty(data, "selector", '#inputSelector');
+        	this.addIfInputIsNonEmpty(data, "url", '#inputURL');
+        	//this.addIfInputIsNonEmpty(data, "interval", '#inputInterval');
+        	//this.addIfInputIsNonEmpty(data, "title", '#inputTitle');
+        	this.addIfInputIsNonEmpty(data, "timeout", '#inputURLFilter');
+        	//this.addIfInputIsNonEmpty(data, "browser", '#inputBrowser');
+        	//this.addIfInputIsNonEmpty(data, "user_agent", '#inputUserAgent');
+        	
+        	// Crawling options
+        	this.addIfInputIsNonEmpty(data, "page_limit", '#inputPageLimit');
+        	this.addIfInputIsNonEmpty(data, "url_filter", '#inputDepthLimit');
+        	this.addIfInputIsNonEmpty(data, "depth_limit", '#inputDepthLimit');
+        	
+        	// Credentials
+        	this.addIfInputIsNonEmpty(data, "username", '#inputUsername');
+        	this.addIfInputIsNonEmpty(data, "password", '#inputPassword');
+        	
+        	// Output options
+        	this.addIfInputIsNonEmpty(data, "name_attributes", '#inputNameAttributes');
+        	this.addIfInputIsNonEmpty(data, "text_separator", '#inputTextSeparator');
+        	//this.addIfInputIsNonEmpty(data, "raw_content", '#inputIncludeRaw');
+        	//this.addIfInputIsNonEmpty(data, "output_as_mv", '#inputMV');
+        	//this.addIfInputIsNonEmpty(data, "use_element_name", '#inputUseTagAsField');
+        	
+        	
+        	// Populate defaults for the arguments
+        	if(!data.hasOwnProperty('name')){
+        		data['name'] = this.generateStanza(data['url'], this.existing_input_names);
+        	}
+        	
+        	if(!data.hasOwnProperty('title')){
+        		data['title'] = this.generateTitle(data['url']);
+        	}
+        	
+        	return data;
+        },
+        
+        /**
          * Create an input
          */
-        createInput: function(url, interval, index, name, title){
+        createInput: function(config){
         	
         	// Get a promise ready
         	var promise = jQuery.Deferred();
         	
-        	// Set a default value for the arguments
-        	if( typeof name == 'undefined' ){
-        		name = null;
-        	}
-        	
-        	if( typeof title == 'undefined' ){
-        		title = null;
-        	}
-        	
-        	if( typeof index == 'undefined' ){
-        		index = null;
-        	}
-        	
-        	// Populate defaults for the arguments
-        	if(name === null){
-        		name = this.generateStanza(url, this.existing_input_names);
-        	}
-        	
-        	if(title === null){
-        		title = this.generateTitle(url);
-        	}
-        	
-        	// Make the data that will be posted to the server
-        	var data = {
-        		"url": url,
-        		"interval": interval,
-        		"name": name,
-        		"title": title,
-        	};
-        	
-        	if(index !== null){
-        		data["index"] = index;
-        	}
-        	
         	// Perform the call
         	$.ajax({
-        			url: splunkd_utils.fullpath("/servicesNS/admin/website_monitoring/data/inputs/web_ping"),
+        			url: splunkd_utils.fullpath("/servicesNS/admin/website_monitoring/data/inputs/web_input"),
         			data: data,
         			type: 'POST',
         			
         			// On success
         			success: function(data) {
         				console.info('Input created');
-        				
-        				// Remember that we processed this one
-        				this.processed_queue.push(url);
-        				
-        				// Make sure that we add the name so that we can detect duplicated names
-        				this.existing_input_names.push(name);
-        				
         			}.bind(this),
         		  
         			// On complete
@@ -716,9 +795,6 @@ define([
         				if( jqXHR.status != 403 && jqXHR.status != 409 ){
         					console.info('Input creation failed');
         				}
-    					
-    					// Remember that we couldn't process this on
-    					this.unprocessed_queue.push(url);
     					
         			}.bind(this)
         	});
@@ -923,7 +999,7 @@ define([
                 "id": "index",
                 "selectFirstChoice": false,
                 "showClearButton": false,
-                "el": $('#indexesInput', this.$el),
+                "el": $('#inputIndexes', this.$el),
                 "choices": this.getChoices(this.indexes)
             }, {tokens: true}).render();
             
@@ -931,7 +1007,7 @@ define([
         	var sourcetype_input = new TextInput({
                 "id": "sourcetype",
                 "searchWhenChanged": false,
-                "el": $('#sourcetypeInput', this.$el)
+                "el": $('#inputSourcetype', this.$el)
             }, {tokens: true}).render();
     		
         	sourcetype_input.on("change", function(newValue) {
@@ -942,7 +1018,7 @@ define([
         	var host_input = new TextInput({
                 "id": "host",
                 "searchWhenChanged": false,
-                "el": $('#hostInput', this.$el)
+                "el": $('#inputHost', this.$el)
             }, {tokens: true}).render();
     		
         	host_input.on("change", function(newValue) {
