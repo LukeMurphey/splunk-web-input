@@ -478,13 +478,13 @@ define([
         		}
         		
         		// Validate the depth limit
-        		if($("#inputDepthLimit").val().length !== 0 && $("#inputDepthLimit").val().match(/^[0-9+]$/gi) === null){
+        		if($("#inputDepthLimit").val().length !== 0 && $("#inputDepthLimit").val().match(/^[0-9]+$/gi) === null){
         			this.addValidationError($("#inputDepthLimit"), "Enter a valid integer");
         			issues += 1;
         		}
         		
         		// Validate the page limit
-        		if($("#inputPageLimit").val().length !== 0 && $("#inputPageLimit").val().match(/^[0-9+]$/gi) === null){
+        		if($("#inputPageLimit").val().length !== 0 && $("#inputPageLimit").val().match(/^[0-9]+$/gi) === null){
         			this.addValidationError($("#inputPageLimit"), "Enter a valid integer");
         			issues += 1;
         		}
