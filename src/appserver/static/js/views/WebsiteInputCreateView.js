@@ -112,6 +112,20 @@ define([
         },
         
         /**
+         * Add the given item to the associative array based on whether it is checked.
+         */
+        addCheckboxInput: function(d, name, inputid){
+        	
+        	if($(inputid, this.$el).is(":checked")){
+        		d[name] = "1";
+        	}
+        	else{
+        		d[name] = "0";
+        	}
+        	
+        },
+        
+        /**
          * Update the list of preview URLs
          */
         updatePreviewURLs: function(){
@@ -427,6 +441,7 @@ define([
          * Clear the validation error.
          */
         clearValidationError: function(inputID){
+        	addIfCheckboxInput
         	// Remove the error class
         	$(inputID).parent().parent().removeClass("error");
         },
@@ -435,6 +450,7 @@ define([
          * Clear all validation errors.
          */
         clearValidationErrors: function(){
+        	
         	// Remove the error class
         	$.each( $('input'), function( i, val ) {
         		
@@ -802,9 +818,10 @@ define([
         	// Output options
         	this.addIfInputIsNonEmpty(data, "name_attributes", '#inputNameAttributes');
         	this.addIfInputIsNonEmpty(data, "text_separator", '#inputTextSeparator');
-        	//this.addIfInputIsNonEmpty(data, "raw_content", '#inputIncludeRaw');
-        	//this.addIfInputIsNonEmpty(data, "output_as_mv", '#inputMV');
-        	//this.addIfInputIsNonEmpty(data, "use_element_name", '#inputUseTagAsField');
+        	
+        	this.addCheckboxInput(data, "raw_content", '#inputIncludeRaw');
+        	this.addCheckboxInput(data, "output_as_mv", '#inputMV');
+        	this.addCheckboxInput(data, "use_element_name", '#inputUseTagAsField');
         	
         	
         	// Populate defaults for the arguments
