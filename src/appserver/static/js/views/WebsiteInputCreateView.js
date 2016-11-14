@@ -82,7 +82,8 @@ define([
         	this.existing_input_names = [];
         	this.selector_gadget_added_interval = null;
         	
-        	//this.getExistingInputs();
+        	// Get the list of existing inputs
+        	this.getExistingInputs();
         	
         	// Get the indexes
         	this.indexes = new Indexes();
@@ -431,7 +432,7 @@ define([
                 label: 'Finish',
                 value: 'final',
                 showNextButton: false,
-                showPreviousButton: true,
+                showPreviousButton: false,
                 showDoneButton: true,
                 panelID: "#final"
             }), {at: ++c});  
@@ -792,16 +793,30 @@ define([
         	var data = {};
         	
         	// Generic options
-        	//this.addIfInputIsNonEmpty(data, "index", '#inputIndex');
         	//this.addIfInputIsNonEmpty(data, "source", '#inputSource');
-        	//this.addIfInputIsNonEmpty(data, "host", '#inputHost');
-        	//this.addIfInputIsNonEmpty(data, "name", '#inputName');
+        	if(mvc.Components.getInstance("name").val()){
+        		data['name'] = mvc.Components.getInstance("name").val()
+        	}
+        	
+        	if(mvc.Components.getInstance("index").val()){
+        		data['index'] = mvc.Components.getInstance("index").val()
+        	}
+        	
+        	if(mvc.Components.getInstance("host").val()){
+        		data['host'] = mvc.Components.getInstance("host").val()
+        	}
+        	
+        	if(mvc.Components.getInstance("sourcetype").val()){
+        		data['sourcetype'] = mvc.Components.getInstance("sourcetype").val()
+        	}
         	
         	// Input basics
         	this.addIfInputIsNonEmpty(data, "selector", '#inputSelector');
         	this.addIfInputIsNonEmpty(data, "url", '#inputURL');
         	this.addIfInputIsNonEmpty(data, "interval", '#inputInterval');
-        	//this.addIfInputIsNonEmpty(data, "title", '#inputTitle');
+        	if(mvc.Components.getInstance("title").val()){
+        		data['title'] = mvc.Components.getInstance("title").val()
+        	}
         	this.addIfInputIsNonEmpty(data, "timeout", '#inputURLFilter');
         	//this.addIfInputIsNonEmpty(data, "browser", '#inputBrowser');
         	//this.addIfInputIsNonEmpty(data, "user_agent", '#inputUserAgent');
@@ -846,13 +861,18 @@ define([
         	
         	// Perform the call
         	$.ajax({
-        			url: splunkd_utils.fullpath("/servicesNS/admin/website_input/data/inputs/web_input"),
+        			url: splunkd_utils.fullpath("/servicesNS/admin/website_input/data/inputs/web_input?output_mode=json"),
         			data: config,
         			type: 'POST',
         			
         			// On success
         			success: function(data) {
         				console.info('Input created');
+        				
+        				var app = data.entry[0].acl.app;
+        				var owner = data.entry[0].acl.owner;
+        				var name = data.entry[0].name;
+        				
         			}.bind(this),
         		  
         			// On complete
@@ -1092,7 +1112,7 @@ define([
             var indexes_dropdown = new DropdownInput({
                 "id": "index",
                 "selectFirstChoice": false,
-                "showClearButton": false,
+                "showClearButton": true,
                 "el": $('#inputIndexes', this.$el),
                 "choices": this.getChoices(this.indexes)
             }, {tokens: true}).render();

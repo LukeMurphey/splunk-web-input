@@ -9,10 +9,15 @@
 	background-color: white;
 }
 
+.page-preview-header{
+	margin-top: 24px;
+}
+
 .wizard-content{
 	background-color: white;
 	padding: 12px;
 	border-top: 1px solid #ccc;
+	border-bottom: 1px solid #ccc;
 }
 
 .required-input:after {
@@ -26,7 +31,12 @@
 }
 
 #preview-panel{
-	
+	border: 2px dashed #ddd;
+}
+
+.WebsiteInputCreateView{
+	border-top: 1px solid #ccc;
+	background-color: white;
 }
 
 .preview-url-dropdown-selector{
