@@ -465,8 +465,20 @@ define([
         		return;
         	}
         	
+        	// Prepare the arguments
+            var params = new Object();
+            params.url = url;
+            
+            if( $('#inputUsername', this.$el).val().length > 0 && $('#inputPassword', this.$el).val().length > 0 ){
+            	params.username = $('#inputUsername', this.$el).val();
+            	params.password = $('#inputPassword', this.$el).val();
+            }
+        	
+            var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page")
+            uri += '?' + Splunk.util.propToQueryString(params);
+            
         	// Tell the iframe to load the URL
-        	$("#preview-panel", this.$el).attr("src", Splunk.util.make_url("/custom/website_input/web_input_controller/load_page?url=") + url);
+        	$("#preview-panel", this.$el).attr("src", uri);
         	
         	// Prevent links from working in the frame
         	$("iframe").load(function() {
@@ -726,21 +738,16 @@ define([
         		}
         		
         		// Validate the URL filter
-        		
-        		// Stop if issues are found
-        		if(issues > 0){
-        			return false;
-        		}
-        		else{
-        			this.updatePreview($("#inputURL", this.$el).val());
-        			//this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
-        			this.updatePreviewURLs();
-        		}
+        		// TODO
         	}
         	
         	
         	// Validate step 2
-        	// No validation yet
+        	if(selectedModel.get("value") === 'auth-edit' && isSteppingNext){
+        		this.updatePreview($("#inputURL", this.$el).val());
+    			this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
+    			this.updatePreviewURLs();
+        	}
         	
         	// Validate step 3
         	if(selectedModel.get("value") === 'selector-edit' && isSteppingNext){
@@ -750,7 +757,6 @@ define([
         			$("#inputSelector").parent().parent().addClass("error");
         			issues += 1;
         		}
-        		
         	}
         	
         	// Validate step 4

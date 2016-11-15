@@ -147,7 +147,15 @@ class WebInputController(controllers.BaseController):
                 cherrypy.response.status = 202
                 return self.render_error_html("Proxy server information could not be obtained")
             
-            http = WebInput.get_http_client(None, None, 30, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+            # Get the username and password
+            username = None
+            password = None
+            
+            if 'username' in kwargs and 'password' in kwargs:
+                username = kwargs['username']
+                password = kwargs['password']
+            
+            http = WebInput.get_http_client(username, password, 30, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
             
             # Setup the headers as necessary
             user_agent = None
