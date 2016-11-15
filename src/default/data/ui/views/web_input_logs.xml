@@ -1,0 +1,76 @@
+<form>
+  <label>Logs</label>
+  <fieldset submitButton="true" autoRun="true">
+    <input type="time" token="field1">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="severity">
+      <label>Severity</label>
+      <choice value="*">All</choice>
+      <choice value="DEBUG">Debug</choice>
+      <choice value="INFO">Informational</choice>
+      <choice value="INFO OR WARNING OR ERROR OR CRITICAL">Informational (or above)</choice>
+      <choice value="WARNING">Warning</choice>
+      <choice value="WARNING OR ERROR OR CRITICAL">Warning (or above)</choice>
+      <choice value="ERROR">Error</choice>
+      <choice value="ERROR OR CRITICAL">Error (or above)</choice>
+      <choice value="CRITICAL">Critical</choice>
+      <default>INFO OR WARNING OR ERROR OR CRITICAL</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <chart>
+        <search>
+          <query>index=_internal sourcetype=web_input_modular_input $severity$ | rex field=_raw "(?&lt;severity&gt;(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?&lt;message&gt;.*)" | fillnull severity value="UNDEFINED" | timechart count(severity) as count by severity</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <title>Logs by Severity (over time)</title>
+        <option name="charting.chart">area</option>
+        <option name="count">10</option>
+        <option name="displayRowNumbers">true</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.legend.labels">[DEBUG,INFO,WARNING,ERROR,CRITICAL]</option>
+        <option name="charting.seriesColors">[0xb2d16d,0x6ab7c8,0xfac61c,0xf8912c,0xd85d3d]</option>
+        <option name="charting.legend.masterLegend"></option>
+      </chart>
+    </panel>
+    <panel>
+      <table>
+        <title>Logs by Severity</title>
+        <search>
+          <query>index=_internal sourcetype=web_input_modular_input | rex field=_raw "(?&lt;severity&gt;(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?&lt;message&gt;.*)" | fillnull value="undefined" vendor_severity | stats sparkline count by severity | sort -count</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Latest Logs</title>
+        <search>
+          <query>index=_internal sourcetype=web_input_modular_input $severity$ | rex field=_raw "(?&lt;severity&gt;(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?&lt;message&gt;.*)" | sort -_time | eval time=_time | convert ctime(time) | table time severity message</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+</form>
