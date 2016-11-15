@@ -246,7 +246,7 @@ define([
          * Load the given input into the UI.
          */
         loadInput: function(input){
-        	debugger;
+        	
         	// Generic options
         	//this.setIfValueIsNonEmpty(data, "source", '#inputSource');
         	if(input.content.name !== null){
@@ -492,32 +492,6 @@ define([
         	
         	
         	return;
-        	
-        	var data = {
-        		"url": $("#url", this.$el).val()
-        	};
-        	
-        	// Perform the call
-        	$.ajax({
-        			url: Splunk.util.make_url("/custom/website_input/web_input_controller/load_page"),
-        			data: data,
-        			type: 'GET',
-        			
-        			// On success
-        			success: function(data) {
-        				debugger;
-        			}.bind(this),
-        		  
-        			// On complete
-        			complete: function(jqXHR, textStatus){
-        				
-        			}.bind(this),
-        		  
-        			// On error
-        			error: function(jqXHR, textStatus, errorThrown){
-
-        			}.bind(this)
-        	});
         },
         
         /**
