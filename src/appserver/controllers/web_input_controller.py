@@ -95,6 +95,19 @@ class WebInputController(controllers.BaseController):
             
         return capabilities     
     
+    def render_error_html(self, msg):
+        return "<!DOCTYPE html><html>" \
+                "<head>" \
+                    '<style>body{' \
+                    'font-family: Roboto, Droid, "Helvetica Neue", Helvetica, Arial, sans-serif;' \
+                    'margin: 32px;' \
+                    'font-size: 10pt;' \
+                    '}</style>' \
+                    '<title>Error</title>' \
+                '</head>' \
+                '<body>' + msg + '</body>' \
+                '</html>'
+    
     @expose_page(must_login=True, methods=['GET']) 
     def load_page(self, url, **kwargs):
         """
@@ -107,12 +120,18 @@ class WebInputController(controllers.BaseController):
             # 1: Make sure that user has permission to make inputs. We don't want to allow people to use this as a general proxy.
             # --------------------------------------
             
-            #edit_modinput_web_input
+            # Get the user's name and session
+            user = cherrypy.session['user']['name'] 
+            session_key = cherrypy.session.get('sessionKey')
+            capabilities = self.getCapabilities4User(user, session_key) 
+            
+            if 'edit_modinput_web_input' not in capabilities:
+                return self.render_error_html("You need the 'edit_modinput_web_input' capability to make website inputs")
             
             # Don't allow proxying of the javascript files
-            #if url.endswith(".js"):
-                #cherrypy.response.headers['Content-Type'] = 'application/javascript'
-                #return ""
+            if url.endswith(".js"):
+                cherrypy.response.headers['Content-Type'] = 'application/javascript'
+                return ""
             
             # --------------------------------------
             # 2: Perform a request for the page
@@ -126,7 +145,7 @@ class WebInputController(controllers.BaseController):
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
             except splunk.ResourceNotFound:
                 cherrypy.response.status = 202
-                return self.render_error_json(_("Proxy server information could not be obtained"))
+                return self.render_error_html("Proxy server information could not be obtained")
             
             http = WebInput.get_http_client(None, None, 30, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
             
@@ -188,15 +207,16 @@ class WebInputController(controllers.BaseController):
             # --------------------------------------
             # 5: Clear Javascript files
             # --------------------------------------
-            #if response.get('content-type', "") == "application/javascript" or response.get('content-type', "") == "application/x-javascript" or response.get('content-type', "") == "text/javascript":
-            #    return ""
+            if response.get('content-type', "") == "application/javascript" or response.get('content-type', "") == "application/x-javascript" or response.get('content-type', "") == "text/javascript":
+                return ""
             
             return content
         
         except:
             logger.exception("Error when attempting to proxy an HTTP request")
             cherrypy.response.status = 500
-            return self.render_error_json(_("Unable to proxy the request"))
+            #return self.render_error_json(_("Unable to proxy the request"))
+            return self.render_error_html("Page preview could not be created")
     
     @expose_page(must_login=True, methods=['GET', 'POST']) 
     def scrape_page(self, **kwargs):
