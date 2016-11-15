@@ -594,13 +594,12 @@ define([
         			promise.resolve();
         		})
         		.fail(function(msg){
+        			alert("The input could not be saved: " + msg);
         			promise.reject();
         		});
         		
             	return promise;
         	}
-        	
-        	
         	
         	// Stop if issues are found
     		if(issues > 0){
