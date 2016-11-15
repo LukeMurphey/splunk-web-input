@@ -131,6 +131,22 @@ define([
         },
         
         /**
+         * Render a list of URLs in the preview list
+         */
+        renderPreviewURLs: function(urls){
+        	var html = "";
+        	var option_template = _.template('<li><a href="#" data-url="<%- url %>" class="preview-url"><%- url %></a></li>');
+        	
+        	for(var c=0; c < urls.length; c++){
+        		html += option_template({
+        			"url" : urls[c]
+        		})
+        	}
+        	
+        	$('.preview-url-dropdown-selector').html(html);
+        },
+        
+        /**
          * Update the list of preview URLs
          */
         updatePreviewURLs: function(){
@@ -158,19 +174,20 @@ define([
         	
         	this.results.fetch({
                 success: function() {
-                	var html = "";
-                	var option_template = _.template('<li><a href="#" data-url="<%- url %>" class="preview-url"><%- url %></a></li>');
+                	// Get a list of the URLs
+                	var urls = [];
                 	
                 	for(var c=0; c < this.results.models.length; c++){
-                		html += option_template({
-                			"url" : this.results.models[c].get("url")
-                		})
+                		urls.push(this.results.models[c].get("url"));
                 	}
                 	
-                	$('.preview-url-dropdown-selector').html(html);
+                	// Render the URLs
+                	this.renderPreviewURLs(urls);
                 	
+                	// Hide the message noting that we are getting the list of URLs
                 	$('.preview-urls-loading', this.$el).hide();
-                  console.info("Successfully retrieved the results");
+                	
+                	console.info("Successfully retrieved the preview URLs");
                 }.bind(this),
                 error: function() {
                 	$('.preview-urls-loading', this.$el).hide();
@@ -268,7 +285,10 @@ define([
          * Try to load the selector gadget in the preview window if necessary.
          */
         tryToLoadSelectorGadget: function(){
-    		if(this.sg_loaded){ return; }
+    		if(this.sg_loaded){
+    			return;
+    		}
+    		
     		// See if the selector gadget exists
     		if(typeof frames[0].window.selector_gadget !== 'undefined'){
     			//clearInterval(this.selector_gadget_added_interval);
@@ -308,6 +328,17 @@ define([
         	
         	// Tell the iframe to load the URL
         	$("#preview-panel", this.$el).attr("src", Splunk.util.make_url("/custom/website_input/web_input_controller/load_page?url=") + url);
+        	
+        	// Prevent links from working in the frame
+        	$("iframe").load(function() {
+        	    $("iframe").contents().find("a").each(function(index) {
+        	        $(this).on("click", function(event) {
+        	            event.preventDefault();
+        	            event.stopPropagation();
+        	        });
+        	    });
+        	});
+        	
         	
         	return;
         	
@@ -563,6 +594,7 @@ define([
         		}
         		else{
         			this.updatePreview($("#inputURL", this.$el).val());
+        			//this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
         			this.updatePreviewURLs();
         		}
         	}
