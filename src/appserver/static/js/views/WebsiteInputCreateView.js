@@ -697,6 +697,21 @@ define([
         },
         
         /**
+         * Returns true if the item is a valid interval.
+         */
+        isValidInterval: function(interval){
+        	
+        	var re = /^\s*([0-9]+([.][0-9]+)?)\s*([dhms])?\s*$/gi;
+        	
+        	if(re.exec(interval)){
+        		return true;
+        	}
+        	else{
+        		return false;
+        	}
+        },
+        
+        /**
          * Validate that changing steps is allowed.
          */
         validateStep: function(selectedModel, isSteppingNext){
@@ -714,7 +729,7 @@ define([
         		this.clearValidationErrors();
         		
         		// Validate the interval
-        		if($("#inputInterval").val().length === 0){
+        		if(!this.isValidInterval($("#inputInterval").val())){
         			this.addValidationError($("#inputInterval"), "Enter a valid interval");
         			issues += 1;
         		}
@@ -740,7 +755,6 @@ define([
         		// Validate the URL filter
         		// TODO
         	}
-        	
         	
         	// Validate step 2
         	if(selectedModel.get("value") === 'auth-edit' && isSteppingNext){
