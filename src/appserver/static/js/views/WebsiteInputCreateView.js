@@ -79,6 +79,7 @@ define([
         	this.existing_input_names = [];
         	this.selector_gadget_added_interval = null;
         	this.previous_sg_value = null;
+        	this.sg_loaded = false;
         	
         	// Get the list of existing inputs
         	this.getExistingInputs();
@@ -98,6 +99,9 @@ define([
         	
         	// Start syncing the selector gadget back to the form
         	setInterval(this.syncSelectorGadget.bind(this), 100);
+        	
+        	// Start the interval to make sure that the selector gadget was loaded in the frame
+        	setInterval(this.tryToLoadSelectorGadget.bind(this), 2000);
         	
         },
         
@@ -142,8 +146,15 @@ define([
         	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
         	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
         	
+        	// Place a limit on the page count of 10
+        	if(parseInt(args['page_limit'], 10) > 10){
+        		args['page_limit'] = '10';
+        	}
+        	
         	// Get the results
         	this.results = new ScrapePageResults([], args);
+        	
+        	$('.preview-urls-loading', this.$el).show();
         	
         	this.results.fetch({
                 success: function() {
@@ -158,9 +169,11 @@ define([
                 	
                 	$('.preview-url-dropdown-selector').html(html);
                 	
+                	$('.preview-urls-loading', this.$el).hide();
                   console.info("Successfully retrieved the results");
                 }.bind(this),
                 error: function() {
+                	$('.preview-urls-loading', this.$el).hide();
                   console.error("Unable to fetch the results");
                 }.bind(this)
             });
@@ -252,9 +265,35 @@ define([
         },
         
         /**
+         * Try to load the selector gadget in the preview window if necessary.
+         */
+        tryToLoadSelectorGadget: function(){
+    		if(this.sg_loaded){ return; }
+    		// See if the selector gadget exists
+    		if(typeof frames[0].window.selector_gadget !== 'undefined'){
+    			//clearInterval(this.selector_gadget_added_interval);
+    			return;
+    		}
+    		
+    		// See if the document is ready and update it if it is
+    		if( (frames[0].window.document.readyState === 'loaded'
+    			|| frames[0].window.document.readyState === 'interactive'
+    			|| frames[0].window.document.readyState === 'complete')
+    			&& frames[0].window.document.body !== null
+    			&& frames[0].window.document.body.innerHTML.length > 0
+    			&& typeof frames[0].window.selector_gadget === 'undefined' ){
+    			
+    			console.log("Loading the selector gadget into the preview frame")
+    			this.startSelectorGadget();
+    			this.sg_loaded = true;
+    		}
+        },
+        
+        /**
          * Update the preview panel.
          */
         updatePreview: function(url){
+        	this.sg_loaded = false;
         	
         	// Clear the preview
         	if(url === ""){
@@ -269,30 +308,6 @@ define([
         	
         	// Tell the iframe to load the URL
         	$("#preview-panel", this.$el).attr("src", Splunk.util.make_url("/custom/website_input/web_input_controller/load_page?url=") + url);
-        	
-        	// Load the selector gadget as necessary when the page gets ready enough
-        	if(this.selector_gadget_added_interval === null){
-            	this.selector_gadget_added_interval = setInterval(function() {
-            		
-            		// See if the selector gadget exists
-            		if(typeof frames[0].window.selector_gadget !== 'undefined'){
-            			//clearInterval(this.selector_gadget_added_interval);
-            			return;
-            		}
-            		
-            		// See if the document is ready and update it if it is
-            		if( (frames[0].window.document.readyState === 'loaded'
-            			|| frames[0].window.document.readyState === 'interactive'
-            			|| frames[0].window.document.readyState === 'complete')
-            			&& frames[0].window.document.body !== null
-            			&& frames[0].window.document.body.innerHTML.length > 0
-            			&& typeof frames[0].window.selector_gadget === 'undefined' ){
-            			
-            			console.log("Loading the selector gadget into the preview frame")
-            			this.startSelectorGadget();
-            		}
-            	}.bind(this), 2000);
-        	}
         	
         	return;
         	
