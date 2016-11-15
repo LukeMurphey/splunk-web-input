@@ -1,3 +1,5 @@
 <nav color="#009f3c">
   <view name="create_web_input" default="true" />
+  <view name="web_input_logs" />
+  <view name="web_input_status" />
 </nav>
