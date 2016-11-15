@@ -103,6 +103,13 @@ define([
         	// Start the interval to make sure that the selector gadget was loaded in the frame
         	setInterval(this.tryToLoadSelectorGadget.bind(this), 2000);
         	
+        	/*
+        	// Fetch the default information
+        	$.when(this.fetchInput("_new")).done(function(input){
+        		console.log("Got the _new input");
+        		this.default_input = input;
+        	}.bind(this));
+        	*/
         },
         
         /**
@@ -194,6 +201,138 @@ define([
                   console.error("Unable to fetch the results");
                 }.bind(this)
             });
+        },
+        
+        /**
+         * Get the given URL parameter.
+         */
+        getURLParameter: function(param){
+        	var pageURL = window.location.search.substring(1);
+            var sURLVariables = pageURL.split('&');
+            for (var i = 0; i < sURLVariables.length; i++)
+            {
+                var parameterName = sURLVariables[i].split('=');
+                if (parameterName[0] == param) 
+                {
+                    return decodeURIComponent(parameterName[1]);
+                }
+            }
+            
+            return null;
+        },
+        
+        /**
+         * Set the input to the given value if it isn't null or undefined.
+         */
+        setIfValueIsNonEmpty: function(input, value){
+        	if(value !== null && value !== undefined){
+        		$(input, this.$el).val(value);
+        	}
+        },
+        
+        /**
+         * Set the checkbox to the given value.
+         */
+        setCheckboxInput: function(input, value){
+        	if(value !== null && value !== undefined && (value === "1" ||  value.toLowerCase() === "true")){
+        		$(input, this.$el).prop('checked', true);
+        	}
+        	else{
+        		$(input, this.$el).prop('checked', false);
+        	}
+        },
+        
+        /**
+         * Load the given input into the UI.
+         */
+        loadInput: function(input){
+        	debugger;
+        	// Generic options
+        	//this.setIfValueIsNonEmpty(data, "source", '#inputSource');
+        	if(input.content.name !== null){
+        		 mvc.Components.getInstance("name").val(input.content.name);
+        	}
+        	
+        	mvc.Components.getInstance("index").val(input.content.index);
+        	mvc.Components.getInstance("host").val(input.content.host);
+        	
+        	if(input.content.sourcetype !== null){
+        		mvc.Components.getInstance("sourcetype").val(input.content.sourcetype);
+        	}
+        	
+        	// Input basics
+        	this.setIfValueIsNonEmpty('#inputSelector', input.content.selector);
+        	this.setIfValueIsNonEmpty('#inputURL', input.content.url);
+        	this.setIfValueIsNonEmpty('#inputInterval', input.content.interval);
+        	
+        	if(input.content.title !== null){
+        		mvc.Components.getInstance("title").val(input.content.title);
+        	}
+        	//this.setIfValueIsNonEmpty("timeout", '#inputTimeout', input.content.timeout);
+        	//this.addIfInputIsNonEmpty("browser", '#inputBrowser', input.content.);
+        	//this.addIfInputIsNonEmpty("user_agent", '#inputUserAgent', input.content.);
+        	
+        	// Crawling options
+        	this.setIfValueIsNonEmpty('#inputPageLimit', input.content.page_limit);
+        	this.setIfValueIsNonEmpty('#inputURLFilter', input.content.url_filter);
+        	this.setIfValueIsNonEmpty('#inputDepthLimit', input.content.depth_limit);
+        	
+        	// Credentials
+        	this.setIfValueIsNonEmpty('#inputUsername', input.content.username);
+        	this.setIfValueIsNonEmpty('#inputPassword', input.content.password);
+        	
+        	// Output options
+        	this.setIfValueIsNonEmpty('#inputNameAttributes', input.content.name_attributes);
+        	this.setIfValueIsNonEmpty('#inputTextSeparator', input.content.text_separator);
+        	
+        	this.setCheckboxInput('#inputIncludeRaw', input.content.raw_content);
+        	this.setCheckboxInput('#inputMV', input.content.output_as_mv);
+        	this.setCheckboxInput('#inputUseTagAsField', input.content.use_element_name);
+        	
+        },
+        
+        /**
+         * Get the given input.
+         */
+        fetchInput: function(input_name){
+        	
+        	var promise = $.Deferred();
+        	
+        	// Prepare the arguments
+            var params = new Object();
+            params.output_mode = 'json';
+            
+            var uri = splunkd_utils.fullpath("/services/data/inputs/web_input/" + encodeURIComponent(input_name));
+            uri += '?' + Splunk.util.propToQueryString(params);
+            
+            // Fire off the request
+            jQuery.ajax({
+                url:     uri,
+                type:    'GET',
+                success: function(result) {
+                	
+                    if(result !== undefined && result.isOk === false){
+                    	console.error("Input could not be obtained: " + result.message);
+                    	promise.reject();
+                    }
+                    else if(result === undefined || result === null){
+                    	console.error("Input could not be obtained: result object is null or undefined");
+                    	promise.reject();
+                    }
+                    else{
+                    	input = result.entry[0];
+                    	
+                    	promise.resolve(input);
+                    }
+                }.bind(this),
+                // On error
+    			error: function(jqXHR, textStatus, errorThrown){
+    				promise.reject();
+    			}.bind(this)
+            });
+            
+            return promise;
+
         },
         
         /**
@@ -807,7 +946,7 @@ define([
          */
         getExistingInputs: function(){
 
-        	var uri = splunkd_utils.fullpath("/servicesNS/admin/search/data/inputs/web_input?output_mode=json");
+        	var uri = splunkd_utils.fullpath("/services/data/inputs/web_input?output_mode=json");
 
 	        // Fire off the request
         	jQuery.ajax({
@@ -854,19 +993,19 @@ define([
         	// Generic options
         	//this.addIfInputIsNonEmpty(data, "source", '#inputSource');
         	if(mvc.Components.getInstance("name").val()){
-        		data['name'] = mvc.Components.getInstance("name").val()
+        		data['name'] = mvc.Components.getInstance("name").val();
         	}
         	
         	if(mvc.Components.getInstance("index").val()){
-        		data['index'] = mvc.Components.getInstance("index").val()
+        		data['index'] = mvc.Components.getInstance("index").val();
         	}
         	
         	if(mvc.Components.getInstance("host").val()){
-        		data['host'] = mvc.Components.getInstance("host").val()
+        		data['host'] = mvc.Components.getInstance("host").val();
         	}
         	
         	if(mvc.Components.getInstance("sourcetype").val()){
-        		data['sourcetype'] = mvc.Components.getInstance("sourcetype").val()
+        		data['sourcetype'] = mvc.Components.getInstance("sourcetype").val();
         	}
         	
         	// Input basics
@@ -874,15 +1013,15 @@ define([
         	this.addIfInputIsNonEmpty(data, "url", '#inputURL');
         	this.addIfInputIsNonEmpty(data, "interval", '#inputInterval');
         	if(mvc.Components.getInstance("title").val()){
-        		data['title'] = mvc.Components.getInstance("title").val()
+        		data['title'] = mvc.Components.getInstance("title").val();
         	}
-        	this.addIfInputIsNonEmpty(data, "timeout", '#inputURLFilter');
+        	//this.addIfInputIsNonEmpty(data, "timeout", '#inputTimeout');
         	//this.addIfInputIsNonEmpty(data, "browser", '#inputBrowser');
         	//this.addIfInputIsNonEmpty(data, "user_agent", '#inputUserAgent');
         	
         	// Crawling options
         	this.addIfInputIsNonEmpty(data, "page_limit", '#inputPageLimit');
-        	this.addIfInputIsNonEmpty(data, "url_filter", '#inputDepthLimit');
+        	this.addIfInputIsNonEmpty(data, "url_filter", '#inputURLFilter');
         	this.addIfInputIsNonEmpty(data, "depth_limit", '#inputDepthLimit');
         	
         	// Credentials
@@ -1238,6 +1377,15 @@ define([
             
             // Create the step wizard and set the initial step as the "url-edit" step
             this.setupStepWizard('url-edit');
+            
+            // Render the input entry
+        	// Fetch the default information
+        	$.when(this.fetchInput("_new")).done(function(input){
+        		console.log("Got the _new input");
+        		this.default_input = input;
+        		this.loadInput(this.default_input);
+        	}.bind(this));
+            
         }
     });
     
