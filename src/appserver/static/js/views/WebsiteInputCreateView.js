@@ -45,13 +45,10 @@ define([
 		initialize: function(models, options) {
 		   this.provided_options = options;
 	    },
-		//model: ScrapePageResult,
-	    //url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page?url=http%3A%2F%2Flukemurphey.net&selector=.box+li&page_limit=5&depth_limit=4"),
 	    url : function() {
-	    	//debugger;
 	    	var url = Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page?") + jQuery.param(this.provided_options);
 	    	console.log(url);
-	        return url; //url=http%3A%2F%2Flukemurphey.net&selector=.box+li&page_limit=5&depth_limit=4");
+	        return url;
 	     } 
 	});
 	
@@ -64,7 +61,7 @@ define([
         },
         
         events: {
-        	"change #inputURL" : "updatePreview",
+        	"change #inputURL" : "clickUpdatePreview",
         	"click #do-preview" : "clickUpdatePreview",
         	"click .preview-url" : "clickUpdatePreview",
         	"click .clearSelector" : "clearSelector",
@@ -81,6 +78,7 @@ define([
         	this.inputs = null;
         	this.existing_input_names = [];
         	this.selector_gadget_added_interval = null;
+        	this.previous_sg_value = null;
         	
         	// Get the list of existing inputs
         	this.getExistingInputs();
@@ -98,7 +96,9 @@ define([
                 }
             });
         	
-
+        	// Start syncing the selector gadget back to the form
+        	setInterval(this.syncSelectorGadget.bind(this), 100);
+        	
         },
         
         /**
@@ -177,17 +177,19 @@ define([
          * Update the selector in the preview panel.
          */
         refreshSelector: function(selector){
-        	$(frames[0].window.selector_gadget.path_output_field).val(selector);
-        	//$("#_sg_div > input:nth-of-type(1)", frames[0].window.document).val(selector);
-        	// Trigger updating of the gadget
-        	frames[0].window.selector_gadget.refreshFromPath()
+        	
+        	if(frames[0].window.selector_gadget){
+        		$(frames[0].window.selector_gadget.path_output_field).val(selector);
+            	frames[0].window.selector_gadget.refreshFromPath();
+            	this.previous_sg_value = selector;
+        	}
+        	
         },
         
         /**
          * Clear the given selector.
          */
         clearSelector: function(){
-        	debugger;
         	$("#_sg_div > input:nth-of-type(2)", frames[0].window.document).trigger("click");
         },
         
@@ -244,7 +246,6 @@ define([
          * Handle the case where the preview button was clicked.
          */
         clickUpdatePreview: function(ev){
-        	
         	var url = $(ev.target).data("url");
         	this.updatePreview(url);
         	return true;
@@ -254,6 +255,17 @@ define([
          * Update the preview panel.
          */
         updatePreview: function(url){
+        	
+        	// Clear the preview
+        	if(url === ""){
+        		$("#preview-panel", this.$el).attr("src", "")
+        		return;
+        	}
+        	
+        	// Stop if a URL was not provided
+        	if(!url){
+        		return;
+        	}
         	
         	// Tell the iframe to load the URL
         	$("#preview-panel", this.$el).attr("src", Splunk.util.make_url("/custom/website_input/web_input_controller/load_page?url=") + url);
@@ -535,6 +547,7 @@ define([
         			return false;
         		}
         		else{
+        			this.updatePreview($("#inputURL", this.$el).val());
         			this.updatePreviewURLs();
         		}
         	}
@@ -1050,6 +1063,45 @@ define([
         },
         
         /**
+         * Synchronize the selector gadget back with the input in the editor if needed.
+         */
+        syncSelectorGadget: function(){
+        	
+        	// Stop if the selector gadget isn't initialized
+        	if($("#_sg_path_field", frames[0].window.document).length === 0){
+        		this.previous_sg_value = null;
+        		return;
+        	}
+        	
+    		// Get the current value
+    		var value = $("#_sg_path_field", frames[0].window.document).val();
+    		
+    		// If we haven't set the value, then this means that the selector gadget has just been initialized. Sync the form element back to selector gadget.
+    		if(this.previous_sg_value === null){
+    			this.refreshSelector($("#inputSelector", this.$el).val());
+    			return;
+    		}
+    		
+    		// Do something since the value changed
+    		if(value !== this.previous_sg_value){
+    			
+        		// See if the value is blank
+        		if(value === "No valid path found."){
+        			if($("#inputSelector", this.$el).val() !== ""){
+        				$("#inputSelector", this.$el).val("");
+        			}
+        		}
+        		
+        		// Otherwise, do something since the value changed
+        		else if($("#inputSelector", this.$el).val() !== value){
+        			$("#inputSelector", this.$el).val(value);
+        		}
+        		
+        		this.previous_sg_value = value;
+    		}
+        },
+        
+        /**
          * Start the selector gadget in the iframe.
          */
         startSelectorGadget: function(){
@@ -1057,37 +1109,10 @@ define([
         	var base_url = document.location.origin + Splunk.util.make_url("/static/app/website_input/js/lib/selectorgadget/");
         	
         	// This is a minified version of selectorgadget.js
-        	//frames[0].window.eval('function importJS(a,b,c){var d=document.createElement("script");d.setAttribute("type","text/javascript"),d.setAttribute("src",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function importCSS(a,b,c){var d=document.createElement("link");d.setAttribute("rel","stylesheet"),d.setAttribute("type","text/css"),d.setAttribute("media","screen"),d.setAttribute("href",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function wait_for_script_load(look_for,callback){var interval=setInterval(function(){"undefined"!=eval("typeof "+look_for)&&(clearInterval(interval),callback())},50)}!function(){importCSS("https://dv0akt2986vzh.cloudfront.net/stable/lib/selectorgadget.css"),importJS("https://ajax.googleapis.com/ajax/libs/jquery/1.3.1/jquery.min.js","jQuery",function(){jQuery.noConflict(),importJS("https://dv0akt2986vzh.cloudfront.net/stable/vendor/diff/diff_match_patch.js","diff_match_patch",function(){importJS("https://dv0akt2986vzh.cloudfront.net/stable/lib/dom.js","DomPredictionHelper",function(){importJS("https://dv0akt2986vzh.cloudfront.net/stable/lib/interface.js")})})})}();');
-        	//frames[0].window.eval('function importJS(a,b,c){var d=document.createElement("script");d.setAttribute("type","text/javascript"),d.setAttribute("src",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function importCSS(a,b,c){var d=document.createElement("link");d.setAttribute("rel","stylesheet"),d.setAttribute("type","text/css"),d.setAttribute("media","screen"),d.setAttribute("href",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function wait_for_script_load(look_for,callback){var interval=setInterval(function(){"undefined"!=eval("typeof "+look_for)&&(clearInterval(interval),callback())},50)}!function(){importCSS("[baseurl]/selectorgadget.css"),importJS("[baseurl]/jquery.min.js","jQuery",function(){jQuery.noConflict(),importJS("[baseurl]/diff_match_patch.js","diff_match_patch",function(){importJS("[baseurl]/dom.js","DomPredictionHelper",function(){importJS("[baseurl]/interface.js")})})})}();'.replace(new RegExp("\[baseurl\]", 'g'), base_url));
-        	
         	frames[0].window.eval('function i18n_register(){};function importJS(a,b,c){var d=document.createElement("script");d.setAttribute("type","text/javascript"),d.setAttribute("src",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function importCSS(a,b,c){var d=document.createElement("link");d.setAttribute("rel","stylesheet"),d.setAttribute("type","text/css"),d.setAttribute("media","screen"),d.setAttribute("href",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function wait_for_script_load(look_for,callback){var interval=setInterval(function(){"undefined"!=eval("typeof "+look_for)&&(clearInterval(interval),callback())},50)}!function(){importCSS("baseurl/selectorgadget_hide.css"),importJS("baseurl/jquery.min.js","jQuery",function(){jQuery.noConflict(),importJS("baseurl/diff_match_patch.js","diff_match_patch",function(){importJS("baseurl/dom.js","DomPredictionHelper",function(){importJS("baseurl/interface.js")})})})}();'.replace(new RegExp("baseurl", 'g'), base_url));
-
         	
-        	// Wire-up a monitor for when the selector changes
-        	this.previous_value = "";
-        	
-        	setInterval(function(){
-        		
-        		// Get the current value
-        		var value = $("#_sg_path_field", frames[0].window.document).val();
-        		
-        		// Do something since the value changed
-        		if(value !== this.previous_value){
-        			
-	        		// See if the value is blank
-	        		if(value === "No valid path found."){
-	        			$("#inputSelector", this.$el).val("");
-	        		}
-	        		
-	        		// Otherwise, do something since the value changed
-	        		else{
-	        			$("#inputSelector", this.$el).val(value);
-	        		}
-	        		
-	        		this.previous_value = value;
-        		}
-        	}, 100);
-    		
+        	// Clear the selector
+        	this.previous_sg_value = null;
         },
         
         /**
