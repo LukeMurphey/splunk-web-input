@@ -1,0 +1,31 @@
+<form stylesheet="web_input_monitoring.css">
+  <label>Website Input Results</label>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="timefield">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>sourcetype="web_input" | stats sum(raw_match_count) as total_matches distinct_count(url) as unique_urls latest(_time) as last_seen sparkline(sum(raw_match_count)) as sparkline by source | sort -total_matches  | `timesince(last_seen,last_seen)`</query>
+          <earliest>$timefield.earliest$</earliest>
+          <latest>$timefield.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>
