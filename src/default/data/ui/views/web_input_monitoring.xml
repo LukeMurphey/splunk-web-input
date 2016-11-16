@@ -25,6 +25,15 @@
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
+        <format type="color" field="total_matches">
+          <colorPalette type="minMidMax" maxColor="#009F3C" minColor="#D7EBDF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format field="sparkline" type="sparkline">
+          <option name="barColor">#009f3c</option>
+          <option name="lineColor">#009f3c</option>
+          <option name="spotColor">#009f3c</option>
+        </format>
       </table>
     </panel>
   </row>
