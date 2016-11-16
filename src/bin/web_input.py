@@ -1051,6 +1051,8 @@ class WebInput(ModularInput):
                 # Process each event
                 for r in result:
                     
+                    r['title'] = title
+                    
                     # Send the event
                     if self.OUTPUT_USING_STASH:
                     
