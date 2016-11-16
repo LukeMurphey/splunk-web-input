@@ -13,7 +13,7 @@
     <panel>
       <table>
         <search>
-          <query>sourcetype="web_input" | stats sum(raw_match_count) as total_matches distinct_count(url) as unique_urls latest(_time) as last_seen sparkline(sum(raw_match_count)) as sparkline by source | sort -total_matches  | `timesince(last_seen,last_seen)`</query>
+          <query>sourcetype="web_input" | stats latest(title) as title sum(raw_match_count) as total_matches distinct_count(url) as unique_urls latest(_time) as last_seen sparkline(sum(raw_match_count)) as sparkline by source | sort -total_matches  | `timesince(last_seen,last_seen)`</query>
           <earliest>$timefield.earliest$</earliest>
           <latest>$timefield.latest$</latest>
           <sampleRatio>1</sampleRatio>
