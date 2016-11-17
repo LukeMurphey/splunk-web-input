@@ -1043,7 +1043,7 @@ class WebInput(ModularInput):
                 
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
             except Exception:
-                logger.exception("An exception occurred when attempting to retrieve information from the web-page") 
+                logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
             
             # Process the result (if we got one)
             if result is not None:
