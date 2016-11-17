@@ -65,7 +65,8 @@ define([
         	"click #do-preview" : "clickUpdatePreview",
         	"click .preview-url" : "clickUpdatePreview",
         	"click .clearSelector" : "clearSelector",
-        	"change #inputSelector" : "changeInputSelector"
+        	"change #inputSelector" : "changeInputSelector",
+        	"keypress #inputSelector" : "keypressInputSelector"
         },
         
         initialize: function() {
@@ -348,6 +349,19 @@ define([
         changeInputSelector: function(ev){
         	this.refreshSelector($("#inputSelector").val());
         },
+        
+        /**
+         * Handle enter key to the input selector.
+         */
+        keypressInputSelector: function(ev){
+        	
+        	var code = ev.keyCode || ev.which;
+        	
+            if (code == 13){
+            	this.refreshSelector($("#inputSelector").val());
+            }
+        },
+
         
         /**
          * Update the selector in the preview panel.
