@@ -188,8 +188,15 @@ define([
                 		urls.push(this.results.models[c].get("url"));
                 	}
                 	
-                	// Render the URLs
-                	this.renderPreviewURLs(urls);
+                	// Render the URLs if we got some
+                	if(urls.length > 0){
+                		this.renderPreviewURLs(urls);
+                	}
+                	
+                	// If we didn't get any, then just use the input URL
+                	else{
+                		this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
+                	}
                 	
                 	// Hide the message noting that we are getting the list of URLs
                 	$('.preview-urls-loading', this.$el).hide();
