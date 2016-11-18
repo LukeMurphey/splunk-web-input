@@ -103,14 +103,6 @@ define([
         	
         	// Start the interval to make sure that the selector gadget was loaded in the frame
         	setInterval(this.tryToLoadSelectorGadget.bind(this), 2000);
-        	
-        	/*
-        	// Fetch the default information
-        	$.when(this.fetchInput("_new")).done(function(input){
-        		console.log("Got the _new input");
-        		this.default_input = input;
-        	}.bind(this));
-        	*/
         },
         
         /**
@@ -899,18 +891,16 @@ define([
         	return parser;
         },
         
+                
         /**
-         * Generate a suggested title from the URL.
+         * Make a stanza name from a string.
          */
-        generateTitle: function(url){
-        	var parsed = this.parseURL(url);
-        	return parsed.hostname;
-        },
+        generateStanzaFromString: function(str, existing_stanzas){
         
-        /**
-         * Generate a suggested stanza from the URL.
-         */
-        generateStanza: function(url, existing_stanzas){
+        	// Stop of the string is blank
+        	if(str === undefined || str === null || str === ""){
+        		return "";
+        	}
         	
         	// Set a default value for the existing_stanzas argument
         	if( typeof existing_stanzas == 'undefined' || existing_stanzas === null){
@@ -919,12 +909,10 @@ define([
         	
         	// If we have no existing stanzas, then just make up a name and go with it
         	if(existing_stanzas.length === 0){
-        		var parsed = this.parseURL(url);
-            	return parsed.hostname.replace(/[-.]/g, "_");
+            	return str.replace(/[^a-z0-9_]/gi, "_").toLowerCase();
         	}
         	
-        	var parsed = this.parseURL(url);
-        	var stanza_base = parsed.hostname.replace(/[-.]/g, "_");
+        	var stanza_base = str.replace(/[^a-z0-9_]/gi, "_").toLowerCase();
         	var possible_stanza = stanza_base;
         	var stanza_suffix_offset = 0;
         	var collision_found = false;
@@ -953,7 +941,24 @@ define([
             	}
         		    		
         	}
+        },
+        
+        /**
+         * Generate a suggested title from the URL.
+         */
+        generateTitleFromURL: function(url){
+        	var parsed = this.parseURL(url);
+        	return parsed.hostname;
+        },
+        
+        /**
+         * Generate a suggested stanza from the URL.
+         */
+        generateStanzaFromURL: function(url, existing_stanzas){
         	
+        	var parsed = this.parseURL(url);
+        	
+        	return this.generateStanzaFromString(parsed.hostname);
         },
         
         /**
@@ -1054,11 +1059,11 @@ define([
         	
         	// Populate defaults for the arguments
         	if(!data.hasOwnProperty('name')){
-        		data['name'] = this.generateStanza(data['url'], this.existing_input_names);
+        		data['name'] = this.generateStanzaFromURL(data['url'], this.existing_input_names);
         	}
         	
         	if(!data.hasOwnProperty('title')){
-        		data['title'] = this.generateTitle(data['url']);
+        		data['title'] = this.generateTitleFromURL(data['url']);
         	}
         	
         	return data;
@@ -1348,10 +1353,6 @@ define([
                 "searchWhenChanged": false,
                 "el": $('#inputSourcetype', this.$el)
             }, {tokens: true}).render();
-    		
-        	sourcetype_input.on("change", function(newValue) {
-            	//this.validateForm(); // TODO add validation
-            }.bind(this));
         	
         	// Make the host input
         	var host_input = new TextInput({
@@ -1359,9 +1360,19 @@ define([
                 "searchWhenChanged": false,
                 "el": $('#inputHost', this.$el)
             }, {tokens: true}).render();
+        	
+        	// Make the title input
+        	var title_input = new TextInput({
+                "id": "title",
+                "searchWhenChanged": false,
+                "el": $('#titleInput', this.$el)
+            }, {tokens: true}).render();
     		
-        	host_input.on("change", function(newValue) {
-            	//this.validateForm(); // TODO add validation
+        	// Generate a name from the title if the name is blank
+        	title_input.on("change", function(newValue) {
+        		if(!mvc.Components.getInstance("name").val() && newValue !== ""){
+        			mvc.Components.getInstance("name").val(this.generateStanzaFromString(newValue));
+        		}
             }.bind(this));
         	
         	// Make the name input
@@ -1371,22 +1382,6 @@ define([
                 "el": $('#nameInput', this.$el)
             }, {tokens: true}).render();
     		
-        	name_input.on("change", function(newValue) {
-            	//this.validateForm(); // TODO add validation
-            }.bind(this));
-        	
-        	// Make the title input
-        	var title_input = new TextInput({
-                "id": "title",
-                "searchWhenChanged": false,
-                "el": $('#titleInput', this.$el)
-            }, {tokens: true}).render();
-    		
-        	title_input.on("change", function(newValue) {
-            	//this.validateForm(); // TODO add validation
-            }.bind(this));
-        	
-        	
             // Initialize the steps model
             this.initializeSteps();
             
