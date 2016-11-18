@@ -356,16 +356,46 @@ define([
 
         
         /**
+         * Update the count of matches.
+         */
+        updateMatchCount: function(){
+        	
+        	var matches = "";
+        	
+        	if($("#inputSelector", this.$el).val().trim().length > 0){
+        		matches = $($("#inputSelector", this.$el).val(), frames[0].window.document).length;
+        	}
+        	
+        	// If we got nothing, then blank out the match count
+        	if(matches === ""){
+        		$('.match-count', this.$el).text(matches);
+        	}
+        	
+        	// If we got one, then use the singular form
+        	else if(matches === 1){
+        		$('.match-count', this.$el).text("1 match in the current document");
+        	}
+        	
+        	else if(matches > 1 || matches === 0){
+        		$('.match-count', this.$el).text(matches + " matches in the current document");
+        	}
+        	
+        },
+        
+        /**
          * Update the selector in the preview panel.
          */
         refreshSelector: function(selector){
         	
+        	// Update the selector gadget if it has been loaded
         	if(frames[0].window.selector_gadget){
         		$(frames[0].window.selector_gadget.path_output_field).val(selector);
             	frames[0].window.selector_gadget.refreshFromPath();
             	this.previous_sg_value = selector;
         	}
         	
+        	// Update the count of matches
+        	this.updateMatchCount();
         },
         
         /**
@@ -467,9 +497,11 @@ define([
         updatePreview: function(url){
         	this.sg_loaded = false;
         	
+        	// Clear the existing page so that it is clear that we are reloading the page
+        	$("#preview-panel", this.$el).attr("src", "");
+        	
         	// Clear the preview
         	if(url === ""){
-        		$("#preview-panel", this.$el).attr("src", "")
         		return;
         	}
         	
@@ -891,7 +923,6 @@ define([
         	return parser;
         },
         
-                
         /**
          * Make a stanza name from a string.
          */
@@ -1294,12 +1325,14 @@ define([
         		if(value === "No valid path found."){
         			if($("#inputSelector", this.$el).val() !== ""){
         				$("#inputSelector", this.$el).val("");
+        	        	this.updateMatchCount();
         			}
         		}
         		
         		// Otherwise, do something since the value changed
         		else if($("#inputSelector", this.$el).val() !== value){
         			$("#inputSelector", this.$el).val(value);
+        			this.updateMatchCount();
         		}
         		
         		this.previous_sg_value = value;

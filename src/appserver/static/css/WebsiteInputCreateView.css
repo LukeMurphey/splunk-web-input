@@ -30,6 +30,10 @@
 	margin-bottom: 32px;
 }
 
+.match-count{
+    min-height: 16px;
+}
+
 #preview-panel{
 	border: 2px dashed #ddd;
 }
