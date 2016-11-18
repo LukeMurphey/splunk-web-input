@@ -22,6 +22,7 @@ from website_input_app.event_writer import StashNewWriter
 import httplib2
 from httplib2 import socks
 import lxml.html
+from lxml.etree import XMLSyntaxError
 
 from cssselector import CSSSelector
 from __builtin__ import classmethod
@@ -620,14 +621,22 @@ class WebInput(ModularInput):
             # Parse the HTML
             try:
                 tree = lxml.html.fromstring(content_decoded)
-            except ValueError:
+            except (ValueError, XMLSyntaxError):
                 # lxml will refuse to parse a Unicode string containing XML that declares the encoding even if the encoding declaration matches the encoding used.
                 # This is odd since this exception will be thrown even though the app successfully determined the encoding (it matches the declaration in the XML).
                 # The app handles this by attempting to parse the content a second time if it failed when using Unicode. This is necessary because I cannot allow
                 # lxml to discover the encoding on its own since it doesn't know what the HTTP headers are and cannot sniff the encoding as well as the input does
                 # (which uses several methods to determine the encoding).
-                logger.info('The content is going to be parsed without decoding because the parser refused to parse it with encoding (http://goo.gl/4GRjJF), url="%s"', url.geturl())
-                tree = lxml.html.fromstring(content)
+                logger.info('The content is going to be parsed without decoding because the parser refused to parse it with the detected encoding (http://goo.gl/4GRjJF), url="%s", encoding="%s"', url.geturl(), encoding)
+                
+                try:
+                    tree = lxml.html.fromstring(content)
+                except Exception:
+                    logger.info('The content could not be parsed, it doesn\'t appear to be valid HTML, url="%s"', url.geturl())
+                    tree = None
+                    
+            except Exception:
+                logger.info('A unexpected exception was generated while attempting to parse the content, url="%s"', url.geturl())
             
             # Perform extraction if a selector is provided
             if selector is not None and tree is not None:
