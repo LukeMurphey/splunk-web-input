@@ -1,4 +1,4 @@
-<form stylesheet="web_input_monitoring.css">
+<form stylesheet="web_input_monitoring.css" script="web_input_monitoring.js">
   <label>Website Input Results</label>
   <fieldset submitButton="false" autoRun="true">
     <input type="time" token="timefield">
@@ -13,7 +13,7 @@
     <panel>
       <table>
         <search>
-          <query>sourcetype="web_input" | stats latest(title) as title sum(raw_match_count) as total_matches distinct_count(url) as unique_urls latest(_time) as last_seen sparkline(sum(raw_match_count)) as sparkline by source | sort -total_matches  | `timesince(last_seen,last_seen)`</query>
+          <query><![CDATA[sourcetype="web_input" | stats latest(title) as title latest(response_code) as response_code sum(raw_match_count) as total_matches distinct_count(url) as unique_urls latest(_time) as last_seen sparkline(sum(raw_match_count)) as matches by source | sort -total_matches | rex field=source "web_input://(?<source>.*)" | `timesince(last_seen,last_seen)` | table title source response_code last_seen total_matches unique_urls matches]]></query>
           <earliest>$timefield.earliest$</earliest>
           <latest>$timefield.latest$</latest>
           <sampleRatio>1</sampleRatio>
@@ -25,10 +25,6 @@
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
-        <format type="color" field="total_matches">
-          <colorPalette type="minMidMax" maxColor="#009F3C" minColor="#D7EBDF"></colorPalette>
-          <scale type="minMidMax"></scale>
-        </format>
         <format field="sparkline" type="sparkline">
           <option name="barColor">#009f3c</option>
           <option name="lineColor">#009f3c</option>
