@@ -547,7 +547,7 @@ class WebInput(ModularInput):
                 driver.close()
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -578,12 +578,17 @@ class WebInput(ModularInput):
         proxy_port -- The port that the proxy server runs on
         proxy_user -- The user name of the proxy server account
         proxy_password -- The password of the proxy server account
+        additional_fields -- Additional fields to put into the result set
         """
         
         try:
             
             # This will be where the result information will be stored
             result = OrderedDict()
+            
+            if additional_fields is not None:
+                for k, v in additional_fields.items():
+                    result[k] = v
             
             # Perform the request
             with Timer() as timer:
@@ -643,6 +648,9 @@ class WebInput(ModularInput):
                 
                 # Apply the selector to the DOM tree
                 matches = selector(tree)
+                   
+                # Store the raw match count (the nodes that the CSS matches)
+                result['raw_match_count'] = len(matches)
                 
                 # Get the text from matching nodes
                 if output_matches_as_mv:
@@ -650,9 +658,6 @@ class WebInput(ModularInput):
                     
                 # We are going to count how many fields we made
                 fields_included = 0
-                
-                # Store the raw match count (the nodes that the CSS matches)
-                result['raw_match_count'] = len(matches)
                 
                 for match in matches:
                     
@@ -802,7 +807,7 @@ class WebInput(ModularInput):
         return http
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None):
         """
         Retrieve data from a website.
         
@@ -832,6 +837,7 @@ class WebInput(ModularInput):
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
         browser -- The browser to use
+        additional_fields -- Additional fields to put into the result set
         """
         
         if isinstance(url, basestring):
@@ -925,7 +931,7 @@ class WebInput(ModularInput):
                     kw['extracted_links'] = None
                 
                 # Perform the scrape
-                result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, **kw)
+                result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, additional_fields=additional_fields, **kw)
                 
                 # Append the result
                 if result is not None:
@@ -1041,7 +1047,11 @@ class WebInput(ModularInput):
                     output_matches_as_mv = False
                     output_matches_as_separate_fields = True
                 
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields)
+                additional_fields = {
+                    'title' : title
+                }
+                
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
                 
                 matches = 0
                 
@@ -1059,8 +1069,6 @@ class WebInput(ModularInput):
                 
                 # Process each event
                 for r in result:
-                    
-                    r['title'] = title
                     
                     # Send the event
                     if self.OUTPUT_USING_STASH:
