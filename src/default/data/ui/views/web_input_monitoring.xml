@@ -1,5 +1,5 @@
 <form stylesheet="web_input_monitoring.css" script="web_input_monitoring.js">
-  <label>Website Input Results</label>
+  <label>Overview</label>
   <fieldset submitButton="false" autoRun="true">
     <input type="time" token="timefield">
       <label></label>

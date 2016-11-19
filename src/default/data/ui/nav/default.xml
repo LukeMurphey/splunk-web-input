@@ -1,8 +1,11 @@
 <nav color="#009f3c">
   <view name="web_input_monitoring" default="true" />
-  <view name="create_web_input" />
   <view name="web_input_list" />
-  <view name="web_input_status" />
+  <view name="create_web_input" />
+  <collection label="Health">
+  	<view name="web_input_logs" />
+  	<view name="web_input_status" />
+  </collection>
   <collection label="Search">
   	<view name="search" />
   	<view name="datasets" />

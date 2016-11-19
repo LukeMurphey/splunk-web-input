@@ -1,5 +1,5 @@
 <dashboard script="web_input_list.js" stylesheet="web_input_list.css" isDashboard="false" isVisible="true" hideEdit="true">
-    <label>Website Inputs</label>
+    <label>Inputs</label>
     
     <row>
         <html>
