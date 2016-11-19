@@ -1,0 +1,32 @@
+/*
+ * Fix to make styling look more like new Splunk.
+ */
+#row1 > #panel1 > .dashboard-panel{
+ 	background-color: transparent;
+}
+ 
+.dashboard-body{
+ 	padding: 0px;
+}
+
+.panel-body.html{
+	padding: 0px !important;
+}
+
+/* Make the first column entries have larger text */
+.dataTable td:nth-of-type(1){
+	font-size: 14px;
+}
+
+.dataTable td:first-child{
+	width: 16px;
+}
+
+.dashboard-header, #list_link, .bottom_controls{
+	margin-left: 16px;
+	margin-right: 16px;
+}
+
+.btn-primary.pull-right{
+	margin-right: 16px
+}
