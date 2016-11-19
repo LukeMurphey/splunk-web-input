@@ -32,14 +32,21 @@
  * Hide the title and unique_urls columns on small devices
  */
 @media(max-width:1024px) {
-	.table tr td:nth-of-type(6),
-	.table tr th:nth-of-type(6){
-		 display:none;   
-	}
 	.table tr td:nth-of-type(2),
 	.table tr th:nth-of-type(2){
 		 display:none;   
 	}
+}
+
+/*
+ * Hide the columns that we only want shown in the row renderer panel: unique_urls, urls
+ */
+.table tr td:nth-of-type(7), .table tr th:nth-of-type(7) {
+	display: none;
+}
+
+.table tr td:nth-of-type(9), .table tr th:nth-of-type(9) {
+	display: none;
 }
 
 /*
