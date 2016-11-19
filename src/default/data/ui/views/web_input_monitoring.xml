@@ -31,7 +31,7 @@
           <option name="spotColor">#009f3c</option>
         </format>
         <drilldown>
-				<link><![CDATA[/app/website_input/search?earliest=$earliest$&latest=$latest$&q=source%3D"web_input://$row.source$"%20%7C%20table%20url%20match*]]></link>
+				<link><![CDATA[/app/website_input/search?earliest=$earliest$&latest=$latest$&q=source%3D"web_input://$row.source$"%20%7C%20table%20_time%20%20url%20match*]]></link>
 		</drilldown>
       </table>
     </panel>
