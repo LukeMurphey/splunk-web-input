@@ -58,6 +58,8 @@
 
 #input-not-loaded{
 	min-height: 300px;
+	margin-left: 64px;
+	margin-top: 64px;
 }
 
 .control-section{
