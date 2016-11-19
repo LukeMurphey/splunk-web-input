@@ -806,7 +806,7 @@ define([
         	if(selectedModel.get("value") === 'name-edit' && isSteppingNext){
         		var promise = $.Deferred();
             	
-        		$.when(this.createInput(data)).then(function(){
+        		$.when(this.saveInput(data)).then(function(){
         			promise.resolve();
         		})
         		.fail(function(msg){
@@ -1107,9 +1107,9 @@ define([
         },
         
         /**
-         * Create an input
+         * Save the input
          */
-        createInput: function(config){
+        saveInput: function(config){
         	
         	// Get a promise ready
         	var promise = jQuery.Deferred();
