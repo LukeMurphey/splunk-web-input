@@ -204,24 +204,6 @@ define([
         },
         
         /**
-         * Get the given URL parameter.
-         */
-        getURLParameter: function(param){
-        	var pageURL = window.location.search.substring(1);
-            var sURLVariables = pageURL.split('&');
-            for (var i = 0; i < sURLVariables.length; i++)
-            {
-                var parameterName = sURLVariables[i].split('=');
-                if (parameterName[0] == param) 
-                {
-                    return decodeURIComponent(parameterName[1]);
-                }
-            }
-            
-            return null;
-        },
-        
-        /**
          * Set the input to the given value if it isn't null or undefined.
          */
         setIfValueIsNonEmpty: function(input, value){
@@ -234,7 +216,15 @@ define([
          * Set the checkbox to the given value.
          */
         setCheckboxInput: function(input, value){
-        	if(value !== null && value !== undefined && (value === "1" ||  value.toLowerCase() === "true")){
+        	
+        	// If the vlaue is a boolean already, then just assign it
+        	if(value === true || value === false){
+        		$(input, this.$el).prop('checked', value);
+        		return;
+        	}
+        	
+        	// Otherwise, handle the string values
+        	if(value !== null && value !== undefined && (value === "1" || value.toLowerCase() === "true")){
         		$(input, this.$el).prop('checked', true);
         	}
         	else{
@@ -294,15 +284,31 @@ define([
         /**
          * Get the given input.
          */
-        fetchInput: function(input_name){
+        fetchInput: function(input_name, namespace, user){
         	
+        	// Set defaults for the user and namespace arguments
+        	if(typeof namespace === "undefined"){
+        		var namespace = null;
+        	}
+        	
+        	if(typeof user === "undefined"){
+        		var user = null;
+        	}
+        	
+        	// Make a promis
         	var promise = $.Deferred();
         	
         	// Prepare the arguments
             var params = new Object();
             params.output_mode = 'json';
             
+            // Make the URI for getting the info
             var uri = splunkd_utils.fullpath("/services/data/inputs/web_input/" + encodeURIComponent(input_name));
+            
+            if(user !== null && namespace !== null){
+            	uri = splunkd_utils.fullpath("/servicesNS/" + encodeURIComponent(user) + "/" + encodeURIComponent(namespace) + "/data/inputs/web_input/" + encodeURIComponent(input_name));
+            }
+            
             uri += '?' + Splunk.util.propToQueryString(params);
             
             // Fire off the request
@@ -1423,11 +1429,35 @@ define([
             
             // Render the input entry
         	// Fetch the default information
-        	$.when(this.fetchInput("_new")).done(function(input){
-        		console.log("Got the _new input");
-        		this.default_input = input;
-        		this.loadInput(this.default_input);
-        	}.bind(this));
+            if(Splunk.util.getParameter("name")){
+
+            	$.when( this.fetchInput(Splunk.util.getParameter("name"),
+            							Splunk.util.getParameter("namespace"),
+            							Splunk.util.getParameter("user")
+            		   					).done(
+			            				   function(input){
+			            					   console.info("Successfully retrieved the input");
+			            					   this.loaded_input = input;
+			            					   this.loadInput(this.loaded_input);
+			            				   }.bind(this)
+			            				).fail(
+			            					function(msg){
+			            						console.error("Failed to retrieve the input");
+			            						$('#input-not-loaded', this.$el).show();
+			            						$('#step-control-wizard', this.$el).hide();
+			            						$('.wizard-content', this.$el).hide();
+			            					}.bind(this)
+					            		)
+			           );
+            }
+            else{
+            	$.when(this.fetchInput("_new")).done(function(input){
+            		console.log("Got the _new input");
+            		this.loaded_input = input;
+            		this.loadInput(this.loaded_input);
+            	}.bind(this));
+            }
+
             
         }
     });
