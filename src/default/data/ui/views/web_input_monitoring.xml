@@ -20,7 +20,7 @@
         </search>
         <option name="count">20</option>
         <option name="dataOverlayMode">none</option>
-        <option name="drilldown">cell</option>
+        <option name="drilldown">row</option>
         <option name="percentagesRow">false</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
@@ -30,6 +30,9 @@
           <option name="lineColor">#009f3c</option>
           <option name="spotColor">#009f3c</option>
         </format>
+        <drilldown>
+				<link><![CDATA[/app/website_input/search?earliest=$earliest$&latest=$latest$&q=source%3D"web_input://$row.source$"]]></link>
+		</drilldown>
       </table>
     </panel>
   </row>
