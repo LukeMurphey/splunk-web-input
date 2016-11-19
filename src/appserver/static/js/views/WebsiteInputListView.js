@@ -234,7 +234,7 @@ define([
         	
         	// Perform the call
         	$.ajax({
-        			url: splunkd_utils.fullpath(['/services/data/inputs/web_input', name, 'enable'].join('/')), // TODO
+        			url: splunkd_utils.fullpath(['/services/data/inputs/web_input', name, 'enable'].join('/')),
         			type: 'POST',
         			
         			// On success, populate the table
@@ -372,9 +372,9 @@ define([
         applyFilter: function(){
         	
         	// Determine if we even need to apply this filter
-        	var applied_filter_signature = "" + this.filter_type + ":" + this.filter_app + ":" + this.filter_scope + ":" + $('#free-text-filter').val();
+        	var applied_filter_signature = ":" + this.filter_app + ":" + $('#free-text-filter').val();
         	
-        	if(applied_filter_signature === this.applied_filter){ //TODO update
+        	if(applied_filter_signature === this.applied_filter){
         		return;
         	}
         	
@@ -544,7 +544,7 @@ define([
                               null,                   // Name
                               null,                   // Title
                               null,                   // App
-                              { "bSortable": false }  // Actions
+                              null                    // Actions
                             ]
             } );
             
