@@ -81,6 +81,9 @@ define([
         	this.selector_gadget_added_interval = null;
         	this.previous_sg_value = null;
         	this.sg_loaded = false;
+        	this.fetched_input_name = null;
+        	this.fetched_input_owner = null;
+        	this.fetched_input_namespace = null;
         	
         	// Get the list of existing inputs
         	this.getExistingInputs();
@@ -573,7 +576,7 @@ define([
                     var validation_response = true;
                     
                     if(typeof this.validateStep !== undefined){
-                    	validation_response = this.validateStep(selectedModel, isSteppingNext);
+                    	validation_response = this.validateStep(selectedModel, isSteppingNext).bind;
                     }
                     
                     // Based on the validation action, reject or resolve the promise accordingly to let the UI know if the user should be allowed to go to the next step
@@ -1049,7 +1052,7 @@ define([
         	
         	// Generic options
         	//this.addIfInputIsNonEmpty(data, "source", '#inputSource');
-        	if(mvc.Components.getInstance("name").val()){
+        	if(this.isNew() && mvc.Components.getInstance("name").val()){
         		data['name'] = mvc.Components.getInstance("name").val();
         	}
         	
@@ -1095,7 +1098,7 @@ define([
         	
         	
         	// Populate defaults for the arguments
-        	if(!data.hasOwnProperty('name')){
+        	if(!data.hasOwnProperty('name') && this.isNew()){
         		data['name'] = this.generateStanzaFromURL(data['url'], this.existing_input_names);
         	}
         	
@@ -1114,15 +1117,28 @@ define([
         	// Get a promise ready
         	var promise = jQuery.Deferred();
         	
+        	// Prepare the arguments
+            var params = new Object();
+            params.output_mode = 'json';
+        	
+        	var uri = splunkd_utils.fullpath("/servicesNS/admin/website_input/data/inputs/web_input");
+        		
+        	// If we are editing an existing input, then post to the existing entry
+        	if(this.fetched_input_name !== null && this.fetched_input_name !== "_new"){
+        		uri = splunkd_utils.fullpath("/servicesNS/" + encodeURIComponent(this.fetched_input_owner) + "/" + encodeURIComponent(this.fetched_input_namespace) + "/data/inputs/web_input/" + encodeURIComponent(this.fetched_input_name));
+        	}
+        	
+            uri += '?' + Splunk.util.propToQueryString(params);
+            
         	// Perform the call
         	$.ajax({
-        			url: splunkd_utils.fullpath("/servicesNS/admin/website_input/data/inputs/web_input?output_mode=json"),
+        			url: uri,
         			data: config,
         			type: 'POST',
         			
         			// On success
         			success: function(data) {
-        				console.info('Input created');
+        				console.info('Input saved');
         				
         				var app = data.entry[0].acl.app;
         				var owner = data.entry[0].acl.owner;
@@ -1150,18 +1166,18 @@ define([
         			error: function(jqXHR, textStatus, errorThrown){
         				
         				// Handle the case where the user lacks permission
-        				if( jqXHR.status != 403){
+        				if( jqXHR.status === 403){
         					promise.reject("You do not have permission to make inputs");
         				}
         				
         				// Handle the case where the name already exists
-        				else if( jqXHR.status != 409 ){
+        				else if( jqXHR.status === 409 ){
         					promise.reject("An input with the given name already exists");
         				}
         				
         				// Handle general errors
         				else{
-        					promise.reject("The input could not be created");
+        					promise.reject("An error occurred");
         				}
         				
     					
@@ -1367,6 +1383,18 @@ define([
         },
         
         /**
+         * Determine if this is editing a new entry or an existing one.
+         */
+        isNew: function(){
+        	if(this.fetched_input_name === null || this.fetched_input_name === "_new"){
+        		return true;
+        	}
+        	else{
+        		return false;
+        	}
+        },
+        
+        /**
          * Render the view.
          */
         render: function () {
@@ -1430,7 +1458,7 @@ define([
             // Render the input entry
         	// Fetch the default information
             if(Splunk.util.getParameter("name")){
-
+            	
             	$.when( this.fetchInput(decodeURIComponent(Splunk.util.getParameter("name")),
             							decodeURIComponent(Splunk.util.getParameter("namespace")),
             							decodeURIComponent(Splunk.util.getParameter("owner"))
@@ -1439,6 +1467,14 @@ define([
 			            					   console.info("Successfully retrieved the input");
 			            					   this.loaded_input = input;
 			            					   this.loadInput(this.loaded_input);
+			            					   
+			            					   // Remember the parameters of what we loaded
+			            					   this.fetched_input_name = decodeURIComponent(Splunk.util.getParameter("name"));
+			            					   this.fetched_input_owner = decodeURIComponent(Splunk.util.getParameter("owner"));
+			            					   this.fetched_input_namespace = decodeURIComponent(Splunk.util.getParameter("namespace"));
+			            					   
+			            					   // Hide items only intended for new entries
+			            					   $('.hide-if-existing', this.$el).hide();
 			            				   }.bind(this)
 			            				).fail(
 			            					function(msg){
@@ -1451,6 +1487,11 @@ define([
 			           );
             }
             else{
+            	
+            	this.fetched_input_name = null;
+            	this.fetched_input_namespace = null;
+            	this.fetched_input_owner = null;
+            	
             	$.when(this.fetchInput("_new")).done(function(input){
             		console.log("Got the _new input");
             		this.loaded_input = input;
