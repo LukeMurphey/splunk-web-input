@@ -845,9 +845,9 @@ define([
               });
 
               wizard.on('change:currentStep', function(model, currentStep) {
-                  this.steps.map((step) => {
+                  this.steps.map(function(step){
                       step.stopListening();
-                  });
+                  }.bind(this));
                   
                   // Find the associated step model
                   var step = this.steps.find(function(step) {
