@@ -87,7 +87,7 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'splunkjs/mvc/tableview'], funct
         render: function($container, rowData) {
         	
         	var html = '<ul class="list-dotted">' +
-        		'<dt>Name:</dt><dd>web_input://<%- source %> <a target="_blank" onclick="document.location=\'edit_web_input?name=<%- source %>\'" href="edit_web_input?name=<%- source %>">[Edit input]</a></dd>' +
+        		'<dt>Name:</dt><dd>web_input://<%- source %></dd>' + // <a target="_blank" onclick="document.location=\'edit_web_input?name=<%- source %>\'" href="edit_web_input?name=<%- source %>">[Edit input]</a>
         		'<dt>Unique URLs:</dt><dd><%- unique_urls_count %></dd>' + 
         		'<dt>Response Code:</dt><dd><%- response_code %></dd>' + 
         		'</ul>';
