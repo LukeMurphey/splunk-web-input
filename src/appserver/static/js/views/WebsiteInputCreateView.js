@@ -72,8 +72,6 @@ define([
         initialize: function() {
         	this.options = _.extend({}, this.defaults, this.options);
         	
-        	//this.some_option = this.options.some_option;
-        	
         	// These are internal variables
         	this.capabilities = null;
         	this.inputs = null;
@@ -261,9 +259,11 @@ define([
         	if(input.content.title !== null){
         		mvc.Components.getInstance("title").val(input.content.title);
         	}
-        	//this.setIfValueIsNonEmpty("timeout", '#inputTimeout', input.content.timeout);
-        	//this.addIfInputIsNonEmpty("browser", '#inputBrowser', input.content.);
-        	//this.addIfInputIsNonEmpty("user_agent", '#inputUserAgent', input.content.);
+        	
+        	// HTTP client
+        	this.setIfValueIsNonEmpty('#inputTimeout', input.content.timeout);
+        	this.setIfValueIsNonEmpty('#inputBrowser', input.content.browser);
+        	this.setIfValueIsNonEmpty('#inputUserAgent', input.content.user_agent);
         	
         	// Crawling options
         	this.setIfValueIsNonEmpty('#inputPageLimit', input.content.page_limit);
@@ -1075,9 +1075,11 @@ define([
         	if(mvc.Components.getInstance("title").val()){
         		data['title'] = mvc.Components.getInstance("title").val();
         	}
-        	//this.addIfInputIsNonEmpty(data, "timeout", '#inputTimeout');
-        	//this.addIfInputIsNonEmpty(data, "browser", '#inputBrowser');
-        	//this.addIfInputIsNonEmpty(data, "user_agent", '#inputUserAgent');
+        	
+        	// HTTP client
+        	this.addIfInputIsNonEmpty(data, "timeout", '#inputTimeout');
+        	this.addIfInputIsNonEmpty(data, "browser", '#inputBrowser');
+        	this.addIfInputIsNonEmpty(data, "user_agent", '#inputUserAgent');
         	
         	// Crawling options
         	this.addIfInputIsNonEmpty(data, "page_limit", '#inputPageLimit');

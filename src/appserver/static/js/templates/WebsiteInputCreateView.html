@@ -57,6 +57,38 @@
 	      <span class="help-block">A wild-card that will indicate which pages it should search for matches in</span>
 	    </div>
 	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label"><span class="control-section">HTTP Client</span></label>
+	    <div class="controls"></div>
+	  </div>
+	
+	  <div class="control-group">
+	    <label class="control-label" for="inputTimeout">Timeout</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputTimeout">
+	      <span class="help-block">How long (in seconds) to wait until ending the extraction; increase this if you are using a browser to execute Javascript and the view doesn't render quickly enough</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputBrowser">Browser</label>
+	    <div class="controls">
+		  <select class="input-xlarge" id="inputBrowser">
+			<option value="integrated_client">Built-in client</option>
+			<option value="firefox">Firefox</option>
+		  </select>
+	      <span class="help-block">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</span>
+	    </div>
+	  </div>
+
+	  <div class="control-group">
+	    <label class="control-label" for="inputUserAgent">User Agent</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputUserAgent">
+	      <span class="help-block">The value of the user agent header to use (only applies to the built-in client)</span>
+	    </div>
+	  </div>
 	</form>
 
 </div>
