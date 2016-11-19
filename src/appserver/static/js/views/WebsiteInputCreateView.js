@@ -284,18 +284,18 @@ define([
         /**
          * Get the given input.
          */
-        fetchInput: function(input_name, namespace, user){
+        fetchInput: function(input_name, namespace, owner){
         	
-        	// Set defaults for the user and namespace arguments
+        	// Set defaults for the owner and namespace arguments
         	if(typeof namespace === "undefined"){
         		var namespace = null;
         	}
         	
-        	if(typeof user === "undefined"){
-        		var user = null;
+        	if(typeof owner === "undefined"){
+        		var owner = null;
         	}
         	
-        	// Make a promis
+        	// Make a promise
         	var promise = $.Deferred();
         	
         	// Prepare the arguments
@@ -303,10 +303,10 @@ define([
             params.output_mode = 'json';
             
             // Make the URI for getting the info
-            var uri = splunkd_utils.fullpath("/services/data/inputs/web_input/" + encodeURIComponent(input_name));
+            var uri = splunkd_utils.fullpath("/services/data/inputs/web_input/" + input_name);
             
-            if(user !== null && namespace !== null){
-            	uri = splunkd_utils.fullpath("/servicesNS/" + encodeURIComponent(user) + "/" + encodeURIComponent(namespace) + "/data/inputs/web_input/" + encodeURIComponent(input_name));
+            if(owner !== null && namespace !== null){
+            	uri = splunkd_utils.fullpath("/servicesNS/" + encodeURIComponent(owner) + "/" + encodeURIComponent(namespace) + "/data/inputs/web_input/" + encodeURIComponent(input_name));
             }
             
             uri += '?' + Splunk.util.propToQueryString(params);
@@ -1431,9 +1431,9 @@ define([
         	// Fetch the default information
             if(Splunk.util.getParameter("name")){
 
-            	$.when( this.fetchInput(Splunk.util.getParameter("name"),
-            							Splunk.util.getParameter("namespace"),
-            							Splunk.util.getParameter("user")
+            	$.when( this.fetchInput(decodeURIComponent(Splunk.util.getParameter("name")),
+            							decodeURIComponent(Splunk.util.getParameter("namespace")),
+            							decodeURIComponent(Splunk.util.getParameter("owner"))
             		   					).done(
 			            				   function(input){
 			            					   console.info("Successfully retrieved the input");
