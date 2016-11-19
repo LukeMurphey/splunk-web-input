@@ -29,10 +29,6 @@
         		<td class="disable-input-info">Namespace</td>
         		<td class="disable-input-namespace"></td>
         	</tr>
-        	<tr>
-        		<td class="disable-input-info">Owner</td>
-        		<td class="disable-input-owner"></td>
-        	</tr>
         </table>
     </div>
     <div class="modal-footer">
@@ -97,7 +93,7 @@
 
         <% for (var i = 0; i < inputs.length; i++) { %>
         <tr data-input-name="<%- inputs[i].name %>">
-            <td><a href="edit_web_input?name=<%- inputs[i].name %>"><%- inputs[i].name %></a></td>
+            <td><a href="edit_web_input?name=<%- inputs[i].name %>&namespace=<%- inputs[i].namespace %>&owner=<%- inputs[i].owner %>"><%- inputs[i].name %></a></td>
             <td><%- inputs[i].title %></td>
 			<td><%- getAppDescriptionFromName(inputs[i].namespace) %></td>
 			<td>

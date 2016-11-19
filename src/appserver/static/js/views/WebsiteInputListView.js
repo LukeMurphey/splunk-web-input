@@ -277,7 +277,7 @@ define([
         	
         	// Perform the call
         	$.ajax({
-        			url: splunkd_utils.fullpath(['/services/data/inputs/web_input', input, 'disable'].join('/')), // TODO
+        			url: splunkd_utils.fullpath(['/servicesNS',  owner , namespace, '/data/inputs/web_input', input, 'disable'].join('/')),
         			type: 'POST',
         			
         			// On success
