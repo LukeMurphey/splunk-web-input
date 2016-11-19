@@ -576,7 +576,7 @@ define([
                     var validation_response = true;
                     
                     if(typeof this.validateStep !== undefined){
-                    	validation_response = this.validateStep(selectedModel, isSteppingNext).bind;
+                    	validation_response = this.validateStep(selectedModel, isSteppingNext);
                     }
                     
                     // Based on the validation action, reject or resolve the promise accordingly to let the UI know if the user should be allowed to go to the next step
