@@ -782,6 +782,12 @@ define([
         		
         		// Validate the URL filter
         		// TODO
+        		
+        		// Validate the timeout
+        		if($("#inputTimeout").val().length !== 0 && $("#inputTimeout").val().match(/^[0-9]+$/gi) === null){
+        			this.addValidationError($("#inputTimeout"), "Enter a valid integer");
+        			issues += 1;
+        		}
         	}
         	
         	// Validate step 2
