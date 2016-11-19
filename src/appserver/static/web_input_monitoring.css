@@ -45,9 +45,11 @@
 	display: none;
 }
 
+/*
 .table tr td:nth-of-type(9), .table tr th:nth-of-type(9) {
 	display: none;
 }
+*/
 
 /*
  * The following sets the color of the row indicating if the response was a failure or not.

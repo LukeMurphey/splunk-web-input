@@ -13,7 +13,7 @@
     <panel>
       <table>
         <search>
-          <query><![CDATA[sourcetype="web_input" | stats latest(title) as title latest(response_code) as response_code sum(raw_match_count) as total_matches distinct_count(url) as unique_urls latest(_time) as last_seen sparkline(sum(raw_match_count)) as matches values(url) as urls by source | sort -total_matches | rex field=source "web_input://(?<source>.*)" | `timesince(last_seen,last_seen)` | table title source response_code last_seen total_matches unique_urls matches urls]]></query>
+          <query><![CDATA[sourcetype="web_input" | stats latest(title) as title latest(response_code) as response_code sum(raw_match_count) as total_matches distinct_count(url) as unique_urls latest(_time) as last_seen sparkline(sum(raw_match_count)) as matches by source | sort -total_matches | rex field=source "web_input://(?<source>.*)" | `timesince(last_seen,last_seen)` | table title source response_code last_seen total_matches unique_urls matches]]></query>
           <earliest>$timefield.earliest$</earliest>
           <latest>$timefield.latest$</latest>
           <sampleRatio>1</sampleRatio>
