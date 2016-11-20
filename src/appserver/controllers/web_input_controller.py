@@ -171,7 +171,6 @@ class WebInputController(controllers.BaseController):
             # --------------------------------------
             # 3: Rewrite the links so that they also use the 
             # --------------------------------------
-            
             if 'text/html' in response['content-type']:
                 
                 # Discover the encoding
@@ -189,8 +188,8 @@ class WebInputController(controllers.BaseController):
                         
                         if link.endswith(".js"):
                             return ""
-                        if not link.endswith(".css"): #and not link.endswith(".js"):
-                            return "/custom/website_input/web_input_controller/load_page?url=" + link #TODO replace with something that supports custom root endpoints
+                        if not link.endswith(".css"):
+                            return "load_page?url=" + link
                         else:
                             return link
                     html.rewrite_links(relocate_href)
