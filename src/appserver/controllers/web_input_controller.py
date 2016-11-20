@@ -108,7 +108,7 @@ class WebInputController(controllers.BaseController):
                 '<body>' + msg + '</body>' \
                 '</html>'
     
-    @expose_page(must_login=True, methods=['GET']) 
+    @expose_page(must_login=True, methods=['GET', 'POST']) 
     def load_page(self, url, **kwargs):
         """
         Proxy a web-page through so that a UI can be displayed for showing potential results.

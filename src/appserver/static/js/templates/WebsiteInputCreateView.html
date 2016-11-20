@@ -164,8 +164,14 @@
 	<div class="page-preview-header">
 		Page preview:
 	</div>
+	
+	<!-- This form is used to convert the preview request to a POST  -->
+	<form id="preview-form" class="hide" method="post" target="preview-panel">
+		<input type="hidden" id="form-key" name="splunk_form_key" value="" />
+	</form>
+	
 	<div class="preview-panel-holder">
-		<iframe id="preview-panel"></iframe>
+		<iframe id="preview-panel" name="preview-panel"></iframe>
 	</div>
 </div>
 

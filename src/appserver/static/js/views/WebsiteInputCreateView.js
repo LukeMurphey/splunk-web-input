@@ -41,17 +41,6 @@ define([
 	    }
 	});
 	
-	var ScrapePageResults = Backbone.Collection.extend({
-		initialize: function(models, options) {
-		   this.provided_options = options;
-	    },
-	    url : function() {
-	    	var url = Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page?") + jQuery.param(this.provided_options);
-	    	console.log(url);
-	        return url;
-	     } 
-	});
-	
     // Define the custom view class
     var WebsiteInputCreateView = SimpleSplunkView.extend({
         className: "WebsiteInputCreateView",
@@ -169,12 +158,11 @@ define([
         	}
         	
         	// Get the results
-        	this.results = new ScrapePageResults([], args);
-        	
-        	$('.preview-urls-loading', this.$el).show();
-        	
-        	this.results.fetch({
-                success: function() {
+        	$.ajax({
+    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page"),
+    			data: args,
+    			type: 'POST',
+                success: function(results) {
                 	// Get a list of the URLs
                 	var urls = [];
                 	
@@ -201,7 +189,7 @@ define([
                 	$('.preview-urls-loading', this.$el).hide();
                   console.error("Unable to fetch the results");
                 }.bind(this)
-            });
+        	});
         },
         
         /**
@@ -532,7 +520,9 @@ define([
             uri += '?' + Splunk.util.propToQueryString(params);
             
         	// Tell the iframe to load the URL
-        	$("#preview-panel", this.$el).attr("src", uri);
+        	$("#preview-form", this.$el).attr("action", uri);
+        	$('#form-key', this.$el).val(Splunk.util.getFormKey());
+        	$('#preview-form', this.$el).submit();
         	
         	// Prevent links from working in the frame
         	$("iframe").load(function() {
