@@ -141,6 +141,8 @@ define([
          */
         updatePreviewURLs: function(){
         	
+        	$('.preview-urls-loading', this.$el).show();
+        	
         	// Make the args
         	var args = {'selector' : "*"};
         	
@@ -166,8 +168,8 @@ define([
                 	// Get a list of the URLs
                 	var urls = [];
                 	
-                	for(var c=0; c < this.results.models.length; c++){
-                		urls.push(this.results.models[c].get("url"));
+                	for(var c=0; c < results.length; c++){
+                		urls.push(results[c]["url"]);
                 	}
                 	
                 	// Render the URLs if we got some
