@@ -141,6 +141,7 @@ define([
          */
         updatePreviewURLs: function(){
         	
+        	// Hide the spinner indicating that the preview URLs are loading
         	$('.preview-urls-loading', this.$el).show();
         	
         	// Make the args
@@ -499,15 +500,13 @@ define([
         	// Clear the existing page so that it is clear that we are reloading the page
         	$("#preview-panel", this.$el).attr("src", "");
         	
-        	// Clear the preview
-        	if(url === ""){
+        	// Stop if a URL was not provided
+        	if(!url || url === ""){
         		return;
         	}
         	
-        	// Stop if a URL was not provided
-        	if(!url){
-        		return;
-        	}
+        	// Indicate that the preview is loading
+        	$('.page-preview-loading', this.$el).show();
         	
         	// Prepare the arguments
             var params = new Object();
@@ -526,8 +525,12 @@ define([
         	$('#form-key', this.$el).val(Splunk.util.getFormKey());
         	$('#preview-form', this.$el).submit();
         	
+        	// Get the selector that will hide the loading preview
+        	var selector_to_hide_when_done = $('.page-preview-loading', this.$el);
+        	
         	// Prevent links from working in the frame
         	$("iframe").load(function() {
+        		selector_to_hide_when_done.hide();
         	    $("iframe").contents().find("a").each(function(index) {
         	        $(this).on("click", function(event) {
         	            event.preventDefault();
