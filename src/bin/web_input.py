@@ -1,5 +1,5 @@
 
-from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
+from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
@@ -14,6 +14,7 @@ import time
 import os
 import splunk
 import chardet
+import platform
 from selenium import webdriver
 import re
 from collections import OrderedDict
@@ -23,6 +24,7 @@ import httplib2
 from httplib2 import socks
 import lxml.html
 from lxml.etree import XMLSyntaxError
+
 
 from cssselector import CSSSelector
 from __builtin__ import classmethod
@@ -34,7 +36,7 @@ def setup_logger():
     
     logger = logging.getLogger('web_input_modular_input')
     logger.propagate = False # Prevent the log messages from being duplicated in the python.log file
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     
     file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', 'web_input_modular_input.log']), maxBytes=25000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -336,7 +338,7 @@ class WebInput(ModularInput):
         # Try getting the encoding from the content-type header
         if encoding is None and charset_detect_content_type_header_enabled:
             
-            if 'content-type' in response:
+            if response is not None and 'content-type' in response:
                 find_header_charset = re.compile("charset=(.*)",re.IGNORECASE)
                 matched_encoding = find_header_charset.search(response['content-type'])
                 
@@ -509,9 +511,31 @@ class WebInput(ModularInput):
         return profile
     
     @classmethod
+    def add_browser_driver_to_path(cls):
+        
+        driver_path = None
+        
+        if sys.platform == "linux2" and platform.architecture()[0] == '64bit':
+            driver_path = "linux64"
+        elif sys.platform == "linux2":
+            driver_path = "linux32"
+        else:
+            driver_path = sys.platform
+        
+        full_driver_path = os.path.join(get_apps_dir(), "website_input", "bin", "browser_drivers", driver_path)
+        
+        if not full_driver_path in os.environ["PATH"]:
+            os.environ["PATH"] += ":" +full_driver_path
+            logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
+    
+    @classmethod
     def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         
+        # Update the path if necessary so that the drivers can be found
+        WebInput.add_browser_driver_to_path()
+        
         driver = None
+        logger.debug("Attempting to get content using browser=%s", browser)
         
         try:
             # Assign a default argument for browser
@@ -526,9 +550,9 @@ class WebInput(ModularInput):
                 
                 if profile is not None:
                     logger.info("Using a proxy with Firefox")
-                    driver = webdriver.Firefox(profile)
+                    driver = webdriver.Firefox(profile, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
                 else:
-                    driver = webdriver.Firefox()
+                    driver = webdriver.Firefox(log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
             else:
                 raise Exception("Browser '%s' not recognized" % (browser))
             
@@ -544,7 +568,7 @@ class WebInput(ModularInput):
             return content
         finally:
             if driver is not None:
-                driver.close()
+                driver.quit()
     
     @classmethod
     def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None):
