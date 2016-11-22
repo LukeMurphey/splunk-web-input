@@ -55,7 +55,8 @@ define([
         	"click .preview-url" : "clickUpdatePreview",
         	"click .clearSelector" : "clearSelector",
         	"change #inputSelector" : "changeInputSelector",
-        	"keypress #inputSelector" : "keypressInputSelector"
+        	"keypress #inputSelector" : "keypressInputSelector",
+        	"click .show-selector-help-dialog": "showSelectorHelp"
         },
         
         initialize: function() {
@@ -93,6 +94,13 @@ define([
         	
         	// Start the interval to make sure that the selector gadget was loaded in the frame
         	setInterval(this.tryToLoadSelectorGadget.bind(this), 2000);
+        },
+        
+        /**
+         * Show the selector help dialog.
+         */
+        showSelectorHelp: function(){
+        	$("#selector-help-dialog", this.$el).modal();
         },
         
         /**

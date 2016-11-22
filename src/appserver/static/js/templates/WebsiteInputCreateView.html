@@ -1,10 +1,36 @@
+<div id="selector-help-dialog" class="modal hide fade">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Help</h3>
+  </div>
+  <div class="modal-body">
+  	The selector is used to indicate what data you want to extract from the page.
+  	See <a href="http://www.w3schools.com/cssref/css_selectors.asp" target="_blank">W3schools</a> for information on how to CSS selectors work.
+  	<p>
+  	<br />
+  	The page preview pane can be used to create a selector by clicking the elements you want or don't want.
+  	Once the preview panel has successfully loaded, you can specify the items you want to extract by:
+  
+    <ol>
+    	<li><strong>Click the item or items you want to extract.</strong> Items you clicked will be highlighted in green and items that are similar will be highlighted in yellow.</li>
+    	<li><strong>Click any items that you do not want to be extracted.</strong> The selector will be automatically updated such that it excludes that item. These will be highlighted in red.</li>
+    	<li><strong>If you want to start over, click "Clear".</strong> This will remove the selector so that you can start over.</li>
+    </ol>
+  	<p>
+  	<br />
+  	
+  </div>
+  <div class="modal-footer">
+    <a href="#" class="btn" data-dismiss="modal">Close</a>
+  </div>
+</div>
+
 <div id="input-not-loaded" style="display:none">
 	<div class="alert alert-warning">
             <i class="icon-alert"></i>
             <div class="message">The input could not be loaded</div>
 	</div>
 </div>
-
 
 <div id="step-control-wizard"></div>
 
@@ -154,6 +180,10 @@
 				<div class="preview-urls-loading" style="display:none">Loading preview URLs...</div>
 				<div class="help-block match-count"></div>
 			</div>
+		</div>
+		
+		<div>
+			<a href="#" class="show-selector-help-dialog pull-right"><i class="icon-question-circle"></i> Help</a>
 		</div>
 	</div>
 	<!--  
