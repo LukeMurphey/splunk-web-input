@@ -162,24 +162,49 @@ class WebInputController(controllers.BaseController):
             headers = {}
                 
             if user_agent is not None:
-                logger.info("Setting user-agent=%s", user_agent)
+                logger.debug("Setting user-agent=%s", user_agent)
                 headers['User-Agent'] = user_agent
+            
+            # Get the timeout to use
+            timeout = None
+            
+            if 'timeout' in kwargs:
+                timeout = kwargs['timeout']
             
             # Get the page
             response, content = http.request(url, 'GET', headers=headers)
             
             # --------------------------------------
-            # 3: Rewrite the links so that they also use the 
+            # 3: Rewrite the links so that they also use the internal proxy
             # --------------------------------------
             if 'text/html' in response['content-type']:
                 
                 # Discover the encoding
                 encoding = WebInput.detect_encoding(content, response)
-                content_decoded = content.decode(encoding=encoding, errors='replace')
+                
+                # Get the information on the browser to use
+                browser = None
+                
+                if 'browser' in kwargs:
+                    browser = kwargs['browser']
+                    
+                
+                # Try rendering the content using a web-browser
+                try:
+                    if browser is not None and browser != WebInput.INTEGRATED_CLIENT:
+                        content = WebInput.get_result_browser(urlparse.urlparse(url), browser, timeout, username, password, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+                    
+                    content_decoded = content.decode(encoding=encoding, errors='replace')
+                except:
+                    logger.exception("Exception generated while attempting to get browser rendering or url=%s", url)
+                    
+                    cherrypy.response.status = 500
+                    return self.render_error_html("Page preview could not be created using a web-browser")
                 
                 # Parse the content
                 html = lxml.html.document_fromstring(content_decoded)
                 
+                # Rewrite the links to point to this internal proxy
                 rewrite_using_internal_proxy = True
                 
                 if rewrite_using_internal_proxy:
@@ -193,7 +218,6 @@ class WebInputController(controllers.BaseController):
                         else:
                             return link
                     html.rewrite_links(relocate_href)
-                    #html.make_links_absolute("/custom/website_input/web_input_controller/load_page?url=")
                 else:
                     html.make_links_absolute(url)
                 
