@@ -20,7 +20,7 @@ import splunk.entity as entity
 sys.path.append( os.path.join("..", "..", "..", "bin") )
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
-from web_input import URLField, SelectorField, WebInput
+from web_input import WebInput
 from website_input_app.modular_input import FieldValidationException
 
 def setup_logger(level):
@@ -169,7 +169,12 @@ class WebInputController(controllers.BaseController):
             timeout = None
             
             if 'timeout' in kwargs:
-                timeout = kwargs['timeout']
+                try:
+                    timeout = int(kwargs['timeout'])
+                except ValueError:
+                    timeout = 15
+            else:
+                timeout = 15
             
             # Get the page
             response, content = http.request(url, 'GET', headers=headers)
