@@ -193,9 +193,12 @@
         <tar destfile="${value.temp.tar_package.file}">
         	<tarfileset dir="${export_dir}" filemode="755">
         		<include name="**/*.sh" />
+        		<include name="website_input/bin/browser_drivers/**/*" />
         	</tarfileset>
+
         	<tarfileset dir="${export_dir}">
         		<exclude name="**/*.sh" />
+        		<exclude name="website_input/bin/browser_drivers/**/*" />
         		<exclude name="**/*.pyc" />
         		<exclude name="**/*.tmp" />
         	</tarfileset>
@@ -246,6 +249,12 @@
     	<chmod perm="755">
     		<fileset dir="${export_dir}/${value.build.appname}">
     		    <include name="**/*.sh"/>
+    		</fileset>
+    	</chmod>
+    	
+    	<chmod perm="755">
+    		<fileset dir="${export_dir}/${value.build.appname}/bin/browser_drivers">
+    		    <include name="**/*"/>
     		</fileset>
     	</chmod>
     	
