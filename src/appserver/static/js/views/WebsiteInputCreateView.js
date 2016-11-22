@@ -1375,14 +1375,93 @@ define([
         },
         
         /**
+         * Import JS into the iframe.
+         */
+        importJS: function(src, look_for, onload) {
+        	  var s = document.createElement('script');
+        	  s.setAttribute('type', 'text/javascript');
+        	  s.setAttribute('src', src);
+        	  
+        	  if (onload){
+        		  this.waitForScriptLoad(look_for, onload);
+        	  }
+        	  
+        	  var head = frames[0].window.document.getElementsByTagName('head')[0];
+        	  
+        	  if (head) {
+        		  head.appendChild(s);
+        	  } else {
+        		  frames[0].window.document.body.appendChild(s);
+        	  }
+        },
+        
+        /**
+         * Import CSS into the iframe.
+         */
+        importCSS: function(href, look_for, onload) {
+        	  var s = frames[0].window.document.createElement('link');
+        	  s.setAttribute('rel', 'stylesheet');
+        	  s.setAttribute('type', 'text/css');
+        	  s.setAttribute('media', 'screen');
+        	  s.setAttribute('href', href);
+        	  
+        	  if (onload){
+        		  this.waitForScriptLoad(look_for, onload);
+        	  }
+        	  
+        	  var head = frames[0].window.document.getElementsByTagName('head')[0];
+        	  
+        	  if (head) {
+        		  head.appendChild(s);
+        	  } else {
+        		  frames[0].window.document.body.appendChild(s);
+        	  }
+        },
+        
+        /**
+         * Wait for a script load to happen in the iframe.
+         */
+        waitForScriptLoad: function(look_for, callback) {
+        	  var interval = setInterval(function() {
+        	    if (frames[0].window.eval("typeof " + look_for) != 'undefined') {
+        	      clearInterval(interval);
+        	      callback();
+        	    }
+        	  }, 50);
+        },
+        
+        /**
          * Start the selector gadget in the iframe.
          */
         startSelectorGadget: function(){
         	
+        	// Make the base URL for where the static files will be loaded from
         	var base_url = document.location.origin + Splunk.util.make_url("/static/app/website_input/js/lib/selectorgadget/");
         	
-        	// This is a minified version of selectorgadget.js
-        	frames[0].window.eval('function i18n_register(){};function importJS(a,b,c){var d=document.createElement("script");d.setAttribute("type","text/javascript"),d.setAttribute("src",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function importCSS(a,b,c){var d=document.createElement("link");d.setAttribute("rel","stylesheet"),d.setAttribute("type","text/css"),d.setAttribute("media","screen"),d.setAttribute("href",a),c&&wait_for_script_load(b,c);var e=document.getElementsByTagName("head")[0];e?e.appendChild(d):document.body.appendChild(d)}function wait_for_script_load(look_for,callback){var interval=setInterval(function(){"undefined"!=eval("typeof "+look_for)&&(clearInterval(interval),callback())},50)}!function(){importCSS("baseurl/selectorgadget_hide.css"),importJS("baseurl/jquery.min.js","jQuery",function(){jQuery.noConflict(),importJS("baseurl/diff_match_patch.js","diff_match_patch",function(){importJS("baseurl/dom.js","DomPredictionHelper",function(){importJS("baseurl/interface.js")})})})}();'.replace(new RegExp("baseurl", 'g'), base_url));
+        	// Load a function that will make the i18n_register() calls not fail
+        	frames[0].window.eval('function i18n_register(){};');
+        	
+        	// Make the base URL 
+        	var base_url = document.location.origin + Splunk.util.make_url("/static/app/website_input/js/lib/selectorgadget") + "/";
+        	
+        	// Import the CSS
+        	this.importCSS(base_url + "selectorgadget_hide.css");
+        	
+        	// Import the JS
+        	this.importJS(base_url + "jquery.min.js", "jQuery",
+        		function(){
+		        	jQuery.noConflict();
+		        	this.importJS(base_url + "diff_match_patch.js", "diff_match_patch",
+		        		function(){
+		        			this.importJS(base_url + "dom.js", "DomPredictionHelper",
+		        				function(){
+		        					this.importJS(base_url + "interface.js");
+		        				}.bind(this)
+		        			);
+		        		}.bind(this)
+		        	);
+        		}.bind(this)
+        	);
         	
         	// Clear the selector
         	this.previous_sg_value = null;
