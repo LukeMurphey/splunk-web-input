@@ -154,6 +154,7 @@ define([
         	this.addIfInputIsNonEmpty(args, 'username', '#inputUsername');
         	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
         	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
+        	this.addIfInputIsNonEmpty(args, 'browser', '#inputBrowser');
         	
         	// Place a limit on the page count of 10
         	if(parseInt(args['page_limit'], 10) > 10){
@@ -515,6 +516,10 @@ define([
             if( $('#inputUsername', this.$el).val().length > 0 && $('#inputPassword', this.$el).val().length > 0 ){
             	params.username = $('#inputUsername', this.$el).val();
             	params.password = $('#inputPassword', this.$el).val();
+            }
+            
+            if( $('#inputBrowser', this.$el)	.val().length > 0 ){
+            	params.browser = $('#inputBrowser', this.$el).val();
             }
         	
             var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page")
