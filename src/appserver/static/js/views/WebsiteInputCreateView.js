@@ -1479,7 +1479,7 @@ define([
         	var base_url = document.location.origin + Splunk.util.make_url("/static/app/website_input/js/lib/selectorgadget") + "/";
         	
         	// Import the CSS
-        	this.importCSS(base_url + "selectorgadget_hide.css");
+        	this.importCSS(base_url + "selectorgadget_custom.css");
         	
         	// Import the JS
         	this.importJS(base_url + "jquery.min.js", "jQuery",
