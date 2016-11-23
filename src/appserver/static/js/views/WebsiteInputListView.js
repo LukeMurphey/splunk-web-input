@@ -391,7 +391,7 @@ define([
         	
         	// Apply the text filter
         	this.filter_text = $('#free-text-filter').val();
-        	this.data_table.columns(0).search( $('#free-text-filter').val() ).draw();
+        	this.data_table.search( $('#free-text-filter').val() ).draw();
         },
         
         /**
@@ -543,8 +543,8 @@ define([
                 "aoColumns": [
                               null,                   // Name
                               null,                   // Title
-                              null,                   // App
-                              null                    // Actions
+                              { "searchable": false },// App
+                              { "searchable": false } // Actions
                             ]
             } );
             
