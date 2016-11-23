@@ -1,3 +1,11 @@
+"""
+This controller provides some services that are important for the front-end to preview the output from inputs. There are two main functions that this controller provides:
+
+   scrape_page: this performs a page scrape like the input would. This is useful for previewing the output to make sure it looks like the expected output.
+   load_page: this proxies an HTTP request so that the browser can circumvent the cross-domain protections that would otherwise not allow Javascript to be added to the page.
+   
+"""
+
 import logging
 import os
 import sys
@@ -192,7 +200,6 @@ class WebInputController(controllers.BaseController):
                 
                 if 'browser' in kwargs:
                     browser = kwargs['browser']
-                    
                 
                 # Try rendering the content using a web-browser
                 try:
@@ -226,11 +233,34 @@ class WebInputController(controllers.BaseController):
                 else:
                     html.make_links_absolute(url)
                 
-                # Remove the script blocks
-                cleaner = Cleaner(page_structure=False, kill_tags=["script"], javascript=False, links=False, style=False)
+                # Determine if we should clean the JS
+                clean_script = True
                 
-                # Get the content
-                content = lxml.html.tostring(cleaner.clean_html(html))
+                if 'clean_script' in kwargs:
+                    clean_script = util.normalizeBoolean(kwargs['clean_script'])
+                    
+                # Determine if we should clean the CSS
+                clean_styles = False
+                
+                if 'clean_styles' in kwargs:
+                    clean_styles = util.normalizeBoolean(kwargs['clean_styles'])
+                    
+                # Clean up the HTML
+                if clean_styles or clean_script:
+                    
+                    kill_tags = []
+                    
+                    if clean_script:
+                        kill_tags = ["script"]
+                    
+                    # Remove the script blocks
+                    cleaner = Cleaner(page_structure=False, kill_tags=kill_tags, javascript=False, links=False, style=clean_styles, safe_attrs_only=False)
+                    
+                    # Get the content
+                    content = lxml.html.tostring(cleaner.clean_html(html))
+                    
+                else:
+                    content = lxml.html.tostring(html)
             
             # --------------------------------------
             # 4: Respond with the results
@@ -281,7 +311,8 @@ class WebInputController(controllers.BaseController):
                 return self.render_error_json(_("No URL was provided"))
                 
             # Get the selector
-            selector = "*"
+            selector = None
+            
             if( 'selector' in kwargs):
                 selector = kwargs['selector']
             
@@ -341,7 +372,7 @@ class WebInputController(controllers.BaseController):
 
             # Get the raw_content parameter
             if( 'raw_content' in kwargs):
-                kw['raw_content'] = kwargs['raw_content']
+                kw['include_raw_content'] = util.normalizeBoolean(kwargs['raw_content'])
                 
             # Get the text_separator parameter
             if( 'text_separator' in kwargs):
@@ -366,6 +397,8 @@ class WebInputController(controllers.BaseController):
             # Scrape the page
             result = WebInput.scrape_page( url, selector, **kw)
             
+            # Filter out results
+            
         except FieldValidationException, e:
             cherrypy.response.status = 202
             return self.render_error_json(_(str(e)))
@@ -378,6 +411,6 @@ class WebInputController(controllers.BaseController):
         
         # Return the information
         if 'include_first_result_only' in kwargs:
-            return self.render_json(result[0])
+            return self.render_json(result[0], set_mime='application/json')
         else:
-            return self.render_json(result)
+            return self.render_json(result, set_mime='application/json')
