@@ -150,11 +150,18 @@ div#_sg_div input{
 .sg_selected{
   background-color:#0F0 !important;
   background-image:none !important;
+  cursor: url('/static/app/website_input/img/cursor_subtract.png'), pointer;
 }
 .sg_suggested{
   background-color:#FF5 !important;
   background-image:none !important;
+  cursor: url('/static/app/website_input/img/cursor_subtract.png'), pointer;
 }
+
+*{
+	cursor: url('/static/app/website_input/img/cursor_add.png'), pointer;
+}
+
 .sg_border{
   position:absolute !important;
   z-index:999999 !important;
@@ -169,6 +176,7 @@ div#_sg_div input{
   outline:0 !important;
   vertical-align:baseline !important;
   text-align:left !important;
+  cursor: url('/static/app/website_input/img/cursor_add.png'), auto;
 }
 .sg_bottom_border{
   font-size:10px !important;
