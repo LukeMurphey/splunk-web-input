@@ -56,7 +56,9 @@ define([
         	"click .clearSelector" : "clearSelector",
         	"change #inputSelector" : "changeInputSelector",
         	"keypress #inputSelector" : "keypressInputSelector",
-        	"click .show-selector-help-dialog": "showSelectorHelp"
+        	"click .show-selector-help-dialog": "showSelectorHelp",
+        	"click .switch-styles": "switchStyles"
+        	
         },
         
         initialize: function() {
@@ -153,7 +155,7 @@ define([
         	$('.preview-urls-loading', this.$el).show();
         	
         	// Make the args
-        	var args = {'selector' : "*"};
+        	var args = {};
         	
         	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
         	this.addIfInputIsNonEmpty(args, 'depth_limit', '#inputDepthLimit');
@@ -465,6 +467,26 @@ define([
         },
         
         /**
+         * Switch styles on or off.
+         */
+        switchStyles: function(ev){
+        	var style = $(ev.target).text();
+        	
+        	// Show the button as active on the selected entry and only on that entry
+        	$('.switch-styles > .btn').each(function() {
+        		if($(this).text() === style){
+        			$(this).addClass('active');
+        		}
+        		else{
+        			$(this).removeClass('active');
+        		}
+        	});
+        	
+        	// Update the URL
+        	this.updatePreview($("#inputURL", this.$el).val());
+        },
+        
+        /**
          * Handle the case where the preview button was clicked.
          */
         clickUpdatePreview: function(ev){
@@ -533,6 +555,10 @@ define([
             
             if( $('#inputTimeout', this.$el).val().length > 0 ){
             	params.timeout = $('#inputTimeout', this.$el).val();
+            }
+            
+            if( $('.styles-off.active', this.$el).length > 0 ){
+            	params.clean_styles = '1';
             }
         	
             var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page")

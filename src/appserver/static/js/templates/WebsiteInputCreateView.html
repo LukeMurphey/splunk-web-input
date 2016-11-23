@@ -161,13 +161,13 @@
 
 	<div class="form-horizontal" >
 		
-		<div class="control-group">
+		<div class="control-group inline">
 		    <label class="control-label required-input" for="inputSelector">Selector</label>
 		    <div class="controls">
 		    	<div class="input-append">
-				<input id="inputSelector" type="text" value="" >
-				<button class="btn clearSelector" type="button">Clear</button>
-				<div class="btn-group">
+				  <input id="inputSelector" type="text" value="" />
+				  <button class="btn clearSelector" type="button">Clear</button>
+				  <div class="btn-group">
 				    <button class="btn dropdown-toggle" data-toggle="dropdown">
 				      Select Preview URL
 				      <span class="caret"></span>
@@ -179,6 +179,16 @@
 				</div>
 				<div class="preview-urls-loading" style="display:none">Loading preview URLs...</div>
 				<div class="help-block match-count"></div>
+			</div>
+		</div>
+		
+		<div class="control-group pull-right">
+		    <label class="control-label">Styles</label>
+		    <div class="controls">
+			    <div class="btn-group btn-group-radio switch-styles">
+					<a class="btn active styles-on" href="#">On</a>
+					<a class="btn styles-off" href="#">Off</a>
+				</div>
 			</div>
 		</div>
 	</div>
