@@ -147,12 +147,12 @@ div#_sg_div input{
     cursor:pointer;
     padding:5px 8px 6px 7px;
 }
-.sg_selected{
+.sg_selected *{
   background-color:#0F0 !important;
   background-image:none !important;
   cursor: url('/static/app/website_input/img/cursor_subtract.png'), pointer !important;
 }
-.sg_suggested{
+.sg_suggested *{
   background-color:#FF5 !important;
   background-image:none !important;
   cursor: url('/static/app/website_input/img/cursor_subtract.png'), pointer !important;
