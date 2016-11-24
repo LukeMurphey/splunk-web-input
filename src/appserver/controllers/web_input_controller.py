@@ -220,6 +220,7 @@ class WebInputController(controllers.BaseController):
                 rewrite_using_internal_proxy = True
                 
                 if rewrite_using_internal_proxy:
+                    
                     def relocate_href(link):
                         link = urlparse.urljoin(url, link)
                         
@@ -229,7 +230,16 @@ class WebInputController(controllers.BaseController):
                             return "load_page?url=" + link
                         else:
                             return link
+                    
                     html.rewrite_links(relocate_href)
+                    
+                    # Block the href links
+                    for element, attribute, _, _ in html.iterlinks():
+                        if element.tag == "a" and attribute == "href":
+                            element.set('href', "#")
+                            
+                        elif element.tag == "form" and attribute == "action":
+                            element.set('action', "?")
                 else:
                     html.make_links_absolute(url)
                 
