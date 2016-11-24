@@ -581,6 +581,13 @@ define([
         	            event.stopPropagation();
         	        });
         	    });
+        	    
+        	    $("iframe").contents().find("form").each(function(index) {
+        	        $(this).on("submit", function(event) {
+        	            event.preventDefault();
+        	            event.stopPropagation();
+        	        });
+        	    });
         	});
         	
         	
