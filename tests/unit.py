@@ -513,6 +513,7 @@ class TestBrowserRendering(UnitTestWithWebServer):
         
         self.assertEqual(len(results), 1)
         self.assertEqual(result['match'][0], "Heading")
+        self.assertEqual(result['browser'], self.BROWSER)
     
     def test_get_result(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )

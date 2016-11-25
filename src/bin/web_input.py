@@ -1,5 +1,5 @@
 
-from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
+from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
@@ -14,6 +14,7 @@ import time
 import os
 import splunk
 import chardet
+import platform
 from selenium import webdriver
 import re
 from collections import OrderedDict
@@ -22,8 +23,11 @@ from website_input_app.event_writer import StashNewWriter
 import httplib2
 from httplib2 import socks
 import lxml.html
+from lxml.etree import XMLSyntaxError
+
 
 from cssselector import CSSSelector
+from __builtin__ import classmethod
 
 def setup_logger():
     """
@@ -32,7 +36,7 @@ def setup_logger():
     
     logger = logging.getLogger('web_input_modular_input')
     logger.propagate = False # Prevent the log messages from being duplicated in the python.log file
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     
     file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', 'web_input_modular_input.log']), maxBytes=25000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -334,7 +338,7 @@ class WebInput(ModularInput):
         # Try getting the encoding from the content-type header
         if encoding is None and charset_detect_content_type_header_enabled:
             
-            if 'content-type' in response:
+            if response is not None and 'content-type' in response:
                 find_header_charset = re.compile("charset=(.*)",re.IGNORECASE)
                 matched_encoding = find_header_charset.search(response['content-type'])
                 
@@ -507,9 +511,31 @@ class WebInput(ModularInput):
         return profile
     
     @classmethod
+    def add_browser_driver_to_path(cls):
+        
+        driver_path = None
+        
+        if sys.platform == "linux2" and platform.architecture()[0] == '64bit':
+            driver_path = "linux64"
+        elif sys.platform == "linux2":
+            driver_path = "linux32"
+        else:
+            driver_path = sys.platform
+        
+        full_driver_path = os.path.join(get_apps_dir(), "website_input", "bin", "browser_drivers", driver_path)
+        
+        if not full_driver_path in os.environ["PATH"]:
+            os.environ["PATH"] += ":" +full_driver_path
+            logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
+    
+    @classmethod
     def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         
+        # Update the path if necessary so that the drivers can be found
+        WebInput.add_browser_driver_to_path()
+        
         driver = None
+        logger.debug("Attempting to get content using browser=%s", browser)
         
         try:
             # Assign a default argument for browser
@@ -524,9 +550,9 @@ class WebInput(ModularInput):
                 
                 if profile is not None:
                     logger.info("Using a proxy with Firefox")
-                    driver = webdriver.Firefox(profile)
+                    driver = webdriver.Firefox(profile, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
                 else:
-                    driver = webdriver.Firefox()
+                    driver = webdriver.Firefox(log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
             else:
                 raise Exception("Browser '%s' not recognized" % (browser))
             
@@ -542,10 +568,10 @@ class WebInput(ModularInput):
             return content
         finally:
             if driver is not None:
-                driver.close()
+                driver.quit()
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -576,12 +602,17 @@ class WebInput(ModularInput):
         proxy_port -- The port that the proxy server runs on
         proxy_user -- The user name of the proxy server account
         proxy_password -- The password of the proxy server account
+        additional_fields -- Additional fields to put into the result set
         """
         
         try:
             
             # This will be where the result information will be stored
             result = OrderedDict()
+            
+            if additional_fields is not None:
+                for k, v in additional_fields.items():
+                    result[k] = v
             
             # Perform the request
             with Timer() as timer:
@@ -619,20 +650,31 @@ class WebInput(ModularInput):
             # Parse the HTML
             try:
                 tree = lxml.html.fromstring(content_decoded)
-            except ValueError:
+            except (ValueError, XMLSyntaxError):
                 # lxml will refuse to parse a Unicode string containing XML that declares the encoding even if the encoding declaration matches the encoding used.
                 # This is odd since this exception will be thrown even though the app successfully determined the encoding (it matches the declaration in the XML).
                 # The app handles this by attempting to parse the content a second time if it failed when using Unicode. This is necessary because I cannot allow
                 # lxml to discover the encoding on its own since it doesn't know what the HTTP headers are and cannot sniff the encoding as well as the input does
                 # (which uses several methods to determine the encoding).
-                logger.info('The content is going to be parsed without decoding because the parser refused to parse it with encoding (http://goo.gl/4GRjJF), url="%s"', url.geturl())
-                tree = lxml.html.fromstring(content)
+                logger.info('The content is going to be parsed without decoding because the parser refused to parse it with the detected encoding (http://goo.gl/4GRjJF), url="%s", encoding="%s"', url.geturl(), encoding)
+                
+                try:
+                    tree = lxml.html.fromstring(content)
+                except Exception:
+                    logger.info('The content could not be parsed, it doesn\'t appear to be valid HTML, url="%s"', url.geturl())
+                    tree = None
+                    
+            except Exception:
+                logger.info('A unexpected exception was generated while attempting to parse the content, url="%s"', url.geturl())
             
             # Perform extraction if a selector is provided
             if selector is not None and tree is not None:
                 
                 # Apply the selector to the DOM tree
                 matches = selector(tree)
+                   
+                # Store the raw match count (the nodes that the CSS matches)
+                result['raw_match_count'] = len(matches)
                 
                 # Get the text from matching nodes
                 if output_matches_as_mv:
@@ -640,9 +682,6 @@ class WebInput(ModularInput):
                     
                 # We are going to count how many fields we made
                 fields_included = 0
-                
-                # Store the raw match count (the nodes that the CSS matches)
-                result['raw_match_count'] = len(matches)
                 
                 for match in matches:
                     
@@ -747,7 +786,52 @@ class WebInput(ModularInput):
         return result  
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None):
+    def get_http_client(cls, username=None, password=None, timeout=30, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+        """
+        Retrieve data from a website.
+        
+        Arguments:
+        username -- The username to use for authentication
+        password -- The username to use for authentication
+        proxy_type -- The type of proxy server (defaults to "http")
+        proxy_server -- The IP or domain name of the proxy server
+        proxy_port -- The port that the proxy server runs on
+        proxy_user -- The user name of the proxy server account
+        proxy_password -- The password of the proxy server account
+        user_agent -- The string to use for the user-agent
+        """
+        
+        # Determine which type of proxy is to be used (if any)
+        resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
+            
+        # Setup the proxy info if so configured
+        if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
+            proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
+            logger.info('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
+        else:
+            # No proxy is being used
+            proxy_info = None
+            logger.info("Not using a proxy server")
+                        
+        # Make the HTTP object
+        http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
+        
+        # Setup the credentials if necessary
+        if username is not None or password is not None:
+                
+            if username is None:
+                username = ""
+                    
+            if password is None:
+                password = ""
+                    
+            http.add_credentials(username, password)
+        
+        # Return the client
+        return http
+    
+    @classmethod
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None):
         """
         Retrieve data from a website.
         
@@ -777,6 +861,7 @@ class WebInput(ModularInput):
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
         browser -- The browser to use
+        additional_fields -- Additional fields to put into the result set
         """
         
         if isinstance(url, basestring):
@@ -870,7 +955,7 @@ class WebInput(ModularInput):
                     kw['extracted_links'] = None
                 
                 # Perform the scrape
-                result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, **kw)
+                result = cls.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled, include_empty_matches, use_element_name, additional_fields=additional_fields, **kw)
                 
                 # Append the result
                 if result is not None:
@@ -986,7 +1071,11 @@ class WebInput(ModularInput):
                     output_matches_as_mv = False
                     output_matches_as_separate_fields = True
                 
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields)
+                additional_fields = {
+                    'title' : title
+                }
+                
+                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
                 
                 matches = 0
                 
@@ -997,7 +1086,7 @@ class WebInput(ModularInput):
                 
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
             except Exception:
-                logger.exception("An exception occurred when attempting to retrieve information from the web-page") 
+                logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
             
             # Process the result (if we got one)
             if result is not None:

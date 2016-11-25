@@ -1,0 +1,107 @@
+/*
+ * The following improves the styling of the status overview dashboard by removing the white border and padding.
+ */
+#element1{
+    background-color: #eee;
+}
+
+.dashboard-header{
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.fieldset{
+    padding-left: 20px;
+}
+
+.dashboard-body{
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+/*
+#dashboard > .fieldset{
+	margin-bottom: 0px;
+}
+*/
+
+.title{
+	font-weight:bold !important;
+	font-size: larger;
+}
+
+/*
+ * Hide the title and unique_urls columns on small devices
+ */
+@media(max-width:1024px) {
+	.table tr td:nth-of-type(2),
+	.table tr th:nth-of-type(2){
+		 display:none;   
+	}
+}
+
+/*
+ * Hide the columns that we only want shown in the row renderer panel: unique_urls, urls
+ */
+.table tr td:nth-of-type(7), .table tr th:nth-of-type(7) {
+	display: none;
+}
+
+/*
+.table tr td:nth-of-type(9), .table tr th:nth-of-type(9) {
+	display: none;
+}
+*/
+
+/*
+ * The following sets the color of the row indicating if the response was a failure or not.
+ */
+.table-chrome.table-striped > tbody > tr > td.response_code.success{
+	background-color: #65A636; /* #3677a6 */
+    color: white;
+    font-weight: bold;
+}
+
+.table-chrome.table-striped > tbody > tr > td.response_code.success.highlighted{
+	background-color: #74b744 !important;
+}
+
+.table-chrome.table-striped > tbody > tr > td.response_time.failure,
+.table-chrome.table-striped > tbody > tr > td.average.failure{
+	background-color: #d6563c;
+    color: white;
+    font-weight: bold;
+}
+
+.table-chrome.table-striped > tbody > tr > td.response_time.failure.highlighted,
+.table-chrome.table-striped > tbody > tr > td.average.failure.highlighted{
+	background-color: #e66146 !important;
+}
+
+.table-chrome.table-striped > tbody > tr > td.response_code.failure{
+	/* http://bit.ly/2feBevo */
+	background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAANElEQVQYV2NcpszxnwENGBibMDCiS4AEL5w9gyoBEwQZANeBLAiXQBcES1wLs/kPMhMdAACG5Bp+pY2rpgAAAABJRU5ErkJggg==);
+    color: white;
+    font-weight: bold;
+}
+
+.table-chrome.table-striped > tbody > tr > td.total_matches.failure{
+	/*
+	http://bit.ly/2g3oRkt
+	background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAM0lEQVQYV2P8v8DnPwM6OL+FgRFD4vwWBgZDHzQJqCDIAIQOJEGEBJogRCKf4T/ITHQAAOFLGwadBiFDAAAAAElFTkSuQmCC);
+	*/
+	background-color: #ffad00;
+	color: white;
+    font-weight: bold;
+}
+
+/*
+ * Setting background color of the cells indicating success or failure.
+ */
+.response-failure{
+	background-color: #C42323;
+}
+
+.response-success{
+	background-color: #61a035; /* #00a009; */
+}

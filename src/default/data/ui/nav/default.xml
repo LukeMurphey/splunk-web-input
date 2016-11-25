@@ -1,0 +1,17 @@
+<nav color="#009f3c">
+  <view name="web_input_monitoring" default="true" />
+  <view name="web_input_list" />
+  <view name="create_web_input" />
+  <collection label="Health">
+  	<view name="web_input_logs" />
+  	<view name="web_input_status" />
+  </collection>
+  <collection label="Search">
+  	<view name="search" />
+  	<view name="datasets" />
+  	<view name="reports" />
+  	<view name="alerts" />
+  	<view name="dashboards" />
+  </collection>
+  <a href='/manager/website_input/apps/local/website_input/setup?action=edit'>Configuration</a>
+</nav>

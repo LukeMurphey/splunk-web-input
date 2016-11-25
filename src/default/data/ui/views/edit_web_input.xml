@@ -1,0 +1,9 @@
+<dashboard script="create_web_input.js" stylesheet="create_web_input.css" isDashboard="false" isVisible="true" hideEdit="true">
+    <label>Edit Website Input</label>
+    
+    <row>
+        <html>
+            <div id="input_view"></div>
+        </html>
+    </row>
+</dashboard>

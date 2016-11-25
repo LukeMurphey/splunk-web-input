@@ -1,0 +1,9 @@
+<dashboard script="web_input_list.js" stylesheet="web_input_list.css" isDashboard="false" isVisible="true" hideEdit="true">
+    <label>Inputs</label>
+    
+    <row>
+        <html>
+            <div id="web_input_list"></div>
+        </html>
+    </row>
+</dashboard>

@@ -1,0 +1,340 @@
+<div id="selector-help-dialog" class="modal hide fade">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Help</h3>
+  </div>
+  <div class="modal-body">
+  	The selector is used to indicate what data you want to extract from the page.
+  	See <a href="http://www.w3schools.com/cssref/css_selectors.asp" target="_blank">W3schools</a> for information on how to CSS selectors work.
+  	<p>
+  	<br />
+  	The page preview pane can be used to create a selector by clicking the elements you want or don't want.
+  	Once the preview panel has successfully loaded, you can specify the items you want to extract by:
+  
+    <ol>
+    	<li><strong>Click the item or items you want to extract.</strong> Items you clicked will be highlighted in green and items that are similar will be highlighted in yellow.</li>
+    	<li><strong>Click any items that you do not want to be extracted.</strong> The selector will be automatically updated such that it excludes that item. These will be highlighted in red.</li>
+    	<li><strong>If you want to start over, click "Clear".</strong> This will remove the selector so that you can start over.</li>
+    </ol>
+  	<p>
+  	<br />
+  	
+  </div>
+  <div class="modal-footer">
+    <a href="#" class="btn" data-dismiss="modal">Close</a>
+  </div>
+</div>
+
+<div id="input-not-loaded" style="display:none">
+	<div class="alert alert-warning">
+            <i class="icon-alert"></i>
+            <div class="message">The input could not be loaded</div>
+	</div>
+</div>
+
+<div id="step-control-wizard"></div>
+
+<div class="wizard-content" id="url-edit">
+	<h2>Enter URL</h2>
+	<div class="help-text">
+		Specify the page you want to extract data from.
+	</div>
+	
+	<form class="form-horizontal">
+	  <div class="control-group">
+	    <label class="control-label required-input" for="inputURL">URL</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputURL" placeholder="e.g. http://textcritical.net">
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label required-input" for="inputInterval">Interval</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputInterval" placeholder="e.g. 4h">
+	    </div>
+	  </div>
+	
+	  <div class="control-group">
+	    <label class="control-label"><span class="control-section">Web Crawling</span></label>
+	    <div class="controls"></div>
+	  </div>
+	
+	  <div class="control-group">
+	    <label class="control-label" for="inputPageLimit">Page Limit</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputPageLimit">
+	      <span class="help-block">A limit on the number of pages that will be auto-discovered</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputDepthLimit">Depth Limit</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputDepthLimit">
+	      <span class="help-block">A limit on how deep to go when looking for pages</span>
+	    </div>
+	  </div>
+
+	  <div class="control-group">
+	    <label class="control-label" for="inputURLFilter">URL Filter</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputURLFilter" placeholder="e.g. http://textcritical.net/*">
+	      <span class="help-block">A wild-card that will indicate which pages it should search for matches in</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label"><span class="control-section">HTTP Client</span></label>
+	    <div class="controls"></div>
+	  </div>
+	
+	  <div class="control-group">
+	    <label class="control-label" for="inputTimeout">Timeout</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputTimeout">
+	      <span class="help-block">How long (in seconds) to wait until ending the extraction; increase this if you are using a browser to execute Javascript and the view doesn't render quickly enough</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputBrowser">Browser</label>
+	    <div class="controls">
+		  <select class="input-xlarge" id="inputBrowser">
+			<option value="integrated_client">Built-in client</option>
+			<option value="firefox">Firefox</option>
+		  </select>
+	      <span class="help-block">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</span>
+	    </div>
+	  </div>
+
+	  <div class="control-group">
+	    <label class="control-label" for="inputUserAgent">User Agent</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputUserAgent">
+	      <span class="help-block">The value of the user agent header to use (only applies to the built-in client)</span>
+	    </div>
+	  </div>
+	</form>
+
+</div>
+
+<div id="warning-message" class="alert alert-warning hide">
+	<i class="icon-alert"></i>
+	<div class="message">Warning!</div>
+</div>
+			
+<div id="info-message" class="alert alert-info hide">
+	<i class="icon-alert"></i>
+	<div class="message">Ok!</div>
+</div>
+
+<div class="wizard-content" id="auth-edit">
+	<h2>Enter Credentials</h2>
+	<div class="help-text">
+		Enter credentials for authenticating to the website. Only HTTP credentials are currently supported.
+	</div>
+	
+	<form class="form-horizontal">
+	  <div class="control-group">
+	    <label class="control-label" for="inputUsername">Username</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputUsername" autocomplete="new-password">
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputPassword">Password</label>
+	    <div class="controls">
+	      <input type="password" class="input-xlarge" id="inputPassword" autocomplete="new-password">
+	    </div>
+	  </div>
+	</form>
+
+</div>
+
+<div class="wizard-content" id="selector-edit">
+	<h2>Define CSS Selector</h2>
+	<div class="help-text">
+		Create a CSS selector to extract that data from the web-page. <a href="#" class="show-selector-help-dialog">Learn more</a>
+	</div>
+
+	<div class="form-horizontal" >
+		
+		<div class="control-group inline">
+		    <label class="control-label required-input" for="inputSelector">Selector</label>
+		    <div class="controls">
+		    	<div class="input-append">
+				  <input id="inputSelector" type="text" value="" />
+				  <button class="btn clearSelector" type="button">Clear</button>
+				  <div class="btn-group">
+				    <button class="btn dropdown-toggle" data-toggle="dropdown">
+				      Select Preview URL
+				      <span class="caret"></span>
+				    </button>
+					<ul class="dropdown-menu preview-url-dropdown-selector">
+	                  <li><a href="#" class="preview-url">No URLs loaded yet</a></li>
+	                </ul>
+				  </div>
+				</div>
+				<div class="preview-urls-loading" style="display:none">Loading preview URLs...</div>
+				<div class="help-block match-count"></div>
+			</div>
+		</div>
+		
+		<div class="control-group pull-right">
+		    <label class="control-label">Styles</label>
+		    <div class="controls">
+			    <div class="btn-group btn-group-radio switch-styles">
+					<a class="btn active styles-on" href="#">On</a>
+					<a class="btn styles-off" href="#">Off</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!--  
+	<input id="url"></input>
+	<a href="#" class="btn btn-primary" id="do-preview">Do Preview</a>
+	-->
+	
+	<div class="page-preview-header">
+		Page preview <span class="page-preview-loading">(loading...)</span>:
+	</div>
+	
+	<!-- This form is used to convert the preview request to a POST  -->
+	<form id="preview-form" class="hide" method="post" target="preview-panel">
+		<input type="hidden" id="form-key" name="splunk_form_key" value="" />
+	</form>
+	
+	<div class="preview-panel-holder">
+		<iframe id="preview-panel" name="preview-panel"></iframe>
+	</div>
+</div>
+
+<div class="wizard-content" id="output-edit">
+	<h2>Customize Output</h2>
+	<div class="help-text">
+		Optionally customize the output of the matched data.
+	</div>
+	
+    <form class="form-horizontal">
+	  <div class="control-group">
+	    <label class="control-label" for="inputIncludeRaw">Include raw output</label>
+	    <div class="controls">
+	      <input type="checkbox" id="inputIncludeRaw">
+	      <span class="help-block">Include the original raw content returned by the server in the result (useful if you want to do your own parsing)</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputUseTagAsField">Use tag name as field name</label>
+	    <div class="controls">
+	      <input type="checkbox" id="inputUseTagAsField">
+	      <span class="help-block">Sets the name of the field to the tag of the matching element (e.g. a match under a "&lt;volts&gt;12.6&lt;/volts&gt;" element would be put in a field named "volts")</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputMV">Output results as multi-value field</label>
+	    <div class="controls">
+	      <input type="checkbox" id="inputMV">
+	      <span class="help-block">Outputs the matches as a multi-value field (otherwise, separate fields will be created)</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputNameAttributes">Name attributes (to use HTML attributes to assign field names)</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputNameAttributes" placeholder="e.g. class,id">
+	      <span class="help-block">The value of the field name will be set to the value of the attribute in the matching element; enter multiple attributes separated by commas</span>
+	    </div>
+	  </div>
+	  
+	  <div class="control-group">
+	    <label class="control-label" for="inputTextSeparator">Text separator</label>
+	    <div class="controls">
+	      <input type="text" class="input-xlarge" id="inputTextSeparator">
+	      <span class="help-block">Sets the string that will be placed between the extracted values (e.g. a separator of ":" for a match against "&lt;a&gt;tree&lt;/a&gt;&lt;a&gt;frog&lt;/a&gt;" would return "tree:frog")</span>
+	    </div>
+	  </div>
+	</form>
+
+</div>
+
+<div class="wizard-content" id="index-edit">
+	<h2>Define Input Settings</h2>
+	<div class="help-text">
+		Optionally set additional input parameters for this data input.
+	</div>
+	
+	<form class="form-horizontal">
+		<div class="control-group">
+			<label class="control-label" for="inputIndexes">Index</label>
+			<div class="controls">
+				<div class="input input-dropdown" id="inputIndexes"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Indicates which index to put the resulting data</span>
+			</div>
+		</div>
+		
+		<div class="control-group">
+			<label class="control-label" for="inputSourcetype">Sourcetype</label>
+			<div class="controls">
+				<div class="input" id="inputSourcetype"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Indicates the sourcetype of the data</span>
+			</div>
+		</div>
+		
+		<div class="control-group">
+			<label class="control-label" for="inputHost">Host</label>
+			<div class="controls">
+				<div class="input" id="inputHost"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Indicates the host value of the data</span>
+			</div>
+		</div>
+	</form>
+</div>
+
+<div class="wizard-content" id="name-edit">
+	<h2>Save Input</h2>
+	<div class="help-text">
+		Optionally set input title or name.
+	</div>
+	
+	<form class="form-horizontal">
+				
+		<div class="control-group">
+			<label class="control-label" for="titleInput">Title</label>
+			<div class="controls">
+				<div class="input" id="titleInput"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Provide a description of the input</span>
+			</div>
+		</div>
+	
+		<div class="control-group hide-if-existing">
+			<label class="control-label" for="nameInput">Name</label>
+			<div class="controls">
+				<div class="input" id="nameInput"></div>
+				<span class="hide help-inline"></span>
+				<span class="help-block">Define the stanza name of the input</span>
+			</div>
+		</div>
+	</form>
+</div>
+
+<div class="wizard-content" id="final">
+
+	<h2>Finish</h2>
+	<div class="help-text">
+		
+		<div class="alert alert-info">
+            <i class="icon-alert"></i>Input was successfully saved.
+        </div>
+        
+        <a href="web_input_list">Return to inputs list</a>
+	</div>
+</div>
+

@@ -138,4 +138,9 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 3.2     | Added ability to view results in search from the modular input creation page                                     |
 |         | Improved search BNF                                                                                              |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 3.2.1   | Improved compatibility with Splunk versions                                                                      |
+|         | Fixed overly restrictive URL validation                                                                          |
+|         | Fixed issue where some parts of the stash file may not have been indexed, losing parts of large result sets      |
+|         | Fixed controller logs which were not sourcetyped correctly                                                       |
 +---------+------------------------------------------------------------------------------------------------------------------+
