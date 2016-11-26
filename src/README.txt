@@ -143,4 +143,7 @@ Change History
 |         | Fixed overly restrictive URL validation                                                                          |
 |         | Fixed issue where some parts of the stash file may not have been indexed, losing parts of large result sets      |
 |         | Fixed controller logs which were not sourcetyped correctly                                                       |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.0     | Added UI for managing inputs and viewing the results                                                             |
+|         | Added support for rendering data with newer versions of Firefox                                                  |
 +---------+------------------------------------------------------------------------------------------------------------------+
