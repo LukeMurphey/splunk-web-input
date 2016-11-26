@@ -1,6 +1,7 @@
 require.config({
     paths: {
-        "text": "../app/website_input/js/lib/text"
+        "text": "../app/website_input/js/lib/text",
+        "preview_website_input_results" : "../app/website_input/js/views/PreviewWebsiteInputResultsView"
     }
 });
 
@@ -16,6 +17,7 @@ define([
     'views/shared/controls/StepWizardControl',
     "splunkjs/mvc/simpleform/input/dropdown",
     "splunkjs/mvc/simpleform/input/text",
+    "preview_website_input_results",
     'text!../app/website_input/js/templates/WebsiteInputCreateView.html',
     "bootstrap.dropdown",
     "css!../app/website_input/css/WebsiteInputCreateView.css"
@@ -31,6 +33,7 @@ define([
     StepWizardControl,
     DropdownInput,
     TextInput,
+    PreviewWebsiteInputResultsView,
     Template
 ){
 	
@@ -57,7 +60,8 @@ define([
         	"change #inputSelector" : "changeInputSelector",
         	"keypress #inputSelector" : "keypressInputSelector",
         	"click .show-selector-help-dialog": "showSelectorHelp",
-        	"click .switch-styles": "switchStyles"
+        	"click .switch-styles": "switchStyles",
+        	"click .show-results-preview-dialog" : "showResultsPreview"
         	
         },
         
@@ -128,6 +132,13 @@ define([
         		d[name] = "0";
         	}
         	
+        },
+        
+        /**
+         * Show the results preview.
+         */
+        showResultsPreview: function(){
+        	this.previewResultsView.updatePreview(this.makeConfig());
         },
         
         /**
@@ -561,7 +572,7 @@ define([
             	params.clean_styles = '1';
             }
         	
-            var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page")
+            var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page");
             uri += '?' + Splunk.util.propToQueryString(params);
             
         	// Tell the iframe to load the URL
@@ -1537,6 +1548,11 @@ define([
         	this.$el.html(_.template(Template, {
         		'has_permission' : has_permission
         	}));
+        	
+        	// Make an instance of the results preview modal
+            this.previewResultsView = new PreviewWebsiteInputResultsView({
+            	el: $('#preview-results-modal-holder', this.$el)
+            });
         	
         	// Make the indexes selection drop-down
             var indexes_dropdown = new DropdownInput({
