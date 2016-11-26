@@ -1,0 +1,55 @@
+<div tabindex="-1" id="preview-results-modal" class="modal fade in hide">
+    <div class="modal-header">
+        <button type="button" class="close btn-dialog-close" data-dismiss="modal">x</button>
+        <h3 class="text-dialog-title">Results Preview</h3>
+    </div>
+    <div class="modal-body modal-body-scrolling">
+    
+    	<ul class="list-dotted">
+	    	<dt>Response Code:</dt>
+	    	<dd><%- results[0]['response_code'] %></dd>
+	    	
+	    	<dt>Response Time:</dt>
+	    	<dd><%- getHumanReadableResponseTime(results[0]['request_time']) %></dd>
+	   
+	      	<dt>Response Size:</dt>
+	    	<dd><%- getHumanReadableBytes(results[0]['response_size']) %></dd>
+	    	
+	    	<dt>Encoding:</dt>
+	    	<dd><%- results[0]['encoding'] %></dd>
+    	</ul>
+        
+        <h4 class="matches">Matches (<%- results[0].raw_match_count %> total): </h4>
+        <table class="table table-striped table-hover">
+        	<thead>
+        		<tr>
+        			<th>Field</th>
+        			<th>Value</th>
+        		</tr>
+        	</thead>
+        	<tbody>
+        		<% if(results[0].hasOwnProperty('match')) { %>
+        		<% for(var c=0; c < results[0]['match'].length; c++) { %>
+        		<tr>
+        			<td>match[<%- c %>]</td>
+        			<td><%- results[0]['match'][c] %></td>
+        		</tr>
+        		<% } %>
+        		<% } else {%>
+        			<% for (var k in results[0]) { %>
+		        		<% if(k.indexOf("match_") === 0) { %>
+		        <tr>
+		        	<td><%- k %></td>
+		        	<td><%- results[0][k] %></td>
+		        </tr>
+		        		<% } %>
+        			<% } %>
+        		<% } %>
+        	</tbody>
+        </table>
+        
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-dialog-cancel" data-dismiss="modal" style="display: inline;">Close</a>
+    </div>
+</div>
