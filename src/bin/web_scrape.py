@@ -36,9 +36,7 @@ class WebScraper(SearchCommand):
                        "url_filter" : url_filter,
                        "include_raw_content" : normalizeBoolean(include_raw_content),
                        "text_separator" : text_separator,
-                       "browser" : browser,
-                       "output_matches_as_mv" : output_matches_as_mv,
-                       "output_matches_as_separate_fields" : output_matches_as_separate_fields
+                       "browser" : browser
                        }
         
         SearchCommand.__init__(self, run_in_preview=True, logger_name="web_scrape")
