@@ -135,6 +135,7 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'splunkjs/mvc/tableview'], funct
         		'domain' : this.parseURL(cellData['url']).hostname
         	}));
             
+            // Wire up a click handler so that the URL can be opened. A normal a tag won't work due to the way Splunk wires up the drill-down handlers on the rows.
             $('a', $container).click(this.openURL);
         }
 	});
