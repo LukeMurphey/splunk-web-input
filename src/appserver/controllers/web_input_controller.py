@@ -347,6 +347,14 @@ class WebInputController(controllers.BaseController):
             if( 'text_separator' in kwargs):
                 kw['text_separator'] = kwargs['text_separator']
                 
+            # Get the output_as_mv parameter. This parameter is different from the name of the argument that the class accepts and will be renamed accrdingly.
+            if( 'output_as_mv' in kwargs):
+                kw['output_matches_as_mv'] = util.normalizeBoolean(kwargs['output_as_mv'], True)
+                
+                # If we are outputting as multi-valued parameters, then don't include the separate fields
+                if(not kw['output_matches_as_mv']):
+                    kw['output_matches_as_separate_fields'] = True
+                
             # Get the timeout parameter
             kw['timeout'] = 5
             
