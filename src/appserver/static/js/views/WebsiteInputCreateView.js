@@ -62,7 +62,6 @@ define([
         	"click .show-selector-help-dialog": "showSelectorHelp",
         	"click .switch-styles": "switchStyles",
         	"click .show-results-preview-dialog" : "showResultsPreview"
-        	
         },
         
         initialize: function() {
