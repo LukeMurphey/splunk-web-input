@@ -21,12 +21,59 @@ define([
         	
         },
         
+        events: {
+        	"click .page" : "clickChangePage",
+        	"click .previous-page" : "clickPreviousPage",
+        	"click .next-page" : "clickNextPage"
+        },
+        
         /**
          * Constructor
          */
         initialize: function() {
         	this.options = _.extend({}, this.defaults, this.options);
         	this.input_config = this.options.input_config;
+        	
+        	this.results = null;
+        	this.dialog_rendered = false;
+        	this.page = 0;
+        	this.error_message = null;
+        },
+        
+        /**
+         * Change the page to the selected page.
+         */
+        clickChangePage: function(ev){
+        	var page = $(ev.target).data("page");
+        	this.page = parseInt(page, 10);
+        	
+        	this.render();
+        },
+        
+        /**
+         * Change the page to the previous page.
+         */
+        clickPreviousPage: function(ev){
+        	this.page = this.page - 1;
+        	
+        	if(this.page < 0){
+        		this.page = 0;
+        	}
+        	
+        	this.render();
+        },
+        
+        /**
+         * Change the page to the previous page.
+         */
+        clickNextPage: function(ev){
+        	this.page = this.page + 1;
+        	
+        	if(this.page >= this.results.length){
+        		this.page = this.results.length - 1;
+        	}
+        	
+        	this.render();
         },
         
         /**
@@ -79,19 +126,21 @@ define([
          */
         updatePreview: function(input_config){
         	
-        	// Indicate that the preview is happening
-        	$('.preview-loading', this.$el).show();
+        	// Clear any prior results
+        	this.results = null;
+        	this.page = 0;
+        	this.error_message = null;
         	
-        	// Prepare the arguments
-            var params = new Object();
-            
-            var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/scrape_page");
-            uri += '?' + Splunk.util.propToQueryString(params);
-            
+        	// Show the dialog to make it clear that the preview is happening
+        	this.render();
+    		this.showDialog();
+        	
         	// Place a limit on the page count of 10
-        	if(parseInt(params['page_limit'], 10) > 10){
-        		params['page_limit'] = '10';
+        	if(parseInt(input_config['page_limit'], 10) > 10){
+        		input_config['page_limit'] = '10';
         	}
+        	
+        	input_config['match_prefix'] = 'result_field_';
         	
         	// Get the results
         	$.ajax({
@@ -100,28 +149,26 @@ define([
     			type: 'POST',
                 success: function(results) {
                 	
-                	// Store the results
-                	this.results = results;
+                	// See if this is a message noting that something didn't work
+                	if(results.hasOwnProperty('success') && !results.success){
+                		this.error_message = results.messages[0].message;
+                	}
+                	else{
+                		// Store the results
+                    	this.results = results;
+                    	this.error_message = null;
+                	}
+                	
                 	
                 	// Render the URLs if we got some
-                	if(results.length === 0){
-                		// TODO show message
-                	}
-                	
-                	// Otherwise, render the results
-                	else{
-                		this.render();
-                		this.showDialog();
-                	}
-                	
-                	// Hide the message noting that we are getting the results
-                	$('.preview-loading', this.$el).hide();
+                	this.render();
                 	
                 	console.info("Successfully retrieved the results preview");
                 }.bind(this),
                 error: function() {
-                	$('.preview-loading', this.$el).hide();
                 	console.error("Unable to fetch the results");
+                	this.error_message = "Unable to fetch the results";
+                	this.render();
                 }.bind(this)
         	});
         	
@@ -133,12 +180,25 @@ define([
          */
         render: function () {
         	
-        	this.$el.html(_.template(Template, {
-        		'results' : this.results,
-        		'round' : this.round.bind(this),
-        		'getHumanReadableResponseTime' : this.getHumanReadableResponseTime.bind(this),
-        		'getHumanReadableBytes' : this.getHumanReadableBytes.bind(this)
-        	}));
+        	// Make the parameters for the HTML
+        	var args = {
+            		'results' : this.results,
+            		'round' : this.round.bind(this),
+            		'getHumanReadableResponseTime' : this.getHumanReadableResponseTime.bind(this),
+            		'getHumanReadableBytes' : this.getHumanReadableBytes.bind(this),
+            		'render_dialog_too' : !this.dialog_rendered,
+            		'page' : this.page,
+            		'error_message' : this.error_message
+            };
+        	
+        	// Render the HTML
+        	if(this.dialog_rendered){
+        		$('#preview-results-modal > .modal-body-scrolling', this.$el).html(_.template(Template, args));
+        	}
+        	else{
+        		this.$el.html(_.template(Template, args));
+        		this.dialog_rendered = true;
+        	}
         	
         }
     });

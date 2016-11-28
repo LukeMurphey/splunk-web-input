@@ -14,11 +14,10 @@ from lxml.html.clean import Cleaner
 import cherrypy
 import traceback
 import urlparse
-
+from httplib2 import ServerNotFoundError
 from splunk.appserver.mrsparkle.lib import jsonresponse
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 from splunk.appserver.mrsparkle.lib.decorators import expose_page
-from splunk.appserver.mrsparkle.lib.routes import route
 import splunk.appserver.mrsparkle.controllers as controllers
 
 import splunk
@@ -354,6 +353,10 @@ class WebInputController(controllers.BaseController):
                 # If we are outputting as multi-valued parameters, then don't include the separate fields
                 if(not kw['output_matches_as_mv']):
                     kw['output_matches_as_separate_fields'] = True
+                    
+            # Get the field match prefix
+            if( 'match_prefix' in kwargs):
+                kw['match_prefix'] = kwargs['match_prefix']
                 
             # Get the timeout parameter
             kw['timeout'] = 5
@@ -418,14 +421,19 @@ class WebInputController(controllers.BaseController):
             # Filter out results
             
         except FieldValidationException, e:
-            cherrypy.response.status = 202
+            cherrypy.response.status = 220
             return self.render_error_json(_(str(e)))
         
-        except Exception, e:
+        except ServerNotFoundError as e:
+            cherrypy.response.status = 220
+            return self.render_error_json(_(str(e)))
+        
+        except Exception as e:
             cherrypy.response.status = 500
             #logger.exception(e)
             logger.error("Error generated during execution: " + traceback.format_exc() )
-            return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
+            #return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
+            return self.render_error_json(_(str(e)))
         
         # Return the information
         if 'include_first_result_only' in kwargs:
