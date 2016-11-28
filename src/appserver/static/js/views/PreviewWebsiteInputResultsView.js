@@ -140,6 +140,7 @@ define([
         		input_config['page_limit'] = '10';
         	}
         	
+        	// Specify a match prefix so that we can identify result fields easily
         	input_config['match_prefix'] = 'result_field_';
         	
         	// Get the results
