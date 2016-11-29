@@ -857,10 +857,13 @@ define([
         	if(selectedModel.get("value") === 'selector-edit' && isSteppingNext){
         		
         		// Validate the selector
+        		// This isn't currently required since people may want to output raw content
+        		/*
         		if($("#inputSelector").val().length === 0){
         			$("#inputSelector").parent().parent().addClass("error");
         			issues += 1;
         		}
+        		*/
         	}
         	
         	// Validate step 4
