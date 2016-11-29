@@ -340,6 +340,19 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(len(result['prefix_cook_temp']), 1)
         self.assertEqual(result['prefix_cook_temp'][0], "695")
         
+    def test_scape_page_match_prefix_with_multiple(self):
+        # http://lukemurphey.net/issues/1628
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:8888/xml"), selector_field.to_python("MISC > *"), timeout=3, output_matches_as_mv=True, use_element_name=True, match_prefix="prefix_")
+        result = results[0]
+        print results
+        self.assertEqual(len(result['prefix_string']), 3)
+        self.assertEqual(result['prefix_string'][0], "ABC")
+        self.assertEqual(result['prefix_string'][1], "DEF")
+        self.assertEqual(result['prefix_string'][2], "GHI")
+        
     def test_add_auth_to_url(self):
         self.assertEqual(WebInput.add_auth_to_url("http://tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
         self.assertEqual(WebInput.add_auth_to_url("http://tree.com:8888", "admin", "changeme"), "http://admin:changeme@tree.com:8888")

@@ -711,7 +711,7 @@ class WebInput(ModularInput):
                                 field_made = True
                                 field_name = cls.escape_field_name(attributes[a])
                                 
-                                # If the field does not exists, create it
+                                # If the field does not exist, create it
                                 if not field_name in result and output_matches_as_mv:
                                     result[match_prefix + field_name] = [match_text]
                                     
@@ -727,7 +727,7 @@ class WebInput(ModularInput):
                         if use_element_name and not field_made:
                             
                             # If the field does not exists, create it
-                            if not match.tag in result and output_matches_as_mv:
+                            if not (match_prefix + match.tag) in result and output_matches_as_mv:
                                 result[match_prefix + match.tag] = [match_text]
                             
                             # If the field exists and we are adding them as mv, then add it

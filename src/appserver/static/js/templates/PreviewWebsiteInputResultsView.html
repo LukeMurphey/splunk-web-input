@@ -66,23 +66,24 @@
 	        		</tr>
 	        	</thead>
 	        	<tbody>
-	        		<% if(results[page].hasOwnProperty('result_field_match')) { %>
-	        		<% for(var c=0; c < results[page]['result_field_match'].length; c++) { %>
-	        		<tr>
-	        			<td>match[<%- c %>]</td>
-	        			<td><%- results[page]['result_field_match'][c] %></td>
-	        		</tr>
-	        		<% } %>
-	        		<% } else {%>
 	        			<% for (var k in results[page]) { %>
 			        		<% if(k.indexOf("result_field_") === 0) { %>
+			        			<% if(Array.isArray(results[page][k])) { %>
+			        				<% for (var d = 0; d < results[page][k].length; d++) { %>
+			        <tr>
+			        	<td><%- k.substr(13) %>[<%- d %>]</td>
+			        	<td><%- results[page][k][d] %></td>
+			        </tr>
+			        				<% } %>
+			        			<% } else { %>
 			        <tr>
 			        	<td><%- k.substr(13) %></td>
 			        	<td><%- results[page][k] %></td>
 			        </tr>
+			        			<% } %>
 			        		<% } %>
 	        			<% } %>
-	        		<% } %>
+	        		
 	        	</tbody>
 	        </table>
         	<% } %>

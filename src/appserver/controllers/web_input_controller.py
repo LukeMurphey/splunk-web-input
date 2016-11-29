@@ -351,8 +351,8 @@ class WebInputController(controllers.BaseController):
                 kw['output_matches_as_mv'] = util.normalizeBoolean(kwargs['output_as_mv'], True)
                 
                 # If we are outputting as multi-valued parameters, then don't include the separate fields
-                if(not kw['output_matches_as_mv']):
-                    kw['output_matches_as_separate_fields'] = True
+                if kw['output_matches_as_mv']:
+                    kw['output_matches_as_separate_fields'] = False
                     
             # Get the field match prefix
             if( 'match_prefix' in kwargs):
