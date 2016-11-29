@@ -61,7 +61,8 @@ define([
         	"keypress #inputSelector" : "keypressInputSelector",
         	"click .show-selector-help-dialog": "showSelectorHelp",
         	"click .switch-styles": "switchStyles",
-        	"click .show-results-preview-dialog" : "showResultsPreview"
+        	"click .show-results-preview-dialog" : "showResultsPreview",
+        	"click .show-results-in-search" : "openPreviewInSearch"
         },
         
         initialize: function() {
@@ -138,6 +139,58 @@ define([
          */
         showResultsPreview: function(){
         	this.previewResultsView.updatePreview(this.makeConfig());
+        },
+        
+        /**
+         * Open a preview in search.
+         */
+        openPreviewInSearch: function(){
+        	var config = this.makeConfig();
+        	
+        	var arg_str = "";
+        	
+        	var arguments_translation = {
+        			'interval' : null,
+        			'user_agent' : null,
+        			'host' : null,
+        			'index' : null,
+        			'title' : null,
+        			'raw_content' : 'include_raw_content'
+        	}
+        	
+        	// Make up the arguments
+			for(var k in config){
+				
+				// Find the name of the field to translate to
+				var translation = arguments_translation[k];
+				
+				// Don't include this variable if it should not be passed
+				if(translation === null){
+					continue;
+				}
+				
+				// Otherwise, add the argument
+				var value = config[k];
+				var param_name = k;
+				
+				// Use the translated argument if necessary
+				if(translation !== undefined){
+					param_name = translation;
+				}
+				
+				// Add the argument
+				if(value.length > 0 && /^[0-9]+$/gi.test(value)){
+					arg_str = arg_str + param_name + '=' + value + ' ';
+				}
+				else if(value.length > 0){
+					arg_str = arg_str + param_name + '="' + value + '" ';
+				}
+			}
+			
+			// Open the URL
+			var url = "search?q=" + encodeURIComponent("| webscrape " + arg_str);
+			var win = window.open(url, '_blank');
+			win.focus();
         },
         
         /**

@@ -79,6 +79,10 @@
 	margin-right: 3px;
 }
 
+.show-results-in-search{
+	margin-left: 12px;
+}
+
 /*
   * Step control wizard styling. This is needed for the step wizard to work on Splunk 6.4.
   */
