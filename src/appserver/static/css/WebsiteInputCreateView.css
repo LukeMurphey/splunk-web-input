@@ -34,6 +34,10 @@
     min-height: 16px;
 }
 
+.step-action-buttons{
+	margin-top: 16px;
+}
+
 #preview-panel{
 	border: 2px dashed #ddd;
 }
