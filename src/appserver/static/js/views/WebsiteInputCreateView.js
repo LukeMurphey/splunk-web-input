@@ -155,6 +155,7 @@ define([
         			'host' : null,
         			'index' : null,
         			'title' : null,
+        			'name' : null,
         			'raw_content' : 'include_raw_content'
         	}
         	
