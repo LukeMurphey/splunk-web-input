@@ -24,6 +24,7 @@
     	<% } else { %>
     	<div class="results-content">
     		 
+    		 <% if(results.length > 1) { %>
 	        <div class="pagination">
 				<ul>
 					<li><a class="previous-page" href="#"><i class="icon-triangle-left-small"></i>Prev</a></li>
@@ -33,7 +34,8 @@
 					<li><a class="next-page" href="#">Next<i class="icon-triangle-right-small"></i></a></li>
 	            </ul>
 	        </div>
-    	
+    		<% } %>
+    		
 	    	<ul class="list-dotted">
 		    	<dt>Response Code:</dt>
 		    	<dd><%- results[page]['response_code'] %></dd>
