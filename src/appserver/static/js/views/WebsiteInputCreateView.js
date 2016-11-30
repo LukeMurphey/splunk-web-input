@@ -78,6 +78,7 @@ define([
         	this.fetched_input_name = null;
         	this.fetched_input_owner = null;
         	this.fetched_input_namespace = null;
+        	this.form_key = Splunk.util.getFormKey();
         	
         	// Get the list of existing inputs
         	this.getExistingInputs();
@@ -630,7 +631,7 @@ define([
             
         	// Tell the iframe to load the URL
         	$("#preview-form", this.$el).attr("action", uri);
-        	$('#form-key', this.$el).val(Splunk.util.getFormKey());
+        	$('#form-key', this.$el).val(this.form_key);
         	$('#preview-form', this.$el).submit();
         	
         	// Get the selector that will hide the loading preview
