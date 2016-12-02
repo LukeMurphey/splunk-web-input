@@ -151,13 +151,26 @@ define([
         	
         	var arg_str = "";
         	
+        	// Make an array that can be used to drop fields or translate the names
         	var arguments_translation = {
         			'interval' : null,
         			'host' : null,
         			'index' : null,
         			'title' : null,
         			'name' : null
-        	}
+        	};
+        	
+        	// Make a list of the default arguments. If the argument match, then will be excluded from the search string (in order to make it simpler)
+        	var default_arguments = {
+        			 'timeout' : '5',
+        			 'browser' : 'integrated_client',
+        			 'user_agent' : 'Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)',
+        			 'page_limit' : '1',
+        			 'depth_limit': '2',
+        			 'raw_content' : '0',
+        			 'output_as_mv' : '1',
+        			 'use_element_name' : '0'
+        	};
         	
         	// Make up the arguments
 			for(var k in config){
@@ -179,10 +192,17 @@ define([
 					param_name = translation;
 				}
 				
-				// Add the argument
-				if(value.length > 0 && /^[0-9]+$/gi.test(value)){
+				// If the argument matches the default anyways, then don't bother including it
+				if(default_arguments[param_name] !== undefined && default_arguments[param_name] === value){
+					// Ignore this one
+				}
+				
+				// Add the argument and exclude the double quotes if it is an integer
+				else if(value.length > 0 && /^[0-9]+$/gi.test(value)){
 					arg_str = arg_str + param_name + '=' + value + ' ';
 				}
+				
+				// Add the argument and include the double quotes to make sure 
 				else if(value.length > 0){
 					arg_str = arg_str + param_name + '="' + value + '" ';
 				}
