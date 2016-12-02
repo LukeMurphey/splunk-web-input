@@ -177,6 +177,24 @@ define([
         },
         
         /**
+         * Determine if there are results to output.
+         */
+        hasFields: function(results, page){
+        	
+        	if(!results || !results[page]){
+        		return false;
+        	}
+        	
+        	for (var k in results[page]) {
+        		if(k.indexOf("result_field_") === 0) {
+        			return true;
+        		}
+        	}
+        	
+        	return false;
+        },
+        
+        /**
          * Render the given view.
          */
         render: function () {
@@ -189,7 +207,8 @@ define([
             		'getHumanReadableBytes' : this.getHumanReadableBytes.bind(this),
             		'render_dialog_too' : !this.dialog_rendered,
             		'page' : this.page,
-            		'error_message' : this.error_message
+            		'error_message' : this.error_message,
+            		'has_fields' : this.hasFields(this.results, this.page)
             };
         	
         	// Render the HTML

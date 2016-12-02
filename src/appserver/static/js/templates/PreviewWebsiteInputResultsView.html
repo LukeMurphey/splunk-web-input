@@ -53,7 +53,7 @@
 		    	<dd><a href="<%- results[page]['url'] %>" target="_blank"><%- results[page]['url'] %></a></dd>
 	    	</ul>
 	        
-	        <% if(results[page].raw_match_count === 0) { %>
+	        <% if(!has_fields || results[page].raw_match_count === 0) { %>
 	        	<div class="alert alert-warning">
 		            <i class="icon-alert"></i>
 		            No fields found
