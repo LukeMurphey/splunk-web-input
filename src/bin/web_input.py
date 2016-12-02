@@ -571,7 +571,7 @@ class WebInput(ModularInput):
                 driver.quit()
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None, match_prefix=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -603,9 +603,13 @@ class WebInput(ModularInput):
         proxy_user -- The user name of the proxy server account
         proxy_password -- The password of the proxy server account
         additional_fields -- Additional fields to put into the result set
+        match_prefix -- A prefix to attach to prepend to the front of the match fields
         """
         
         try:
+            
+            if match_prefix is None:
+                match_prefix = ''
             
             # This will be where the result information will be stored
             result = OrderedDict()
@@ -678,7 +682,7 @@ class WebInput(ModularInput):
                 
                 # Get the text from matching nodes
                 if output_matches_as_mv:
-                    result['match'] = []
+                    result[match_prefix + 'match'] = []
                     
                 # We are going to count how many fields we made
                 fields_included = 0
@@ -707,41 +711,41 @@ class WebInput(ModularInput):
                                 field_made = True
                                 field_name = cls.escape_field_name(attributes[a])
                                 
-                                # If the field does not exists, create it
+                                # If the field does not exist, create it
                                 if not field_name in result and output_matches_as_mv:
-                                    result[field_name] = [match_text]
+                                    result[match_prefix + field_name] = [match_text]
                                     
                                 # If the field exists and we are adding them as mv, then add it
                                 elif field_name in result and output_matches_as_mv:
-                                    result[field_name].append(match_text)
+                                    result[match_prefix + field_name].append(match_text)
                                     
                                 # Otherwise, output it as a separate field
                                 if output_matches_as_separate_fields:
-                                    result['match_' + field_name + "_" + str(fields_included)] = match_text
+                                    result[match_prefix + 'match_' + field_name + "_" + str(fields_included)] = match_text
                                     
                         # Try to use the name of the element
                         if use_element_name and not field_made:
                             
                             # If the field does not exists, create it
-                            if not match.tag in result and output_matches_as_mv:
-                                result[match.tag] = [match_text]
+                            if not (match_prefix + match.tag) in result and output_matches_as_mv:
+                                result[match_prefix + match.tag] = [match_text]
                             
                             # If the field exists and we are adding them as mv, then add it
                             elif output_matches_as_mv:
-                                result[match.tag].append(match_text)
+                                result[match_prefix + match.tag].append(match_text)
                             
                             # Otherwise, output it as a separate field
                             if output_matches_as_separate_fields:
-                                result['match_' + match.tag] = match_text
+                                result[match_prefix + 'match_' + match.tag] = match_text
                             
                         # Otherwise, output the fields as generic fields
                         if not field_made:
                             
                             if output_matches_as_mv:
-                                result['match'].append(match_text) # Note: the 'match' in the dictionary will already be populated
+                                result[match_prefix + 'match'].append(match_text) # Note: the 'match' in the dictionary will already be populated
                             
                             if output_matches_as_separate_fields:
-                                result['match_' + str(fields_included)] = match_text
+                                result[match_prefix + 'match_' + str(fields_included)] = match_text
             
             # Include the raw content if requested
             if include_raw_content:
@@ -831,7 +835,7 @@ class WebInput(ModularInput):
         return http
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None):
         """
         Retrieve data from a website.
         
@@ -862,6 +866,7 @@ class WebInput(ModularInput):
         text_separator -- The content to put between each text node that matches within a given selector
         browser -- The browser to use
         additional_fields -- Additional fields to put into the result set
+        match_prefix -- A prefix to attach to prepend to the front of the match fields
         """
         
         if isinstance(url, basestring):
@@ -947,7 +952,8 @@ class WebInput(ModularInput):
                         'proxy_port': proxy_port,
                         'proxy_user': proxy_user,
                         'proxy_password': proxy_password,
-                        'extracted_links': extracted_links
+                        'extracted_links': extracted_links,
+                        'match_prefix': match_prefix
                       }
                 
                 # Don't have the function extract URLs if the depth limit has been reached

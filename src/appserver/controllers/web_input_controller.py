@@ -14,11 +14,10 @@ from lxml.html.clean import Cleaner
 import cherrypy
 import traceback
 import urlparse
-
+from httplib2 import ServerNotFoundError
 from splunk.appserver.mrsparkle.lib import jsonresponse
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 from splunk.appserver.mrsparkle.lib.decorators import expose_page
-from splunk.appserver.mrsparkle.lib.routes import route
 import splunk.appserver.mrsparkle.controllers as controllers
 
 import splunk
@@ -347,6 +346,18 @@ class WebInputController(controllers.BaseController):
             if( 'text_separator' in kwargs):
                 kw['text_separator'] = kwargs['text_separator']
                 
+            # Get the output_as_mv parameter. This parameter is different from the name of the argument that the class accepts and will be renamed accrdingly.
+            if( 'output_as_mv' in kwargs):
+                kw['output_matches_as_mv'] = util.normalizeBoolean(kwargs['output_as_mv'], True)
+                
+                # If we are outputting as multi-valued parameters, then don't include the separate fields
+                if kw['output_matches_as_mv']:
+                    kw['output_matches_as_separate_fields'] = False
+                    
+            # Get the field match prefix
+            if( 'match_prefix' in kwargs):
+                kw['match_prefix'] = kwargs['match_prefix']
+                
             # Get the timeout parameter
             kw['timeout'] = 5
             
@@ -375,18 +386,10 @@ class WebInputController(controllers.BaseController):
             # Get the name_attributes parameter
             if( 'name_attributes' in kwargs):
                 kw['name_attributes'] = kwargs['name_attributes']
-                
-            # Get the user_agent parameter
-            if( 'user_agent' in kwargs):
-                kw['user_agent'] = kwargs['user_agent']
 
             # Get the raw_content parameter
             if( 'raw_content' in kwargs):
                 kw['include_raw_content'] = util.normalizeBoolean(kwargs['raw_content'])
-                
-            # Get the text_separator parameter
-            if( 'text_separator' in kwargs):
-                kw['text_separator'] = kwargs['text_separator']
             
             # Get the proxy configuration
             conf_stanza = "default"
@@ -410,14 +413,19 @@ class WebInputController(controllers.BaseController):
             # Filter out results
             
         except FieldValidationException, e:
-            cherrypy.response.status = 202
+            cherrypy.response.status = 220
             return self.render_error_json(_(str(e)))
         
-        except Exception, e:
+        except ServerNotFoundError as e:
+            cherrypy.response.status = 220
+            return self.render_error_json(_(str(e)))
+        
+        except Exception as e:
             cherrypy.response.status = 500
             #logger.exception(e)
             logger.error("Error generated during execution: " + traceback.format_exc() )
-            return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
+            #return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
+            return self.render_error_json(_(str(e)))
         
         # Return the information
         if 'include_first_result_only' in kwargs:

@@ -1,6 +1,7 @@
 require.config({
     paths: {
-        "text": "../app/website_input/js/lib/text"
+        "text": "../app/website_input/js/lib/text",
+        "preview_website_input_results" : "../app/website_input/js/views/PreviewWebsiteInputResultsView"
     }
 });
 
@@ -16,6 +17,7 @@ define([
     'views/shared/controls/StepWizardControl',
     "splunkjs/mvc/simpleform/input/dropdown",
     "splunkjs/mvc/simpleform/input/text",
+    "preview_website_input_results",
     'text!../app/website_input/js/templates/WebsiteInputCreateView.html',
     "bootstrap.dropdown",
     "css!../app/website_input/css/WebsiteInputCreateView.css"
@@ -31,6 +33,7 @@ define([
     StepWizardControl,
     DropdownInput,
     TextInput,
+    PreviewWebsiteInputResultsView,
     Template
 ){
 	
@@ -57,23 +60,26 @@ define([
         	"change #inputSelector" : "changeInputSelector",
         	"keypress #inputSelector" : "keypressInputSelector",
         	"click .show-selector-help-dialog": "showSelectorHelp",
-        	"click .switch-styles": "switchStyles"
-        	
+        	"click .switch-styles": "switchStyles",
+        	"click .show-results-preview-dialog" : "showResultsPreview",
+        	"click .show-results-in-search" : "openPreviewInSearch"
         },
         
         initialize: function() {
         	this.options = _.extend({}, this.defaults, this.options);
         	
         	// These are internal variables
-        	this.capabilities = null;
-        	this.inputs = null;
-        	this.existing_input_names = [];
-        	this.selector_gadget_added_interval = null;
-        	this.previous_sg_value = null;
-        	this.sg_loaded = false;
-        	this.fetched_input_name = null;
-        	this.fetched_input_owner = null;
-        	this.fetched_input_namespace = null;
+        	this.capabilities = null; // The list of capabilities the user has
+        	this.inputs = null; // The list of inputs
+        	this.existing_input_names = []; // The list if existing inputs names (to help make a name that isn't used yet)
+        	this.selector_gadget_added_interval = null; // The interval that keeps checking to see if the selectot gadget is loaded in the iframe
+        	this.previous_sg_value = null; // The previous value of the selector gadget selector
+        	this.sg_loaded = false; // Indicates if the selector gadget was loaded yet
+        	this.fetched_input_name = null; // The name of the input that was loaded
+        	this.fetched_input_owner = null; // The owner of the input that was loaded
+        	this.fetched_input_namespace = null; // The namespace of the input that was loaded
+        	this.form_key = Splunk.util.getFormKey(); // The form key to use for to work with Splunk's CSRF protection
+        	this.loaded_iframe_url = null; // The URL of the site loaded in the iframe
         	
         	// Get the list of existing inputs
         	this.getExistingInputs();
@@ -128,6 +134,84 @@ define([
         		d[name] = "0";
         	}
         	
+        },
+        
+        /**
+         * Show the results preview.
+         */
+        showResultsPreview: function(){
+        	this.previewResultsView.updatePreview(this.makeConfig());
+        },
+        
+        /**
+         * Open a preview in search.
+         */
+        openPreviewInSearch: function(){
+        	var config = this.makeConfig();
+        	
+        	var arg_str = "";
+        	
+        	// Make an array that can be used to drop fields or translate the names
+        	var arguments_translation = {
+        			'interval' : null,
+        			'host' : null,
+        			'index' : null,
+        			'title' : null,
+        			'name' : null
+        	};
+        	
+        	// Make a list of the default arguments. If the argument match, then will be excluded from the search string (in order to make it simpler)
+        	var default_arguments = {
+        			 'timeout' : '5',
+        			 'browser' : 'integrated_client',
+        			 'user_agent' : 'Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)',
+        			 'page_limit' : '1',
+        			 'depth_limit': '2',
+        			 'raw_content' : '0',
+        			 'output_as_mv' : '1',
+        			 'use_element_name' : '0'
+        	};
+        	
+        	// Make up the arguments
+			for(var k in config){
+				
+				// Find the name of the field to translate to
+				var translation = arguments_translation[k];
+				
+				// Don't include this variable if it should not be passed
+				if(translation === null){
+					continue;
+				}
+				
+				// Otherwise, add the argument
+				var value = config[k];
+				var param_name = k;
+				
+				// Use the translated argument if necessary
+				if(translation !== undefined){
+					param_name = translation;
+				}
+				
+				// If the argument matches the default anyways, then don't bother including it
+				if(default_arguments[param_name] !== undefined && default_arguments[param_name] === value){
+					// Ignore this one
+				}
+				
+				// Add the argument and exclude the double quotes if it is an integer
+				else if(value.length > 0 && /^[0-9]+$/gi.test(value)){
+					arg_str = arg_str + param_name + '=' + value + ' ';
+				}
+				
+				// Add the argument and include the double quotes to make sure 
+				else if(value.length > 0){
+					arg_str = arg_str + param_name + '="' + value + '" ';
+				}
+			}
+			
+			// Open the URL
+			var url = "search?q=" + encodeURIComponent("| webscrape " + arg_str);
+			var win = window.open(url, '_blank');
+			win.focus();
         },
         
         /**
@@ -483,7 +567,12 @@ define([
         	});
         	
         	// Update the URL
-        	this.updatePreview($("#inputURL", this.$el).val());
+        	if(this.loaded_iframe_url !== null){
+        		this.updatePreview(this.loaded_iframe_url);
+        	}
+        	else{
+        		this.updatePreview($("#inputURL", this.$el).val());
+        	}
         },
         
         /**
@@ -499,6 +588,13 @@ define([
          * Try to load the selector gadget in the preview window if necessary.
          */
         tryToLoadSelectorGadget: function(){
+        	
+        	// Stop if there is no iframe
+        	if(frames.length === 0){
+        		return;
+        	}
+        	
+        	// Stop if the selector gadget successfully loaded
     		if(this.sg_loaded){
     			return;
     		}
@@ -527,6 +623,11 @@ define([
          * Update the preview panel.
          */
         updatePreview: function(url){
+        	
+        	// Remember the page we loaded in case someone asks to reload it
+        	this.loaded_iframe_url = url;
+        	
+        	// Indicate that the selector gadget has not loaded yet
         	this.sg_loaded = false;
         	
         	// Clear the existing page so that it is clear that we are reloading the page
@@ -561,12 +662,12 @@ define([
             	params.clean_styles = '1';
             }
         	
-            var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page")
+            var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page");
             uri += '?' + Splunk.util.propToQueryString(params);
             
         	// Tell the iframe to load the URL
         	$("#preview-form", this.$el).attr("action", uri);
-        	$('#form-key', this.$el).val(Splunk.util.getFormKey());
+        	$('#form-key', this.$el).val(this.form_key);
         	$('#preview-form', this.$el).submit();
         	
         	// Get the selector that will hide the loading preview
@@ -847,10 +948,13 @@ define([
         	if(selectedModel.get("value") === 'selector-edit' && isSteppingNext){
         		
         		// Validate the selector
+        		// This isn't currently required since people may want to output raw content
+        		/*
         		if($("#inputSelector").val().length === 0){
         			$("#inputSelector").parent().parent().addClass("error");
         			issues += 1;
         		}
+        		*/
         	}
         	
         	// Validate step 4
@@ -1379,6 +1483,11 @@ define([
          */
         syncSelectorGadget: function(){
         	
+        	// Stop if there is no iframe
+        	if(frames.length === 0){
+        		return;
+        	}
+        	
         	// Stop if the selector gadget isn't initialized
         	if($("#_sg_path_field", frames[0].window.document).length === 0){
         		this.previous_sg_value = null;
@@ -1537,6 +1646,11 @@ define([
         	this.$el.html(_.template(Template, {
         		'has_permission' : has_permission
         	}));
+        	
+        	// Make an instance of the results preview modal
+            this.previewResultsView = new PreviewWebsiteInputResultsView({
+            	el: $('#preview-results-modal-holder', this.$el)
+            });
         	
         	// Make the indexes selection drop-down
             var indexes_dropdown = new DropdownInput({

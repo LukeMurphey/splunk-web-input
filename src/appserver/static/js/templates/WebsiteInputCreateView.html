@@ -1,3 +1,12 @@
+<% if(!has_permission){ %>
+<div id="input-not-loaded" >
+	<h3>Insufficient permissions</h3>
+	<div class="alert alert-warning">
+            <i class="icon-alert"></i>
+            <div class="message">You do not have the capabilities necessary to edit or create this type of input. You need to have both the "edit_modinput_web_input" and "list_inputs" capabilities.</div>
+	</div>
+</div>
+<% } else { %>
 <div id="selector-help-dialog" class="modal hide fade">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -24,6 +33,8 @@
     <a href="#" class="btn" data-dismiss="modal">Close</a>
   </div>
 </div>
+
+<div id="preview-results-modal-holder"></div>
 
 <div id="input-not-loaded" style="display:none">
 	<div class="alert alert-warning">
@@ -157,6 +168,11 @@
 	<h2>Define CSS Selector</h2>
 	<div class="help-text">
 		Create a CSS selector to extract that data from the web-page. <a href="#" class="show-selector-help-dialog">Learn more</a>
+		
+		<div class="step-action-buttons">
+			<a href="#" class="btn show-results-preview-dialog">Preview output</a>
+			<a href="#" class="show-results-in-search">Preview results in search <i class="icon-external"></i></a>
+		</div>
 	</div>
 
 	<div class="form-horizontal" >
@@ -215,6 +231,10 @@
 	<h2>Customize Output</h2>
 	<div class="help-text">
 		Optionally customize the output of the matched data.
+		<div class="step-action-buttons">
+			<a href="#" class="btn show-results-preview-dialog">Preview output</a>
+			<a href="#" class="show-results-in-search">Preview results in search <i class="icon-external"></i></a>
+		</div>
 	</div>
 	
     <form class="form-horizontal">
@@ -337,4 +357,4 @@
         <a href="web_input_list">Return to inputs list</a>
 	</div>
 </div>
-
+<% } %>

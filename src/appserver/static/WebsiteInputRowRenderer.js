@@ -84,12 +84,39 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'splunkjs/mvc/tableview'], funct
         	}
         },
         
+        openURL: function(ev){
+        	window.open($(this).attr("href"), '_blank');
+        },
+        
+        parseURL: function(href) {
+        	
+        	if(!href){
+        		return null;
+        	}
+        	
+		    var l = document.createElement("a");
+		    l.href = href;
+		    return l;
+        },
+        
+        getHostname: function(href){
+        	var url_parsed = this.parseURL(cellData['url']);
+        	
+        	if(url_parsed){
+        		return url_parsed.hostname;
+        	}
+        	else{
+        		return null;
+        	}
+        },
+        
         render: function($container, rowData) {
         	
         	var html = '<ul class="list-dotted">' +
         		'<dt>Name:</dt><dd>web_input://<%- source %></dd>' + // <a target="_blank" onclick="document.location=\'edit_web_input?name=<%- source %>\'" href="edit_web_input?name=<%- source %>">[Edit input]</a>
         		'<dt>Unique URLs:</dt><dd><%- unique_urls_count %></dd>' + 
         		'<dt>Response Code:</dt><dd><%- response_code %></dd>' + 
+        		'<% if(url){ %><dt>URL:</dt><dd><img height="16" width="16" src="http://www.google.com/s2/favicons?domain=<%- domain %>" /> <a href="<%- url %>"><%- url %></a></dd><% } %>' + 
         		'</ul>';
         	
         	// Convert the cell data into an associative array
@@ -103,8 +130,13 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'splunkjs/mvc/tableview'], funct
             $container.append(_.template(html, {
         		'source' : cellData['source'],
         		'unique_urls_count' : cellData['unique_urls'],
-        		'response_code' : cellData['response_code'] + " " + this.getResponseCodeDescription(cellData['response_code'])
+        		'response_code' : cellData['response_code'] + " " + this.getResponseCodeDescription(cellData['response_code']),
+        		'url' : cellData['url'],
+        		'domain' : this.parseURL(cellData['url']).hostname
         	}));
+            
+            // Wire up a click handler so that the URL can be opened. A normal a tag won't work due to the way Splunk wires up the drill-down handlers on the rows.
+            $('a', $container).click(this.openURL);
         }
 	});
     

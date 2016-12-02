@@ -18,7 +18,7 @@ Some websites disallow web-scraping in the terms of use. Make sure to check the 
 Configuring Splunk
 ================================================
 
-This app exposes a new input type that can be configured in the Splunk Manager. To configure it, create a new input in the Manager under Data inputs > Web-pages.
+This app exposes a new input type. You will need to create an input to define the websites that you would like to extract information from. You can setup a new input using the wizard or using the page in Splunk's manager at Settings » Data Inputs » Web-pages or by using the GUI provided in the app itself.
 
 
 
@@ -143,4 +143,11 @@ Change History
 |         | Fixed overly restrictive URL validation                                                                          |
 |         | Fixed issue where some parts of the stash file may not have been indexed, losing parts of large result sets      |
 |         | Fixed controller logs which were not sourcetyped correctly                                                       |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.0     | Added UI for managing inputs and viewing the results                                                             |
+|         | Added support for rendering data with newer versions of Firefox                                                  |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.0.1   | Fixed issue where loading pages without styles reloaded the main URL                                             |
+|         | Added permission checking to the editor                                                                          |
+|         | Fixed issue where the field preview would sometimes show empty fields when none existed                          |
 +---------+------------------------------------------------------------------------------------------------------------------+
