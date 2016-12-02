@@ -146,4 +146,8 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.0     | Added UI for managing inputs and viewing the results                                                             |
 |         | Added support for rendering data with newer versions of Firefox                                                  |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.0.1   | Fixed issue where loading pages without styles reloaded the main URL                                             |
+|         | Added permission checking to the editor                                                                          |
+|         | Fixed issue where the field preview would sometimes show empty fields when none existed                          |
 +---------+------------------------------------------------------------------------------------------------------------------+
