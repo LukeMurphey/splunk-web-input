@@ -79,6 +79,7 @@ define([
         	this.fetched_input_owner = null; // The owner of the input that was loaded
         	this.fetched_input_namespace = null; // The namespace of the input that was loaded
         	this.form_key = Splunk.util.getFormKey(); // The form key to use for to work with Splunk's CSRF protection
+        	this.loaded_iframe_url = null; // The URL of the site loaded in the iframe
         	
         	// Get the list of existing inputs
         	this.getExistingInputs();
@@ -548,7 +549,12 @@ define([
         	});
         	
         	// Update the URL
-        	this.updatePreview($("#inputURL", this.$el).val());
+        	if(this.loaded_iframe_url !== null){
+        		this.updatePreview(this.loaded_iframe_url);
+        	}
+        	else{
+        		this.updatePreview($("#inputURL", this.$el).val());
+        	}
         },
         
         /**
@@ -592,6 +598,11 @@ define([
          * Update the preview panel.
          */
         updatePreview: function(url){
+        	
+        	// Remember the page we loaded in case someone asks to reload it
+        	this.loaded_iframe_url = url;
+        	
+        	// Indicate that the selector gadget has not loaded yet
         	this.sg_loaded = false;
         	
         	// Clear the existing page so that it is clear that we are reloading the page
