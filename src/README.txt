@@ -151,4 +151,5 @@ Change History
 |         | Added permission checking to the editor                                                                          |
 |         | Fixed issue where the field preview would sometimes show empty fields when none existed                          |
 |         | Fixed issue where disabling output_mv output caused the preview to show no results                               |
+|         | Improved error message for invalid selectors                                                                     |
 +---------+------------------------------------------------------------------------------------------------------------------+
