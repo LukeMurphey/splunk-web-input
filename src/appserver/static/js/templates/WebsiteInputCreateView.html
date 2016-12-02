@@ -1,3 +1,12 @@
+<% if(!has_permission){ %>
+<div id="input-not-loaded" >
+	<h3>Insufficient permissions</h3>
+	<div class="alert alert-warning">
+            <i class="icon-alert"></i>
+            <div class="message">You do not have the capabilities necessary to edit or create this type of input. You need to have both the "edit_modinput_web_input" and "list_inputs" capabilities.</div>
+	</div>
+</div>
+<% } else { %>
 <div id="selector-help-dialog" class="modal hide fade">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -348,4 +357,4 @@
         <a href="web_input_list">Return to inputs list</a>
 	</div>
 </div>
-
+<% } %>

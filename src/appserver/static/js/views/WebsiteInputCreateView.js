@@ -570,6 +570,13 @@ define([
          * Try to load the selector gadget in the preview window if necessary.
          */
         tryToLoadSelectorGadget: function(){
+        	
+        	// Stop if there is no iframe
+        	if(frames.length === 0){
+        		return;
+        	}
+        	
+        	// Stop if the selector gadget successfully loaded
     		if(this.sg_loaded){
     			return;
     		}
@@ -1457,6 +1464,11 @@ define([
          * Synchronize the selector gadget back with the input in the editor if needed.
          */
         syncSelectorGadget: function(){
+        	
+        	// Stop if there is no iframe
+        	if(frames.length === 0){
+        		return;
+        	}
         	
         	// Stop if the selector gadget isn't initialized
         	if($("#_sg_path_field", frames[0].window.document).length === 0){
