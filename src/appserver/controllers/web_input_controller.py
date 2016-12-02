@@ -353,6 +353,8 @@ class WebInputController(controllers.BaseController):
                 # If we are outputting as multi-valued parameters, then don't include the separate fields
                 if kw['output_matches_as_mv']:
                     kw['output_matches_as_separate_fields'] = False
+                else:
+                    kw['output_matches_as_separate_fields'] = True
                     
             # Get the field match prefix
             if( 'match_prefix' in kwargs):
