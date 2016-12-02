@@ -69,16 +69,16 @@ define([
         	this.options = _.extend({}, this.defaults, this.options);
         	
         	// These are internal variables
-        	this.capabilities = null;
-        	this.inputs = null;
-        	this.existing_input_names = [];
-        	this.selector_gadget_added_interval = null;
-        	this.previous_sg_value = null;
-        	this.sg_loaded = false;
-        	this.fetched_input_name = null;
-        	this.fetched_input_owner = null;
-        	this.fetched_input_namespace = null;
-        	this.form_key = Splunk.util.getFormKey();
+        	this.capabilities = null; // The list of capabilities the user has
+        	this.inputs = null; // The list of inputs
+        	this.existing_input_names = []; // The list if existing inputs names (to help make a name that isn't used yet)
+        	this.selector_gadget_added_interval = null; // The interval that keeps checking to see if the selectot gadget is loaded in the iframe
+        	this.previous_sg_value = null; // The previous value of the selector gadget selector
+        	this.sg_loaded = false; // Indicates if the selector gadget was loaded yet
+        	this.fetched_input_name = null; // The name of the input that was loaded
+        	this.fetched_input_owner = null; // The owner of the input that was loaded
+        	this.fetched_input_namespace = null; // The namespace of the input that was loaded
+        	this.form_key = Splunk.util.getFormKey(); // The form key to use for to work with Splunk's CSRF protection
         	
         	// Get the list of existing inputs
         	this.getExistingInputs();
