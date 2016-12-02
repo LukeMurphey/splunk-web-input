@@ -386,18 +386,10 @@ class WebInputController(controllers.BaseController):
             # Get the name_attributes parameter
             if( 'name_attributes' in kwargs):
                 kw['name_attributes'] = kwargs['name_attributes']
-                
-            # Get the user_agent parameter
-            if( 'user_agent' in kwargs):
-                kw['user_agent'] = kwargs['user_agent']
 
             # Get the raw_content parameter
             if( 'raw_content' in kwargs):
                 kw['include_raw_content'] = util.normalizeBoolean(kwargs['raw_content'])
-                
-            # Get the text_separator parameter
-            if( 'text_separator' in kwargs):
-                kw['text_separator'] = kwargs['text_separator']
             
             # Get the proxy configuration
             conf_stanza = "default"

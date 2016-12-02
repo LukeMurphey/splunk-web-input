@@ -153,12 +153,10 @@ define([
         	
         	var arguments_translation = {
         			'interval' : null,
-        			'user_agent' : null,
         			'host' : null,
         			'index' : null,
         			'title' : null,
-        			'name' : null,
-        			'raw_content' : 'include_raw_content'
+        			'name' : null
         	}
         	
         	// Make up the arguments
