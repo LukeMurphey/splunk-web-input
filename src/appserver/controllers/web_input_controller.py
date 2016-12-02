@@ -12,7 +12,6 @@ import sys
 import lxml.html
 from lxml.html.clean import Cleaner
 import cherrypy
-import traceback
 import urlparse
 from httplib2 import ServerNotFoundError
 from splunk.appserver.mrsparkle.lib import jsonresponse
@@ -29,6 +28,7 @@ sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import WebInput
 from website_input_app.modular_input import FieldValidationException
+from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 
 def setup_logger(level):
     """
@@ -412,8 +412,6 @@ class WebInputController(controllers.BaseController):
             # Scrape the page
             result = WebInput.scrape_page( url, selector, **kw)
             
-            # Filter out results
-            
         except FieldValidationException, e:
             cherrypy.response.status = 220
             return self.render_error_json(_(str(e)))
@@ -422,11 +420,14 @@ class WebInputController(controllers.BaseController):
             cherrypy.response.status = 220
             return self.render_error_json(_(str(e)))
         
+        except (SelectorError, SelectorSyntaxError, ExpressionError) as e:
+            cherrypy.response.status = 220
+            return self.render_error_json(_("Selector is invalid. " + str(e)))
+        
         except Exception as e:
             cherrypy.response.status = 500
-            #logger.exception(e)
-            logger.error("Error generated during execution: " + traceback.format_exc() )
-            #return self.render_error_json(_("The request could not be completed: " + traceback.format_exc()))
+            
+            logger.exception("Error generated during execution")
             return self.render_error_json(_(str(e)))
         
         # Return the information
