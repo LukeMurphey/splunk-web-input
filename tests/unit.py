@@ -543,7 +543,7 @@ class TestBrowserRendering(UnitTestWithWebServer):
         
         content = WebInput.get_result_browser(url_field.to_python("http://127.0.0.1:8888/html"), browser=self.BROWSER, sleep_seconds=1)
         
-        self.assertEqual(content[0:4], '<html')
+        self.assertEqual(content[0:5], '<html')
         
     def test_get_result_basic_auth(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
