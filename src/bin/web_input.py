@@ -486,7 +486,7 @@ class WebInput(ModularInput):
         return response.status, content, encoding
     
     @classmethod
-    def get_firefox_proxy_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
+    def get_firefox_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         profile = webdriver.FirefoxProfile()
         
         # This is necessary in order to avoid the dialog that FireFox uses to stop potential phishing attacks that use credentials encoded in the URL
@@ -550,7 +550,7 @@ class WebInput(ModularInput):
             
             # Make the browser
             if browser == cls.FIREFOX:
-                profile = cls.get_firefox_proxy_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+                profile = cls.get_firefox_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 
                 if profile is not None:
                     logger.info("Using a proxy with Firefox")
