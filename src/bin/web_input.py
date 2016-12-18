@@ -16,6 +16,8 @@ import splunk
 import chardet
 import platform
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions
 import re
 from collections import OrderedDict
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
@@ -28,6 +30,7 @@ from lxml.etree import XMLSyntaxError
 
 from cssselector import CSSSelector
 from __builtin__ import classmethod
+from selenium.webdriver.common.alert import Alert
 
 def setup_logger():
     """
@@ -484,23 +487,24 @@ class WebInput(ModularInput):
     
     @classmethod
     def get_firefox_proxy_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
-        profile = None
+        profile = webdriver.FirefoxProfile()
+        
+        # This is necessary in order to avoid the dialog that FireFox uses to stop potential phishing attacks that use credentials encoded in the URL
+        # See http://lukemurphey.net/issues/1658
+        profile.set_preference('network.http.phishy-userpass-length', 255)
         
         # Return none if no proxy is defined
         if proxy_server is None or proxy_port is None:
-            return None
+            pass
         
         # Use a socks proxy
         elif proxy_type == "socks4" or proxy_type == "socks5":
-            profile = webdriver.FirefoxProfile()
-            
             profile.set_preference('network.proxy.type', 1)
             profile.set_preference('network.proxy.socks', proxy_server)
             profile.set_preference('network.proxy.socks_port', int(proxy_port))
             
         # Use an HTTP proxy
         elif proxy_type == "http":
-            profile = webdriver.FirefoxProfile()
             
             profile.set_preference('network.proxy.type', 1)
             profile.set_preference('network.proxy.http', proxy_server)
@@ -558,6 +562,16 @@ class WebInput(ModularInput):
             
             # Load the page
             driver.get(cls.add_auth_to_url(url.geturl(), username, password))
+            """
+            driver.get(url.geturl())
+            
+            if username is not None and password is not None: 
+                wait = WebDriverWait(driver, 10)
+                time.sleep(2)
+                alert = wait.until(expected_conditions.alert_is_present())
+                alert.authenticate(username, password)
+            """
+            
             
             # Wait for the content to load
             time.sleep(sleep_seconds)
