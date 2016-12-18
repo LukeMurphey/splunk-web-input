@@ -8,13 +8,11 @@ from StringIO import StringIO
 class Handler(BaseHTTPRequestHandler):
     ''' Main class to present webpages and authentication. '''
     def do_HEAD(self):
-        print "send header"
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
     def do_AUTHHEAD(self):
-        print "send header"
         self.send_response(401)
         self.send_header('WWW-Authenticate', 'Basic realm=\"Test\"')
         self.send_header('Content-type', 'text/html')
