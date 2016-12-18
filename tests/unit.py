@@ -566,11 +566,11 @@ if __name__ == "__main__":
     loader = unittest.TestLoader()
     suites = []
     suites.append(loader.loadTestsFromTestCase(TestWebInput))
-    #suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
-    #suites.append(loader.loadTestsFromTestCase(TestRawContent))
-    #suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
-    #suites.append(loader.loadTestsFromTestCase(TestBrowserRenderingFirefox))
+    suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
+    suites.append(loader.loadTestsFromTestCase(TestRawContent))
+    suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
+    suites.append(loader.loadTestsFromTestCase(TestBrowserRenderingFirefox))
     
-    
-    
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(suites))
+    test_runner = unittest.TextTestRunner(verbosity=2)
+    result = test_runner.run(unittest.TestSuite(suites))
+    sys.exit(not result.wasSuccessful())

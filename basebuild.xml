@@ -453,5 +453,21 @@
     	<reload_conf endpoint="views" />
     	
     </target>
+	
+    <!-- ================================= 
+          target: test.deploy_and_run_unit
+         ================================= -->
+    <target name="test.deploy_and_run_unit" description="Deploys the application and runs tests" depends="skip_bump,deploy,test.run_unit" />
+	
+    <!-- ================================= 
+          target: test.run_unit
+         ================================= -->
+    <target name="test.run_unit" description="Run unit tests">
+        <exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${basedir}/tests">
+        	<arg line="cmd" />
+        	<arg line="python" />
+        	<arg line="unit.py" />
+        </exec>
+    </target>
 
 </project>
