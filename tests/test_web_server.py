@@ -24,19 +24,23 @@ class Handler(BaseHTTPRequestHandler):
         
         encoded_password = base64.b64encode(username + ":" + password)
         
+        # No path provided
+        if self.path is None:
+            pass
+        
         # Present header reflection page
-        if self.path == "/header_reflection":
+        elif self.path == "/header_reflection":
             self.do_HEAD()
             self.wfile.write('<html><body><div class="user-agent">%s</div></body></html>' % str(self.headers['user-agent']))
             
         # Present XML file
-        if self.path == "/xml":
+        elif self.path == "/xml":
             self.do_HEAD()
             with open( os.path.join("web_files", "file.xml"), "r") as webfile:
                 self.wfile.write(webfile.read())#.replace('\n', '')
                 
         # Present HTML file
-        if self.path == "/html":
+        elif self.path == "/html":
             self.do_HEAD()
             with open( os.path.join("web_files", "simple.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
@@ -60,7 +64,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(self.headers.getheader('Authorization'))
             self.wfile.write('not authenticated')
             pass
-     
+        
 def get_server(port):
     """
     Call httpd.shutdown() to stop the server
