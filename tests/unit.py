@@ -57,6 +57,8 @@ class TestDurationField(unittest.TestCase):
 class UnitTestWithWebServer(unittest.TestCase):
     
     DEFAULT_TEST_WEB_SERVER_PORT = 8888
+    httpd = None
+    warned_about_no_httpd = False
     
     @classmethod
     def setUpClass(cls):
@@ -64,7 +66,7 @@ class UnitTestWithWebServer(unittest.TestCase):
         attempts = 0
         cls.httpd = None
         cls.web_server_port = int(os.environ.get("TEST_WEB_SERVER_PORT", UnitTestWithWebServer.DEFAULT_TEST_WEB_SERVER_PORT))
-        
+        return 
         sys.stdout.write("Waiting for web-server to start ...")
         sys.stdout.flush()
         
@@ -73,6 +75,11 @@ class UnitTestWithWebServer(unittest.TestCase):
                 cls.httpd = get_server(cls.web_server_port)
                 
                 print " Done"
+                
+                if cls.httpd is None:
+                    print "Web-server could not be started"
+                    return False
+                    
             except IOError:
                 cls.httpd = None
                 time.sleep(2)
@@ -87,10 +94,13 @@ class UnitTestWithWebServer(unittest.TestCase):
         t.daemon = True
         t.start()
         
+        return True
+        
     @classmethod
     def tearDownClass(cls):
-        cls.httpd.shutdown()
-        cls.httpd = None
+        if cls.httpd is not None:
+            cls.httpd.shutdown()
+            cls.httpd = None
     
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp( prefix="TestWebInput" )
@@ -101,6 +111,22 @@ class UnitTestWithWebServer(unittest.TestCase):
     
     def get_test_dir(self):
         return os.path.dirname(os.path.abspath(__file__))
+    
+    def test_if_web_server_is_running(self):
+        if self.httpd is None and not UnitTestWithWebServer.warned_about_no_httpd:
+            UnitTestWithWebServer.warned_about_no_httpd = True
+            self.fail("The test web-server is not running")
+
+        
+def skipIfNoServer(func):
+    def _decorator(self, *args, **kwargs):
+        if self.httpd is None:
+            # Don't run the test if the server is not running
+            self.skipTest("The web-server is not running")
+        else:
+            return func(self, *args, **kwargs)
+        
+    return _decorator
     
 class TestWebInput(UnitTestWithWebServer):
     
@@ -179,6 +205,7 @@ class TestWebInput(UnitTestWithWebServer):
         result = results[0]
         self.assertEqual(result['timed_out'], True)
         
+    @skipIfNoServer
     def test_scrape_page_with_credentials(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
@@ -187,6 +214,7 @@ class TestWebInput(UnitTestWithWebServer):
         #print result['match']
         self.assertEqual(len(result['match']), 30)
         
+    @skipIfNoServer
     def test_scrape_page_with_invalid_credentials(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
@@ -252,6 +280,7 @@ class TestWebInput(UnitTestWithWebServer):
         
         self.assertEqual(len(result['match']), 2)
     
+    @skipIfNoServer
     def test_scrape_page_name_attributes(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
@@ -260,6 +289,7 @@ class TestWebInput(UnitTestWithWebServer):
         
         self.assertEqual(len(result['hd']), 31)
         
+    @skipIfNoServer
     def test_scrape_page_name_attributes_separate_fields(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
@@ -268,6 +298,7 @@ class TestWebInput(UnitTestWithWebServer):
         
         self.assertEqual(result['match_hd_1'], 'Mode:')
     
+    @skipIfNoServer
     def test_scrape_page_name_attributes_escaped_name(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
@@ -301,6 +332,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertGreater(len(result['match']), 0)
         self.assertEqual(result['encoding'], "ISO-8859-1")
         
+    @skipIfNoServer
     def test_scape_page_custom_user_agent(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
@@ -311,6 +343,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(len(result['match']), 1)
         self.assertEqual(result['match'][0], "test_scape_page_custom_user_agent")
         
+    @skipIfNoServer
     def test_scape_page_xml(self):
         # http://lukemurphey.net/issues/1144
         url_field = URLField( "test_web_input", "title", "this is a test" )
@@ -321,6 +354,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(len(result['match']), 1)
         self.assertEqual(result['match'][0], "695")
     
+    @skipIfNoServer
     def test_scape_page_names_as_tag_name(self):
         # http://lukemurphey.net/issues/1145
         url_field = URLField( "test_web_input", "title", "this is a test" )
@@ -333,6 +367,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(len(result['cook_temp']), 1)
         self.assertEqual(result['cook_temp'][0], "695")
         
+    @skipIfNoServer
     def test_scape_page_match_prefix(self):
         
         url_field = URLField( "test_web_input", "title", "this is a test" )
@@ -343,6 +378,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(len(result['prefix_cook_temp']), 1)
         self.assertEqual(result['prefix_cook_temp'][0], "695")
         
+    @skipIfNoServer
     def test_scape_page_match_prefix_with_multiple(self):
         # http://lukemurphey.net/issues/1628
         
@@ -480,6 +516,7 @@ class TestRawContent(UnitTestWithWebServer):
     http://lukemurphey.net/issues/1168
     """
     
+    @skipIfNoServer
     def test_get_raw_content(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_get_raw_content", "title", "this is a test" )
@@ -489,6 +526,7 @@ class TestRawContent(UnitTestWithWebServer):
         self.assertEqual(len(results), 1)
         self.assertEqual(result['content'][0:15], "<nutcallstatus>")
         
+    @skipIfNoServer
     def test_get_raw_content_empty_selector(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_get_raw_content_empty_selector", "title", "this is a test" )
@@ -503,6 +541,7 @@ class TestCustomSeparator(UnitTestWithWebServer):
     See http://lukemurphey.net/issues/763
     """
     
+    @skipIfNoServer
     def test_custom_separator(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_custom_separator", "title", "this is a test" )
@@ -531,6 +570,7 @@ class TestBrowserRendering(UnitTestWithWebServer):
     
     BROWSER = None
     
+    @skipIfNoServer
     def test_scrape_page(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
         selector_field = SelectorField( "test_custom_separator", "title", "this is a test" )
@@ -541,6 +581,7 @@ class TestBrowserRendering(UnitTestWithWebServer):
         self.assertEqual(result['match'][0], "Heading")
         self.assertEqual(result['browser'], self.BROWSER)
     
+    @skipIfNoServer
     def test_get_result(self):
         
         # Don't execute this for the integrated client
@@ -553,6 +594,7 @@ class TestBrowserRendering(UnitTestWithWebServer):
         
         self.assertEqual(content[0:5], '<html')
         
+    @skipIfNoServer
     def test_get_result_basic_auth(self):
         
         # Don't execute this for the integrated client
@@ -565,6 +607,7 @@ class TestBrowserRendering(UnitTestWithWebServer):
         
         self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
     
+    @skipIfNoServer
     def test_get_result_basic_auth_as_args(self):
         
         # Don't execute this for the integrated client
