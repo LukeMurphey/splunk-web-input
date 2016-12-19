@@ -5,6 +5,7 @@ import os
 import time
 import shutil
 import re
+import traceback
 import tempfile
 import threading
 import unicodedata
@@ -81,6 +82,8 @@ class UnitTestWithWebServer(unittest.TestCase):
                     return False
                     
             except IOError:
+                traceback.print_exc(file=sys.stdout) 
+                
                 cls.httpd = None
                 time.sleep(2)
                 attempts = attempts + 1
@@ -88,7 +91,8 @@ class UnitTestWithWebServer(unittest.TestCase):
                 sys.stdout.flush()
         
         def start_server(httpd):
-            httpd.serve_forever()
+            if httpd is not None:
+                httpd.serve_forever()
         
         t = threading.Thread(target=start_server, args = (cls.httpd,))
         t.daemon = True
