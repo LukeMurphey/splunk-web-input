@@ -63,31 +63,33 @@ class UnitTestWithWebServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         
+        cls.web_server_port = int(os.environ.get("TEST_WEB_SERVER_PORT", UnitTestWithWebServer.DEFAULT_TEST_WEB_SERVER_PORT))
+        
         # Stop if the web-server was already started
-        if cls.httpd is not None:
+        if UnitTestWithWebServer.httpd is not None:
             sys.stdout.write("Web-server already started, setUpClass() doesn't need to do anything")
+            sys.stdout.flush()
             return
         
         attempts = 0
-        cls.web_server_port = int(os.environ.get("TEST_WEB_SERVER_PORT", UnitTestWithWebServer.DEFAULT_TEST_WEB_SERVER_PORT))
          
         sys.stdout.write("Waiting for web-server to start ...")
         sys.stdout.flush()
         
-        while cls.httpd is None and attempts < 20:
+        while UnitTestWithWebServer.httpd is None and attempts < 20:
             try:
-                cls.httpd = get_server(cls.web_server_port)
+                UnitTestWithWebServer.httpd = get_server(cls.web_server_port)
                 
                 print " Done"
                     
             except IOError:
-                cls.httpd = None
+                UnitTestWithWebServer.httpd = None
                 time.sleep(2)
                 attempts = attempts + 1
                 sys.stdout.write(".")
                 sys.stdout.flush()
                         
-        if cls.httpd is None:
+        if UnitTestWithWebServer.httpd is None:
             print "Web-server could not be started"
             return
         
@@ -95,12 +97,12 @@ class UnitTestWithWebServer(unittest.TestCase):
             if httpd is not None:
                 httpd.serve_forever()
         
-        t = threading.Thread(target=start_server, args = (cls.httpd,))
+        t = threading.Thread(target=start_server, args = (UnitTestWithWebServer.httpd,))
         t.daemon = True
         t.start()
-        
+    
     @classmethod
-    def tearDownClass(cls):
+    def shutdownServer(cls):
         if cls.httpd is not None:
             cls.httpd.shutdown()
             cls.httpd = None
@@ -640,4 +642,8 @@ if __name__ == "__main__":
     
     test_runner = unittest.TextTestRunner(verbosity=2)
     result = test_runner.run(unittest.TestSuite(suites))
+    
+    # Shutdown the server. Note that it should shutdown automatically since it is a daemon thread but this code will ensure it is stopped too.
+    UnitTestWithWebServer.shutdownServer()
+    
     sys.exit(not result.wasSuccessful())
