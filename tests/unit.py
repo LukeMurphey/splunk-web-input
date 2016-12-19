@@ -66,7 +66,7 @@ class UnitTestWithWebServer(unittest.TestCase):
         attempts = 0
         cls.httpd = None
         cls.web_server_port = int(os.environ.get("TEST_WEB_SERVER_PORT", UnitTestWithWebServer.DEFAULT_TEST_WEB_SERVER_PORT))
-        return 
+         
         sys.stdout.write("Waiting for web-server to start ...")
         sys.stdout.flush()
         
