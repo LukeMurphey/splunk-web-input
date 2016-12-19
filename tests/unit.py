@@ -58,14 +58,18 @@ class TestDurationField(unittest.TestCase):
 class UnitTestWithWebServer(unittest.TestCase):
     
     DEFAULT_TEST_WEB_SERVER_PORT = 8888
-    httpd = None
     warned_about_no_httpd = False
+    httpd = None
     
     @classmethod
     def setUpClass(cls):
         
+        # Stop if the web-server was already started
+        if cls.httpd is not None:
+            sys.stdout.write("Web-server already started, setUpClass() doesn't need to do anything")
+            return
+        
         attempts = 0
-        cls.httpd = None
         cls.web_server_port = int(os.environ.get("TEST_WEB_SERVER_PORT", UnitTestWithWebServer.DEFAULT_TEST_WEB_SERVER_PORT))
          
         sys.stdout.write("Waiting for web-server to start ...")
@@ -76,19 +80,20 @@ class UnitTestWithWebServer(unittest.TestCase):
                 cls.httpd = get_server(cls.web_server_port)
                 
                 print " Done"
-                
-                if cls.httpd is None:
-                    print "Web-server could not be started"
-                    return False
                     
             except IOError:
-                traceback.print_exc(file=sys.stdout) 
+                #print e.errno #48 (port already in use)
+                #traceback.print_exc(file=sys.stdout) 
                 
                 cls.httpd = None
                 time.sleep(2)
                 attempts = attempts + 1
                 sys.stdout.write(".")
                 sys.stdout.flush()
+                        
+        if cls.httpd is None:
+            print "Web-server could not be started"
+            return
         
         def start_server(httpd):
             if httpd is not None:
@@ -97,8 +102,6 @@ class UnitTestWithWebServer(unittest.TestCase):
         t = threading.Thread(target=start_server, args = (cls.httpd,))
         t.daemon = True
         t.start()
-        
-        return True
         
     @classmethod
     def tearDownClass(cls):
