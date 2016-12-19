@@ -5,7 +5,6 @@ import os
 import time
 import shutil
 import re
-import traceback
 import tempfile
 import threading
 import unicodedata
@@ -82,9 +81,6 @@ class UnitTestWithWebServer(unittest.TestCase):
                 print " Done"
                     
             except IOError:
-                #print e.errno #48 (port already in use)
-                #traceback.print_exc(file=sys.stdout) 
-                
                 cls.httpd = None
                 time.sleep(2)
                 attempts = attempts + 1
