@@ -115,8 +115,7 @@ class UnitTestWithWebServer(unittest.TestCase):
     def test_if_web_server_is_running(self):
         if self.httpd is None and not UnitTestWithWebServer.warned_about_no_httpd:
             UnitTestWithWebServer.warned_about_no_httpd = True
-            self.fail("The test web-server is not running")
-
+            self.fail("The test web-server is not running; tests that rely on the built-in web-server will fail or be skipped")
         
 def skipIfNoServer(func):
     def _decorator(self, *args, **kwargs):
