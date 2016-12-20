@@ -532,12 +532,29 @@ class WebInput(ModularInput):
             logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
     
     @classmethod
+    def get_display(cls):
+        
+        # Start a display so that this works on headless hosts
+        if not os.name == 'nt':
+            try:
+                display = Display(visible=0, size=(800, 600))
+                display.start()
+                
+                return display
+            except EasyProcessCheckInstalledError:
+                logger.warn("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
+            except Exception:
+                logger.exception("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
+                
+    
+    @classmethod
     def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         
         # Update the path if necessary so that the drivers can be found
         WebInput.add_browser_driver_to_path()
         
         driver = None
+        display = None
         logger.debug("Attempting to get content using browser=%s", browser)
         
         try:
@@ -550,15 +567,7 @@ class WebInput(ModularInput):
             # Make the browser
             if browser == cls.FIREFOX:
                 
-                # Start a display so that this works on headless hosts
-                if not os.name == 'nt':
-                    try:
-                        display = Display(visible=0, size=(800, 600))
-                        display.start()
-                    except EasyProcessCheckInstalledError:
-                        logger.warn("Failed to load the virtual display; Firefox might not be able to run if this is a headless host")
-                    except Exception:
-                        logger.exception("Failed to load the virtual display; Firefox might not be able to run if this is a headless host")
+                display = cls.get_display()
                 
                 profile = cls.get_firefox_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 
@@ -593,6 +602,9 @@ class WebInput(ModularInput):
         finally:
             if driver is not None:
                 driver.quit()
+                
+            if display is not None:
+                display.stop()
     
     @classmethod
     def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None, match_prefix=None):
