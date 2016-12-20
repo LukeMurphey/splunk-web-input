@@ -16,8 +16,6 @@ import splunk
 import chardet
 import platform
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
 import re
 from collections import OrderedDict
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
