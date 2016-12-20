@@ -152,4 +152,7 @@ Change History
 |         | Fixed issue where the field preview would sometimes show empty fields when none existed                          |
 |         | Fixed issue where disabling output_mv output caused the preview to show no results                               |
 |         | Improved error message for invalid selectors                                                                     |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.0.2   | Fixed issue where HTTP authentication didn't work with Firefox                                                   |
+|         | Fixed issue where Firefox rendering didn't work on headless environments                                         |
 +---------+------------------------------------------------------------------------------------------------------------------+
