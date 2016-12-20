@@ -67,8 +67,6 @@ class UnitTestWithWebServer(unittest.TestCase):
         
         # Stop if the web-server was already started
         if UnitTestWithWebServer.httpd is not None:
-            sys.stdout.write("Web-server already started, setUpClass() doesn't need to do anything")
-            sys.stdout.flush()
             return
         
         attempts = 0
