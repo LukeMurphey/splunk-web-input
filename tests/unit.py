@@ -101,9 +101,9 @@ class UnitTestWithWebServer(unittest.TestCase):
     
     @classmethod
     def shutdownServer(cls):
-        if cls.httpd is not None:
-            cls.httpd.shutdown()
-            cls.httpd = None
+        if UnitTestWithWebServer.httpd is not None:
+            UnitTestWithWebServer.httpd.shutdown()
+            UnitTestWithWebServer.httpd = None
     
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp( prefix="TestWebInput" )
@@ -638,10 +638,12 @@ if __name__ == "__main__":
     suites.append(loader.loadTestsFromTestCase(TestBrowserRenderingFirefox))
     suites.append(loader.loadTestsFromTestCase(TestBrowserRenderingIntegrated))
     
-    test_runner = unittest.TextTestRunner(verbosity=2)
-    result = test_runner.run(unittest.TestSuite(suites))
+    try:
+        test_runner = unittest.TextTestRunner(verbosity=2)
+        result = test_runner.run(unittest.TestSuite(suites))
     
-    # Shutdown the server. Note that it should shutdown automatically since it is a daemon thread but this code will ensure it is stopped too.
-    UnitTestWithWebServer.shutdownServer()
+    finally:
+        # Shutdown the server. Note that it should shutdown automatically since it is a daemon thread but this code will ensure it is stopped too.
+        UnitTestWithWebServer.shutdownServer()
     
     sys.exit(not result.wasSuccessful())
