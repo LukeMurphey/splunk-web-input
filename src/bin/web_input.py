@@ -25,10 +25,11 @@ from httplib2 import socks
 import lxml.html
 from lxml.etree import XMLSyntaxError
 
-
 from cssselector import CSSSelector
 from __builtin__ import classmethod
-from selenium.webdriver.common.alert import Alert
+
+from pyvirtualdisplay import Display
+from easyprocess import EasyProcessCheckInstalledError
 
 def setup_logger():
     """
@@ -548,6 +549,17 @@ class WebInput(ModularInput):
             
             # Make the browser
             if browser == cls.FIREFOX:
+                
+                # Start a display so that this works on headless hosts
+                if not os.name == 'nt':
+                    try:
+                        display = Display(visible=0, size=(800, 600))
+                        display.start()
+                    except EasyProcessCheckInstalledError:
+                        logger.warn("Failed to load the virtual display; Firefox might not be able to run if this is a headless host")
+                    except Exception:
+                        logger.exception("Failed to load the virtual display; Firefox might not be able to run if this is a headless host")
+                
                 profile = cls.get_firefox_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 
                 if profile is not None:
