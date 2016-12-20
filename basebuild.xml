@@ -76,7 +76,6 @@ If you want to use environment variables, you can assign the following confogura
 
 	<!-- Import the default properties -->
     <property file="default.properties" />
-	<echo>${value.build.minimize}</echo>
 	
     <!-- Set up some basic parameters -->
     <property name="value.src.directory" value="src" />
