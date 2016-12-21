@@ -595,7 +595,7 @@ class WebInput(ModularInput):
             if driver is not None:
                 driver.quit()
                 
-            # Stop the display that is used to run a browser headless.
+            # Stop the display that is used to run a headless browser.
             if display is not None:
                 display.stop()
     
