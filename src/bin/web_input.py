@@ -581,16 +581,6 @@ class WebInput(ModularInput):
             
             # Load the page
             driver.get(cls.add_auth_to_url(url.geturl(), username, password))
-            """
-            driver.get(url.geturl())
-            
-            if username is not None and password is not None: 
-                wait = WebDriverWait(driver, 10)
-                time.sleep(2)
-                alert = wait.until(expected_conditions.alert_is_present())
-                alert.authenticate(username, password)
-            """
-            
             
             # Wait for the content to load
             time.sleep(sleep_seconds)
@@ -600,9 +590,12 @@ class WebInput(ModularInput):
             
             return content
         finally:
+            
+            # Stop the driver so that the web-browser closes. Otherwise, the process would be left open.
             if driver is not None:
                 driver.quit()
                 
+            # Stop the display that is used to run a browser headless.
             if display is not None:
                 display.stop()
     
