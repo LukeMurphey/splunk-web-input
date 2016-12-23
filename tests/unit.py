@@ -5,6 +5,7 @@ import os
 import time
 import shutil
 import re
+import traceback
 import tempfile
 import threading
 import unicodedata
@@ -86,6 +87,9 @@ class UnitTestWithWebServer(unittest.TestCase):
                 attempts = attempts + 1
                 sys.stdout.write(".")
                 sys.stdout.flush()
+                
+            except:
+                traceback.print_tb()
                         
         if UnitTestWithWebServer.httpd is None:
             print "Web-server could not be started"
