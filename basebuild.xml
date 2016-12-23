@@ -320,12 +320,6 @@ If you want to use environment variables, you can assign the following confogura
     		</fileset>
     	</chmod>
     	
-    	<chmod perm="755">
-    		<fileset dir="${export_dir}/${value.build.appname}/bin/browser_drivers">
-    		    <include name="**/*"/>
-    		</fileset>
-    	</chmod>
-    	
     	<echo>App ${value.build.appname} build ${value.build.number} deployed to ${export_dir}</echo>
     </target>
     
