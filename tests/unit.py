@@ -5,9 +5,7 @@ import os
 import time
 import shutil
 import re
-import traceback
 import tempfile
-import threading
 import unicodedata
 import lxml.html
 from StringIO import StringIO
@@ -17,8 +15,7 @@ sys.path.append( os.path.join("..", "src", "bin", "website_input_app") )
 
 from web_input import URLField, DurationField, SelectorField, WebInput
 from modular_input import Field, FieldValidationException
-
-from test_web_server import get_server
+from unit_test_web_server import UnitTestWithWebServer, skipIfNoServer
 
 class TestURLField(unittest.TestCase):
     
@@ -55,56 +52,7 @@ class TestDurationField(unittest.TestCase):
         self.assertRaises( FieldValidationException, lambda: duration_field.to_python("1 treefrog") )
         self.assertRaises( FieldValidationException, lambda: duration_field.to_python("minute") )   
     
-class UnitTestWithWebServer(unittest.TestCase):
-    
-    DEFAULT_TEST_WEB_SERVER_PORT = 8888
-    warned_about_no_httpd = False
-    httpd = None
-    
-    @classmethod
-    def setUpClass(cls):
-        
-        cls.web_server_port = int(os.environ.get("TEST_WEB_SERVER_PORT", UnitTestWithWebServer.DEFAULT_TEST_WEB_SERVER_PORT))
-        
-        # Stop if the web-server was already started
-        if UnitTestWithWebServer.httpd is not None:
-            return
-        
-        attempts = 0
-         
-        sys.stdout.write("Waiting for web-server to start ...")
-        sys.stdout.flush()
-        
-        while UnitTestWithWebServer.httpd is None and attempts < 75:
-            try:
-                UnitTestWithWebServer.httpd = get_server(cls.web_server_port)
-                
-                print " Done"
-                    
-            except IOError:
-                UnitTestWithWebServer.httpd = None
-                time.sleep(4)
-                attempts = attempts + 1
-                sys.stdout.write(".")
-                sys.stdout.flush()
-                        
-        if UnitTestWithWebServer.httpd is None:
-            print "Web-server could not be started"
-            return
-        
-        def start_server(httpd):
-            if httpd is not None:
-                httpd.serve_forever()
-        
-        t = threading.Thread(target=start_server, args = (UnitTestWithWebServer.httpd,))
-        t.daemon = True
-        t.start()
-    
-    @classmethod
-    def shutdownServer(cls):
-        if UnitTestWithWebServer.httpd is not None:
-            UnitTestWithWebServer.httpd.shutdown()
-            UnitTestWithWebServer.httpd = None
+class TestWebInput(UnitTestWithWebServer):
     
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp( prefix="TestWebInput" )
@@ -115,23 +63,6 @@ class UnitTestWithWebServer(unittest.TestCase):
     
     def get_test_dir(self):
         return os.path.dirname(os.path.abspath(__file__))
-    
-    def test_if_web_server_is_running(self):
-        if UnitTestWithWebServer.httpd is None and not UnitTestWithWebServer.warned_about_no_httpd:
-            UnitTestWithWebServer.warned_about_no_httpd = True
-            self.fail("The test web-server is not running; tests that rely on the built-in web-server will fail or be skipped")
-        
-def skipIfNoServer(func):
-    def _decorator(self, *args, **kwargs):
-        if self.httpd is None:
-            # Don't run the test if the server is not running
-            self.skipTest("The web-server is not running")
-        else:
-            return func(self, *args, **kwargs)
-        
-    return _decorator
-    
-class TestWebInput(UnitTestWithWebServer):
     
     def test_get_file_path(self):
         self.assertEquals( WebInput.get_file_path( "/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com"), os.path.join("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "2c70b6c76574eb4d825bfb194a460558.json"))

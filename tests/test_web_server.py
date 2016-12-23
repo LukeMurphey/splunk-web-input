@@ -1,10 +1,11 @@
-import SocketServer
 from BaseHTTPServer import BaseHTTPRequestHandler
 import os
 import base64
 
-class Handler(BaseHTTPRequestHandler):
-    ''' Main class to present webpages and authentication. '''
+class TestWebServerHandler(BaseHTTPRequestHandler):
+    """
+    Main class to present web-pages for testing purposes
+    """
     def do_HEAD(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
@@ -62,11 +63,4 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(self.headers.getheader('Authorization'))
             self.wfile.write('not authenticated')
             pass
-        
-def get_server(port):
-    """
-    Call httpd.shutdown() to stop the server
-    """
-    
-    httpd = SocketServer.TCPServer(("", port), Handler)
-    return httpd
+
