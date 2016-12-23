@@ -75,7 +75,7 @@ class UnitTestWithWebServer(unittest.TestCase):
         sys.stdout.write("Waiting for web-server to start ...")
         sys.stdout.flush()
         
-        while UnitTestWithWebServer.httpd is None and attempts < 300:
+        while UnitTestWithWebServer.httpd is None and attempts < 75:
             try:
                 UnitTestWithWebServer.httpd = get_server(cls.web_server_port)
                 
@@ -83,14 +83,10 @@ class UnitTestWithWebServer(unittest.TestCase):
                     
             except IOError:
                 UnitTestWithWebServer.httpd = None
-                time.sleep(1)
+                time.sleep(4)
                 attempts = attempts + 1
                 sys.stdout.write(".")
                 sys.stdout.flush()
-                
-            except:
-                UnitTestWithWebServer.httpd = None
-                traceback.print_tb()
                         
         if UnitTestWithWebServer.httpd is None:
             print "Web-server could not be started"
