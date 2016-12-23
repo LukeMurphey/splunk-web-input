@@ -75,7 +75,7 @@ class UnitTestWithWebServer(unittest.TestCase):
         sys.stdout.write("Waiting for web-server to start ...")
         sys.stdout.flush()
         
-        while UnitTestWithWebServer.httpd is None and attempts < 20:
+        while UnitTestWithWebServer.httpd is None and attempts < 300:
             try:
                 UnitTestWithWebServer.httpd = get_server(cls.web_server_port)
                 
@@ -83,12 +83,13 @@ class UnitTestWithWebServer(unittest.TestCase):
                     
             except IOError:
                 UnitTestWithWebServer.httpd = None
-                time.sleep(2)
+                time.sleep(1)
                 attempts = attempts + 1
                 sys.stdout.write(".")
                 sys.stdout.flush()
                 
             except:
+                UnitTestWithWebServer.httpd = None
                 traceback.print_tb()
                         
         if UnitTestWithWebServer.httpd is None:
@@ -120,7 +121,7 @@ class UnitTestWithWebServer(unittest.TestCase):
         return os.path.dirname(os.path.abspath(__file__))
     
     def test_if_web_server_is_running(self):
-        if self.httpd is None and not UnitTestWithWebServer.warned_about_no_httpd:
+        if UnitTestWithWebServer.httpd is None and not UnitTestWithWebServer.warned_about_no_httpd:
             UnitTestWithWebServer.warned_about_no_httpd = True
             self.fail("The test web-server is not running; tests that rely on the built-in web-server will fail or be skipped")
         
