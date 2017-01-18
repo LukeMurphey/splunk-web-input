@@ -155,4 +155,6 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.0.2   | Fixed issue where HTTP authentication didn't work with Firefox                                                   |
 |         | Fixed issue where Firefox rendering didn't work on headless environments                                         |
+|         | Improved icons                                                                                                   |
+|         | Improved the sparkline on the overview dashboard to make it easier to read                                       |
 +---------+------------------------------------------------------------------------------------------------------------------+
