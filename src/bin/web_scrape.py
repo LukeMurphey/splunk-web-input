@@ -54,7 +54,7 @@ class WebScraper(SearchCommand):
         
         self.logger.info("Web scraper running against url=%s", url)
     
-    def handle_results(self, results, in_preview, session_key):
+    def handle_results(self, results, session_key, in_preview):
         
         # FYI: we ignore results since this is a generating command
         

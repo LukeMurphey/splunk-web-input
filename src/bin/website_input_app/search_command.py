@@ -210,7 +210,7 @@ class SearchCommand(object):
         
         splunk.Intersplunk.outputResults(results)
             
-    def handle_results(self, results, in_preview, session_key):
+    def handle_results(self, results, session_key, in_preview):
         """
         
         Arguments:
