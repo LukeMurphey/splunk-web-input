@@ -213,7 +213,7 @@ class WebInputController(controllers.BaseController):
                     return self.render_error_html("Page preview could not be created using a web-browser")
                 
                 # Parse the content
-                html = lxml.html.document_fromstring(content_decoded)
+                html = lxml.html.document_fromstring(content)
                 
                 # Rewrite the links to point to this internal proxy
                 rewrite_using_internal_proxy = True
