@@ -60,7 +60,7 @@ class SelectorField(Field):
         
         if value is not None and len(value.strip()) != 0:
             try:
-                return CSSSelector(value.lower()) # selectors 
+                return CSSSelector(value, translator='html') # Use the HTML translation so that selectors match accordingly ("DIV" should match "div")
             except AssertionError as e:
                 raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), name, str(e)))
     
