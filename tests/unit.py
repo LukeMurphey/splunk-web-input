@@ -156,6 +156,15 @@ class TestWebInput(UnitTestWithWebServer):
         result = results[0]
         #print result['match']
         self.assertEqual(len(result['match']), 0)
+
+    @skipIfNoServer
+    def test_scrape_page_with_case_insensitive_selector(self):
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python("H1"), timeout=3, output_matches_as_mv=True )
+        result = results[0]
+        #print result['match']
+        self.assertEqual(len(result['match']), 1)
     
     def test_unparsable(self):
         url_field = URLField( "test_web_input", "title", "this is a test" )
