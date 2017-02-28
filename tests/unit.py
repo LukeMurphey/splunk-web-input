@@ -10,25 +10,25 @@ import unicodedata
 import lxml.html
 from StringIO import StringIO
 
-sys.path.append( os.path.join("..", "src", "bin") )
-sys.path.append( os.path.join("..", "src", "bin", "website_input_app") )
+sys.path.append(os.path.join("..", "src", "bin"))
+sys.path.append(os.path.join("..", "src", "bin", "website_input_app"))
 
 from web_input import URLField, DurationField, SelectorField, WebInput
-from modular_input import Field, FieldValidationException
+from website_input_app.modular_input import Field, FieldValidationException
 from unit_test_web_server import UnitTestWithWebServer, skipIfNoServer
 
 class TestURLField(unittest.TestCase):
     
     def test_url_field_valid(self):
         url_field = URLField( "test_url_field_valid", "title", "this is a test" )
-        
+
         self.assertEqual( url_field.to_python("http://google.com").geturl(), "http://google.com" )
         self.assertEqual( url_field.to_python("http://google.com/with/path").geturl(), "http://google.com/with/path" )
         self.assertEqual( url_field.to_python("http://google.com:8080/with/port").geturl(), "http://google.com:8080/with/port" )
         
     def test_url_field_invalid(self):
         url_field = URLField( "test_url_field_invalid", "title", "this is a test" )
-        
+
         self.assertRaises( FieldValidationException, lambda: url_field.to_python("hxxp://google.com") )
         self.assertRaises( FieldValidationException, lambda: url_field.to_python("http://") )
         self.assertRaises( FieldValidationException, lambda: url_field.to_python("google.com") )
@@ -589,23 +589,19 @@ class TestBrowserRendering(UnitTestWithWebServer):
         content = WebInput.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER, sleep_seconds=2, username="admin", password="changeme")
         
         self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
-        
+  
 class TestBrowserRenderingFirefox(TestBrowserRendering):
     BROWSER = WebInput.FIREFOX
     
 class TestBrowserRenderingIntegrated(TestBrowserRendering):
     BROWSER = WebInput.INTEGRATED_CLIENT
-        
+
 if __name__ == "__main__":
     
     
     try:
-        unittest.main()
-        #test_runner = unittest.TextTestRunner(verbosity=2)
-        #result = test_runner.run(unittest.TestSuite(suites))
-    
+        unittest.main(exit=True)
+
     finally:
         # Shutdown the server. Note that it should shutdown automatically since it is a daemon thread but this code will ensure it is stopped too.
         UnitTestWithWebServer.shutdownServer()
-    
-    #sys.exit(not result.wasSuccessful())
