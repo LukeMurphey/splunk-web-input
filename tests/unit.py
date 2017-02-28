@@ -251,6 +251,32 @@ class TestWebInput(UnitTestWithWebServer):
         
         self.assertTrue('btnBerTest__' in result)
         self.assertTrue('btnReset__' in result)
+
+    @skipIfNoServer
+    def test_scrape_page_include_empty_matches(self):
+        # https://lukemurphey.net/issues/1726
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a"), timeout=3, include_empty_matches=True, text_separator=",")
+        result = results[0]
+
+        # The result below includes more empty items than expected. This is because text nodes can occur after elements.
+        # See the example below with the text nodes called out:
+        #
+        # <div class="a"> TEXT_NODE_1
+        #     <div class="aa">TEXT_NODE_2</div> TEXT_NODE_3
+        #     <div class="ab">Text_1</div> TEXT_NODE_5
+        #     <div class="ac">Text_2</div> TEXT_NODE_7
+        #     <div class="ad">TEXT_NODE_8</div> TEXT_NODE_9
+        # </div>
+        #
+        self.assertEqual(result['match'][0], ',,,Text_1,,Text_2,,,')
+
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".b"), timeout=3, include_empty_matches=True, text_separator=",")
+        result = results[0]
+        
+        self.assertEqual(result['match'][0], ',Text_0,,Text_1,,Text_2,,Text_3,')
         
     def test_field_escaping(self):
         self.assertTrue(WebInput.escape_field_name("tree()"), "tree__")
@@ -571,21 +597,15 @@ class TestBrowserRenderingIntegrated(TestBrowserRendering):
     BROWSER = WebInput.INTEGRATED_CLIENT
         
 if __name__ == "__main__":
-    loader = unittest.TestLoader()
-    suites = []
-    suites.append(loader.loadTestsFromTestCase(TestWebInput))
-    suites.append(loader.loadTestsFromTestCase(TestWebInputCrawling))
-    suites.append(loader.loadTestsFromTestCase(TestRawContent))
-    suites.append(loader.loadTestsFromTestCase(TestCustomSeparator))
-    suites.append(loader.loadTestsFromTestCase(TestBrowserRenderingFirefox))
-    suites.append(loader.loadTestsFromTestCase(TestBrowserRenderingIntegrated))
+    
     
     try:
-        test_runner = unittest.TextTestRunner(verbosity=2)
-        result = test_runner.run(unittest.TestSuite(suites))
+        unittest.main()
+        #test_runner = unittest.TextTestRunner(verbosity=2)
+        #result = test_runner.run(unittest.TestSuite(suites))
     
     finally:
         # Shutdown the server. Note that it should shutdown automatically since it is a daemon thread but this code will ensure it is stopped too.
         UnitTestWithWebServer.shutdownServer()
     
-    sys.exit(not result.wasSuccessful())
+    #sys.exit(not result.wasSuccessful())

@@ -5,7 +5,7 @@ from splunk.util import normalizeBoolean
 
 class WebScraper(SearchCommand):
     
-    def __init__(self, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_as_mv=True, output_matches_as_mv=None, output_matches_as_separate_fields=False, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, text_separator=" ", raw_content=False, include_raw_content=None, browser=None, match_prefix=None, user_agent=None):
+    def __init__(self, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_as_mv=True, output_matches_as_mv=None, output_matches_as_separate_fields=False, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, text_separator=" ", raw_content=False, include_raw_content=None, browser=None, match_prefix=None, user_agent=None, empty_matches=False):
         # Note: output_matches_as_mv and include_raw_content are supported for legacy purposes
         
         # Use the older output_matches_as_mv field if included
@@ -30,7 +30,7 @@ class WebScraper(SearchCommand):
                        "name_attributes": name_attributes,
                        "output_matches_as_mv": normalizeBoolean(output_as_mv),
                        "output_matches_as_separate_fields": normalizeBoolean(output_matches_as_separate_fields),
-                       "include_empty_matches": False,
+                       "include_empty_matches": empty_matches,
                        "proxy_type": "http",
                        "proxy_server": None,
                        "proxy_port": None,

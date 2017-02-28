@@ -335,8 +335,8 @@ class WebInputController(controllers.BaseController):
                 kw['user_agent'] = kwargs['user_agent']
 
             # Determine if we should include empty matches
-            if 'include_empty_matches' in kwargs:
-                kw['include_empty_matches'] = util.normalizeBoolean(kwargs['include_empty_matches'], True)
+            if 'empty_matches' in kwargs:
+                kw['include_empty_matches'] = util.normalizeBoolean(kwargs['empty_matches'], True)
 
             # Get the use_element_name parameter
             if 'use_element_name' in kwargs:

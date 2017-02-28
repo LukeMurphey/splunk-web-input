@@ -42,15 +42,21 @@
 	          <key name="exampleText">A <![CDATA[<a target="_blank" href="http://www.w3schools.com/cssref/css_selectors.asp">]]>CSS selector<![CDATA[</a>]]> that will match the data you want to retrieve</key>
 	        </element>
 	        
-		  	<element name="web_input_preview_dialog" type="web_input_preview_dialog">
+		  	  <element name="web_input_preview_dialog" type="web_input_preview_dialog">
 		  	    <view name="create"/>
-	            <view name="edit"/>
-		  	</element>
+	          <view name="edit"/>
+		  	  </element>
 		  	
 	        <element name="raw_content" type="checkbox" label="Include Raw Content">
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="exampleText">Include the original raw content returned by the server in the result (useful if you want to do your own parsing)</key>
+	        </element>
+
+	        <element name="empty_matches" type="checkbox" label="Include Empty Matches">
+	          <view name="edit"/>
+	          <view name="create"/>
+	          <key name="exampleText">Include matches that don't include anything (otherwise, they are excluded)</key>
 	        </element>
 		  	
 	      </elements>

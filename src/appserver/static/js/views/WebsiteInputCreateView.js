@@ -369,6 +369,7 @@ define([
         	this.setIfValueIsNonEmpty('#inputTextSeparator', input.content.text_separator);
         	
         	this.setCheckboxInput('#inputIncludeRaw', input.content.raw_content);
+			this.setCheckboxInput('#inputIncludeEmpty', input.content.empty_matches);
         	this.setCheckboxInput('#inputMV', input.content.output_as_mv);
         	this.setCheckboxInput('#inputUseTagAsField', input.content.use_element_name);
         	
@@ -1254,9 +1255,9 @@ define([
         	this.addIfInputIsNonEmpty(data, "text_separator", '#inputTextSeparator');
         	
         	this.addCheckboxInput(data, "raw_content", '#inputIncludeRaw');
+			this.addCheckboxInput(data, "empty_matches", '#inputIncludeEmpty');
         	this.addCheckboxInput(data, "output_as_mv", '#inputMV');
         	this.addCheckboxInput(data, "use_element_name", '#inputUseTagAsField');
-        	
         	
         	// Populate defaults for the arguments
         	if(!data.hasOwnProperty('name') && this.isNew()){

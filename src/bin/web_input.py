@@ -159,6 +159,7 @@ class WebInput(ModularInput):
                 IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                BooleanField("empty_matches", "Empty matches", "Include empty rows (otherwise, they are excluded)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
                 Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
                 IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
@@ -219,7 +220,7 @@ class WebInput(ModularInput):
             return url
        
     @classmethod
-    def append_if_not_empty(cls, str1, str2, separator):
+    def append_if_not_empty(cls, str1, str2, separator, include_empty=False):
         """
         
         Arguments:
@@ -227,7 +228,7 @@ class WebInput(ModularInput):
         str2 -- The second string
         separator -- The separator to put between the strings if they aren't blank
         """
-        
+
         if str1 is None:
             str1 = ""
             
@@ -236,8 +237,8 @@ class WebInput(ModularInput):
         
         if separator is None:
             separator = " "
-            
-        if len(str1) > 0 and len(str2) > 0:
+
+        if include_empty or (len(str1) > 0 and len(str2) > 0):
             return str1 + separator + str2
         if len(str1) > 0:
             return str1
@@ -248,7 +249,7 @@ class WebInput(ModularInput):
             
        
     @classmethod
-    def get_text(cls, element, text_separator=" "):
+    def get_text(cls, element, text_separator=" ", include_empty=False):
         """
         Get the accumulated text from the child nodes.
         
@@ -264,20 +265,22 @@ class WebInput(ModularInput):
         if element.text is not None:
             text = element.text.strip()
         else:
-            text = ""
+            text = None
         
         # Iterate through the child nodes and add up the text
         for child_element in element:
             
-            text = cls.append_if_not_empty(text, WebInput.get_text(child_element), text_separator)
+            text = cls.append_if_not_empty(text, WebInput.get_text(child_element, text_separator), text_separator, include_empty)
             
             # Get the tail text
             if child_element.tail:
                 tail_text = child_element.tail.strip()
-                
-                text = cls.append_if_not_empty(text, tail_text, text_separator)
+                text = cls.append_if_not_empty(text, tail_text, text_separator, include_empty)
             
-        return text.strip()
+        if text is not None:
+            return text.strip()
+        else:
+            return ""
        
     @classmethod
     def escape_field_name(cls, name):
@@ -719,7 +722,7 @@ class WebInput(ModularInput):
                 for match in matches:
                     
                     # Unescape the text in case it includes HTML entities
-                    match_text = cls.unescape(WebInput.get_text(match, text_separator))
+                    match_text = cls.unescape(WebInput.get_text(match, text_separator, include_empty_matches))
                     
                     # Don't include the field if it is empty
                     if include_empty_matches or len(match_text) > 0:
@@ -897,7 +900,7 @@ class WebInput(ModularInput):
         additional_fields -- Additional fields to put into the result set
         match_prefix -- A prefix to attach to prepend to the front of the match fields
         """
-        
+
         if isinstance(url, basestring):
             url = URLField.parse_url(url, "url")
             
@@ -1010,7 +1013,10 @@ class WebInput(ModularInput):
         Argument:
         text -- The HTML (or XML) source text.
         """
-        
+
+        if text is None:
+            return None
+
         import HTMLParser
         h = HTMLParser.HTMLParser()
         

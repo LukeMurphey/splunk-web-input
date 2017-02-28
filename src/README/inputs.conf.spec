@@ -51,3 +51,6 @@ timeout = <value>
 
 output_as_mv = <value>
 * Indicates whether the output will in a multi-value field
+
+empty_matches = <value>
+* Indicates whether empty matches should be included
