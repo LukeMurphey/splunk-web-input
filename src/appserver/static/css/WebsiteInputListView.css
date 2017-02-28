@@ -10,7 +10,7 @@
 	width: 400px;
 }
 
-.app-filter{
+.app-filter, .scope-filter{
 	margin-top: 8px;
 	margin-left: 16px;
 }

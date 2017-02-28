@@ -74,6 +74,7 @@ define([
             // Filtering options
             this.filter_app = null;
             this.filter_text = null;
+			this.filter_scope = null;
             
             // This tracks the filter that was applied
             this.applied_filter = null;
@@ -111,6 +112,7 @@ define([
         	"change #free-text-filter" : "applyFilter",
         	"keyup #free-text-filter" : "goFilter",
         	"keypress #free-text-filter" : "goFilter",
+			"click .scope-filter > .btn" : "onClickScopeFilter",
         	
         	// Options for disabling inputs
         	"click .disable-input" : "openDisableInputDialog",
@@ -140,6 +142,47 @@ define([
             });
         },
         
+        /**
+         * Apply the scope filter on click.
+         */
+        onClickScopeFilter: function(ev){
+        	var filter = $(ev.target).text();
+        	this.setScopeFilter(filter);
+        },
+        
+        /**
+         * Set the scope filter
+         */
+        setScopeFilter: function(filter){
+        	
+        	var filterText = "All";
+        	
+        	if(filter === "All" || filter === null){
+        		this.filter_scope = null;
+        	}
+        	else if( filter.indexOf("Enabled") >= 0 ){
+        		this.filter_scope = true;
+        		filterText = "Disable";
+        	}
+        	else{
+        		this.filter_scope = false;
+        		filterText = "Enable";
+        	}
+        	
+        	// Show the button as active on the selected entry and only on that entry
+        	$('.scope-filter > .btn').each(function() {
+        		if($(this).text() === filterText){
+        			$(this).addClass('active');
+        		}
+        		else{
+        			$(this).removeClass('active');
+        		}
+        	});
+        	
+        	this.applyFilter();
+        	
+        },
+
         /**
          * Set the name associated with the filter
          */
@@ -372,7 +415,7 @@ define([
         applyFilter: function(){
         	
         	// Determine if we even need to apply this filter
-        	var applied_filter_signature = ":" + this.filter_app + ":" + $('#free-text-filter').val();
+        	var applied_filter_signature = ":" + this.filter_app + ":" + $('#free-text-filter').val() + ":" + this.filter_scope;
         	
         	if(applied_filter_signature === this.applied_filter){
         		return;
@@ -388,10 +431,21 @@ define([
         	else{
         		this.data_table.columns(2).search( "" );
         	}
+
+			// Get the scope filter
+			if( this.filter_scope === true ){
+        		this.data_table.columns(3).search( ".*Disable.*", true );
+        	}
+        	else if( this.filter_scope === false ){
+        		this.data_table.columns(3).search( ".*Enable.*", true );
+        	}
+        	else{
+        		this.data_table.columns(3).search( "" );
+        	}
         	
         	// Apply the text filter
         	this.filter_text = $('#free-text-filter').val();
-        	this.data_table.search( $('#free-text-filter').val() ).draw();
+        	this.data_table.columns([0.1]).search( $('#free-text-filter').val() ).draw();
         },
         
         /**
@@ -544,7 +598,7 @@ define([
                               null,                   // Name
                               null,                   // Title
                               { "searchable": false },// App
-                              { "searchable": false } // Actions
+                              null // Actions
                             ]
             } );
             
