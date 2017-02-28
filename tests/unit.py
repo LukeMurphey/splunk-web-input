@@ -538,7 +538,8 @@ class TestBrowserRendering(UnitTestWithWebServer):
     http://lukemurphey.net/issues/1323
     """
     
-    BROWSER = None
+    # Override this to test other browsers too (like Firfox)
+    BROWSER = WebInput.INTEGRATED_CLIENT # By default, test the internal browser
     
     @skipIfNoServer
     def test_scrape_page(self):
@@ -592,9 +593,6 @@ class TestBrowserRendering(UnitTestWithWebServer):
   
 class TestBrowserRenderingFirefox(TestBrowserRendering):
     BROWSER = WebInput.FIREFOX
-    
-class TestBrowserRenderingIntegrated(TestBrowserRendering):
-    BROWSER = WebInput.INTEGRATED_CLIENT
 
 if __name__ == "__main__":
     
