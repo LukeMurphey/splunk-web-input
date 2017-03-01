@@ -45,15 +45,16 @@ Here are the most important parameters:
 ╚═════════════════════════════════════╩══════════════════════╩══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩═══════════════╩═══════════════════════╝
 
 Here are some other supported variables:
-╔═══════════════════════╦══════════════════════╦═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╦══════════════════════════════════════════════╗
-║     Property file     ║ Environment variable ║                                                        Description                                                        ║                Default value                 ║
-╠═══════════════════════╬══════════════════════╬═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╬══════════════════════════════════════════════╣
-║ value.build.minimize  ║ BUILD_MINIMIZED      ║ If set to 1 or true, the JS and CSS in the package will be minimized                                                      ║ true (code is minified automatically)        ║
-║ value.deploy.minimize ║                      ║ If set to 1 or true, the JS and CSS will be minimized when copying to your local Splunk build for testing                 ║ true (code is minified automatically)        ║
-║ value.src.directory   ║                      ║ Indicates which directory has the source-code                                                                             ║ /src                                         ║
-║ value.build.number    ║                      ║ Indicates the build number to use (if you want to ${value.build.number} to be substituted in the txt and conf files)      ║ Generated the date of the last change in git ║
-║ skip_bump             ║                      ║ Indicates if the build script shouldn't try to bump the web-server in order to prevent SplunkWeb from returning old files ║                                              ║
-╚═══════════════════════╩══════════════════════╩═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩══════════════════════════════════════════════╝
+╔══════════════════════════╦══════════════════════╦═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╦══════════════════════════════════════════════╗
+║      Property file       ║ Environment variable ║                                                        Description                                                        ║                Default value                 ║
+╠══════════════════════════╬══════════════════════╬═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╬══════════════════════════════════════════════╣
+║ value.build.minimize     ║ BUILD_MINIMIZED      ║ If set to 1 or true, the JS and CSS in the package will be minimized                                                      ║ true (code is minified automatically)        ║
+║ value.deploy.minimize    ║                      ║ If set to 1 or true, the JS and CSS will be minimized when copying to your local Splunk build for testing                 ║ true (code is minified automatically)        ║
+║ value.src.directory      ║                      ║ Indicates which directory has the source-code                                                                             ║ /src                                         ║
+║ value.build.number       ║                      ║ Indicates the build number to use (if you want to ${value.build.number} to be substituted in the txt and conf files)      ║ Generated the date of the last change in git ║
+║ value.build.package.file ║ PACKAGE_FILE         ║ Indicates the resulting file that will be created or the file that will be installed via splunk.install                   ║ A file in tmp/packages                       ║
+║ skip_bump                ║                      ║ Indicates if the build script shouldn't try to bump the web-server in order to prevent SplunkWeb from returning old files ║                                              ║
+╚══════════════════════════╩══════════════════════╩═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩══════════════════════════════════════════════╝
 
 ======================================================
 Build targets
@@ -124,6 +125,7 @@ You can also use ${value.version.number} to substitute your version number in ap
 	<import_environment_var property="value.build.packageoutput.directory" variable="OUTPUT_DIRECTORY" />
 	<import_environment_var property="value.build.minimize" variable="BUILD_MINIMIZED" />
 	<import_environment_var property="value.deploy.minimize" variable="DEPLOY_MINIMIZED" />
+	<import_environment_var property="value.build.package.file" variable="PACKAGE_FILE" />
 	
 	<!-- Import the default properties -->
     <property file="default.properties" />
@@ -476,11 +478,12 @@ You can customize the build process by placing properties in the default.propert
         </tar>
         
         <!-- Gzip the files -->
-        <gzip src="${value.temp.tar_package.file}" destfile="${value.build.packageoutput.directory}/${value.build.appname}.tar.gz"/>
+		<property name="value.build.package.file" value="${value.build.packageoutput.directory}/${value.build.appname}.tar.gz"/>
+        <gzip src="${value.temp.tar_package.file}" destfile="${value.build.package.file}"/>
         
         <!-- Delete the temporary location so that old files do not get streamed in -->
         <delete dir="${value.temp.directory}" />
-        <echo>App ${value.build.appname} build ${value.build.number} created: ${value.build.packageoutput.directory}/${value.build.appname}.tar.gz</echo>
+        <echo>App ${value.build.appname} build ${value.build.number} created: ${value.build.package.file}</echo>
 
     </target>
     
@@ -679,14 +682,35 @@ Below is an example of the file:
     <target name="splunk.deploy_and_restart" description="Deploys the application and restarts Splunk" depends="skip_bump,deploy,splunk.restart" />
 	
     <!-- ================================= 
+          target: splunk.package_and_install
+         ================================= -->
+	<target name="splunk.package_and_install" description="Builds the package and installs the package into Splunk" depends="verify_splunk_home,package,splunk.install" />
+
+    <!-- ================================= 
+          target: splunk.install
+         ================================= -->
+	<target name="splunk.install" description="Installs the package into Splunk" depends="verify_splunk_home">
+		<exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${basedir}">
+        	<arg line="install" />
+        	<arg line="app" />
+        	<arg line="${value.build.package.file}" />
+			<arg line="-update" />
+			<arg line="1" />
+			<arg line="-auth" />
+			<arg line="${value.deploy.splunk_username}:${value.deploy.splunk_password}" />
+        </exec>
+	</target>
+
+	<!-- ================================= 
+          target: splunk.install_and_restart
+         ================================= -->
+	<target name="splunk.install_and_restart" description="Builds the package, installs it, and restarts Splunk" depends="splunk.install,splunk.restart"/>
+
+    <!-- ================================= 
           target: splunk.refresh
          ================================= -->
     <target name="splunk.refresh" description="Refresh Splunk" depends="verify_splunk_home">
-    	
-      	<!-- Define the username and password if not already defined -->
-      	<property name="splunk_username" value="admin"/>
-      	<property name="splunk_password" value="changeme"/>
-      	
+
       	<!-- Define a macro that can be used for refreshing Splunk endpoints -->
       	<macrodef name="reload_conf">
     		<attribute name="endpoint"/>
@@ -696,7 +720,7 @@ Below is an example of the file:
     				<arg value="call"/>
     				<arg value="/admin/@{endpoint}/_reload"/>
     				<arg value="-auth"/>
-    				<arg value="${splunk_username}:${splunk_password}"/>
+    				<arg value="${value.deploy.splunk_username}:${value.deploy.splunk_password}"/>
     				<arg value="--accept-license"/>
     			</exec>
     		</sequential>
