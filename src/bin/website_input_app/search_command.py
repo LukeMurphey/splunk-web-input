@@ -145,78 +145,78 @@ class SearchCommand(object):
         
         args, kwargs = cls.get_arguments()
         return cls(*args, **kwargs)
-    
+
     @classmethod
     def execute(cls):
         """
         Initialize an instance and run it.
         """
-        
+
         try:
-        
+
             instance = cls.make_instance()
             instance.run()
-        
+
         except Exception as e:
-            splunk.Intersplunk.parseError( str(e) )
+            splunk.Intersplunk.parseError(str(e))
             # self.logger.exception("Search command threw an exception")
-        
+
     def run(self, results=None):
-        
+
         try:
-            
+
             # Get the results from Splunk (unless results were provided)
             if results is None:
                 results, dummyresults, settings = splunk.Intersplunk.getOrganizedResults()
                 session_key = settings.get('sessionKey', None)
-                
+
                 # Don't write out the events in preview mode
                 in_preview = settings.get('preview', '0')
-                
+
                 # If run_in_preview is undefined, then just continue
                 if self.run_in_preview is None:
                     pass
-                
+
                 # Don't do anything if the command is supposed to run in preview but the results are not preview results
                 elif self.run_in_preview and in_preview == "0":
-                    
+
                     # Don't run in non-preview mode since we already processed the events in preview mode
                     if len(results) > 0:
                         self.logger.info( "Search command is set to run in preview, ignoring %d results provided in non-preview mode" % ( len(results) ) )
-                    
+
                     return None
-                
+
                 # Don't do anything if the command is NOT supposed to run in preview but the results are previewed results
                 elif not self.run_in_preview and not in_preview == "0":
                     return None
-                    
+
             else:
                 settings = None
-                
+
             # Execute the search command
             self.handle_results(results, session_key, in_preview)
-                
+
         except Exception as e:
-            splunk.Intersplunk.parseError( str(e) )
+            splunk.Intersplunk.parseError(str(e))
             self.logger.exception("Search command threw an exception")
-            
+
     def output_results(self, results):
         """
         Output results to Splunk.
-        
+
         Arguments:
         results -- An array of dictionaries of fields/values to send to Splunk.
         """
-        
+
         splunk.Intersplunk.outputResults(results)
-            
+
     def handle_results(self, results, session_key, in_preview):
         """
-        
+
         Arguments:
         results -- The results from Splunk to process
         in_preview -- Whether the search is running in preview
         session_key -- The session key to use for connecting to Splunk
         """
-        
+
         raise Exception("handle_results needs to be implemented")
