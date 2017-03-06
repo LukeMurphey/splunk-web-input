@@ -221,6 +221,10 @@ class WebInputController(controllers.BaseController):
                 if rewrite_using_internal_proxy:
 
                     def relocate_href(link):
+                        """
+                        Change the hrefs such that they go through the proxy.
+                        """
+
                         link = urlparse.urljoin(url, link)
 
                         if link.endswith(".js"):
