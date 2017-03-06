@@ -277,6 +277,20 @@ class TestWebInput(UnitTestWithWebServer):
         result = results[0]
         
         self.assertEqual(result['match'][0], ',Text_0,,Text_1,,Text_2,,Text_3,')
+
+    @skipIfNoServer
+    def test_scrape_page_include_empty_matches_nulls(self):
+        # https://lukemurphey.net/issues/1726
+        
+        url_field = URLField( "test_web_input", "title", "this is a test" )
+        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
+        results = WebInput.scrape_page( url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a > *"), timeout=3, include_empty_matches=True, text_separator=",")
+
+        result = results[0]
+        self.assertEqual(result['match'][0], 'NULL')
+        self.assertEqual(result['match'][1], 'Text_1')
+        self.assertEqual(result['match'][2], 'Text_2')
+        self.assertEqual(result['match'][3], 'NULL')
         
     def test_field_escaping(self):
         self.assertTrue(WebInput.escape_field_name("tree()"), "tree__")
