@@ -3,7 +3,7 @@ from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_d
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
-from splunk.models.field import IntField as ModelIntField 
+from splunk.models.field import IntField as ModelIntField
 
 import logging
 from logging import handlers
@@ -163,7 +163,7 @@ class WebInput(ModularInput):
                 Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
                 Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
                 IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
-                BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
                 ]
         
         ModularInput.__init__( self, scheme_args, args )
@@ -603,7 +603,7 @@ class WebInput(ModularInput):
                 display.stop()
     
     @classmethod
-    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None, match_prefix=None):
+    def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None, match_prefix=None, empty_value=None):
         """
         Get the results from performing a HTTP request and parsing the output.
         
@@ -636,6 +636,7 @@ class WebInput(ModularInput):
         proxy_password -- The password of the proxy server account
         additional_fields -- Additional fields to put into the result set
         match_prefix -- A prefix to attach to prepend to the front of the match fields
+        empty_value -- The value to use for empty matches
         """
         
         try:
@@ -723,9 +724,13 @@ class WebInput(ModularInput):
                     
                     # Unescape the text in case it includes HTML entities
                     match_text = cls.unescape(WebInput.get_text(match, text_separator, include_empty_matches))
-                    
+
                     # Don't include the field if it is empty
                     if include_empty_matches or len(match_text) > 0:
+                        
+                        # Use the empty value if necessary     
+                        if empty_value is not None and len(empty_value) > 0 and (match_text is None or len(match_text) == 0):
+                            match_text = empty_value
                         
                         # Keep a count of how many fields we matched
                         fields_included = fields_included + 1
@@ -772,7 +777,7 @@ class WebInput(ModularInput):
                             
                         # Otherwise, output the fields as generic fields
                         if not field_made:
-                            
+
                             if output_matches_as_mv:
                                 result[match_prefix + 'match'].append(match_text) # Note: the 'match' in the dictionary will already be populated
                             
@@ -867,7 +872,7 @@ class WebInput(ModularInput):
         return http
     
     @classmethod
-    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None):
+    def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value='NULL'):
         """
         Retrieve data from a website.
         
@@ -899,6 +904,7 @@ class WebInput(ModularInput):
         browser -- The browser to use
         additional_fields -- Additional fields to put into the result set
         match_prefix -- A prefix to attach to prepend to the front of the match fields
+        empty_value -- The value to use for empty matches
         """
 
         if isinstance(url, basestring):
@@ -985,7 +991,8 @@ class WebInput(ModularInput):
                         'proxy_user': proxy_user,
                         'proxy_password': proxy_password,
                         'extracted_links': extracted_links,
-                        'match_prefix': match_prefix
+                        'match_prefix': match_prefix,
+                        'empty_value': empty_value
                       }
                 
                 # Don't have the function extract URLs if the depth limit has been reached
