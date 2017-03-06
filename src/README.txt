@@ -157,4 +157,8 @@ Change History
 |         | Fixed issue where Firefox rendering didn't work on headless environments                                         |
 |         | Improved icons                                                                                                   |
 |         | Improved the sparkline on the overview dashboard to make it easier to read                                       |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.1     | Fixed issue where some sites could not be previewed                                                              |
+|         | Fixed issue where selectors would not match an ID that was not lowercase                                         |
+|         | Added ability to include empty matches                                                                           |
 +---------+------------------------------------------------------------------------------------------------------------------+
