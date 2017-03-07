@@ -37,6 +37,31 @@
     </div>
 </div>
 
+<div tabindex="-1" id="delete-input-modal" class="modal fade in hide">
+    <div class="modal-header">
+        <button type="button" class="close btn-dialog-close" data-dismiss="modal">x</button>
+        <h3 class="text-dialog-title">Delete Input</h3>
+    </div>
+    <div class="modal-body form form-horizontal modal-body-scrolling">
+        Are you sure you want to delete this input? This operation cannot be undone.
+        
+        <table class="delete-input-info-table">
+        	<tr>
+        		<td class="delete-input-info">Input</td>
+        		<td class="delete-input-name"></td>
+        	</tr>
+        	<tr>
+        		<td class="delete-input-info">Namespace</td>
+        		<td class="delete-input-namespace"></td>
+        	</tr>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-dialog-cancel pull-left" data-dismiss="modal" style="display: inline;">Cancel</a>
+        <a href="#" class="btn btn-primary" id="delete-this-input" data-dismiss="modal" style="display: inline;">Yes, Delete</a>
+    </div>
+</div>
+
 <div id="success_message" class="hide alert alert-info">
   <i class="icon-alert"></i><span id="success_text">The changes were successfully saved</span>
 </div>
@@ -108,6 +133,7 @@
 				<% } if (inputs[i].disabled) { %>
 					<a class="action-link enable-input" data-owner="<%- inputs[i].owner %>" data-namespace="<%- inputs[i].namespace %>" data-name="<%- inputs[i].name %>" href="#">Enable</a>
 				<% } %>
+                    <a class="action-link delete-input" data-owner="<%- inputs[i].owner %>" data-namespace="<%- inputs[i].namespace %>" data-name="<%- inputs[i].name %>" href="#">Delete</a>
 			</td>
         </tr>
 		<% } %>

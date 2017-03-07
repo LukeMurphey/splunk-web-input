@@ -161,4 +161,5 @@ Change History
 | 4.1     | Fixed issue where some sites could not be previewed                                                              |
 |         | Fixed issue where selectors would not match an ID that was not lowercase                                         |
 |         | Added ability to include empty matches                                                                           |
+|         | Added ability to delete inputs                                                                                   |
 +---------+------------------------------------------------------------------------------------------------------------------+

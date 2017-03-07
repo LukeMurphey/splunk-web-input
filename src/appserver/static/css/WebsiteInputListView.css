@@ -10,6 +10,9 @@
 	width: 400px;
 }
 
+/**
+ * Filter related styles
+ **/
 .app-filter, .scope-filter{
 	margin-top: 8px;
 	margin-left: 16px;
@@ -60,7 +63,7 @@
 }
 
 #table_wrapper{
-	clear: both; /* SOLNESS-7190 */
+	clear: both;
 }
 
 #table_paginate{
@@ -72,15 +75,21 @@ td{
 	background-color: white;
 }
 
-.disable-input-info-table{
+/**
+ * Modal delete and disable dialogs
+ **/
+.disable-input-info-table, .delete-input-info-table{
 	margin: 16px 0 8px 8px;
 }
 
-.disable-input-info{
+.disable-input-info, .delete-input-info{
     font-weight: bold;
     padding-right: 12px;
 }
 
+/**
+ * Data-table related styles (the search bar, count, and action links)
+ **/
 .form-search{
 	margin-bottom:8px;
 }
@@ -88,6 +97,8 @@ td{
 .action-link{
 	margin-right: 8px;
 	margin-left: 2px;
+	min-width: 40px;
+    display: inline-block;
 }
 
 .inputs-count{

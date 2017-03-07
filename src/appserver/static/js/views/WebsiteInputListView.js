@@ -117,7 +117,11 @@ define([
         	// Options for disabling inputs
         	"click .disable-input" : "openDisableInputDialog",
         	"click #disable-this-input" : "disableInput",
-        		
+
+        	// Options for deleting inputs
+        	"click .delete-input" : "openDeleteInputDialog",
+        	"click #delete-this-input" : "deleteInput",
+
             // Options for enabling inputs
             "click .enable-input" : "enableInput"
         },
@@ -377,7 +381,77 @@ define([
         	return false;
         	
         },
+
+        /**
+         * Open a dialog to delete the input.
+         */
+        openDeleteInputDialog: function(ev){
+        	
+        	// Get the input that is being requested to delete
+        	var name = $(ev.target).data("name");
+        	var namespace = $(ev.target).data("namespace");
+        	var owner = $(ev.target).data("owner");
+        	
+        	// Record the info about the input to delete
+        	$("#delete-this-input", this.$el).data("name", name);
+        	$("#delete-this-input", this.$el).data("namespace", namespace);
+        	$("#delete-this-input", this.$el).data("owner", owner);
+        	
+        	// Show the info about the input to delete
+        	$(".delete-input-name", this.$el).text(name);
+        	$(".delete-input-namespace", this.$el).text(namespace);
+        	$(".delete-input-owner", this.$el).text(owner);
+        	
+        	// Show the modal
+        	$("#delete-input-modal", this.$el).modal();
+        	
+        	return false;
+        	
+        },
         
+        /**
+         * Delete the given input. 
+         */
+        deleteInput: function(ev){
+        	
+        	// Get the input that is being requested to delete
+        	var input = $(ev.target).data("name");
+        	var namespace = $(ev.target).data("namespace");
+        	var owner = $(ev.target).data("owner");
+        	
+        	// Perform the call
+        	$.ajax({
+        			url: splunkd_utils.fullpath(['/servicesNS',  owner , namespace, '/data/inputs/web_input', input].join('/')),
+        			type: 'DELETE',
+        			
+        			// On success
+        			success: function() {
+        				console.info('Input deleted');
+        			}.bind(this),
+        		  
+        			// Handle cases where the file could not be found or the user did not have permissions
+        			complete: function(jqXHR, textStatus){
+        				if( jqXHR.status == 403){
+        					console.info('Inadequate permissions to delete input');
+        				}
+        				else{
+        					$("#delete-input-modal", this.$el).modal('hide');
+        					this.retain_state = true;
+        					this.getInputs();
+        				}
+        				
+        			}.bind(this),
+        		  
+        			// Handle errors
+        			error: function(jqXHR, textStatus, errorThrown){
+        				if( jqXHR.status != 403 ){
+        					console.info('Input deletion failed');
+        				}
+        			}.bind(this)
+        	});
+        	
+        },
+
         /**
          * Apply a filter to the table
          */
