@@ -153,6 +153,7 @@ You can also use ${value.version.number} to substitute your version number in ap
     <property name="value.build.appname" value="${ant.project.name}" />
 	<property name="value.build.libraries" value="${basedir}/lib" />
 	<property name="absolute_lib_path" location="${value.build.libraries}"/>
+	<property name="value.build.package.file" value="${value.build.packageoutput.directory}/${value.build.appname}.tar.gz"/>
     
     <!-- Set up the ant classpath -->
     <path id="ant.classpath">
@@ -492,7 +493,6 @@ You can customize the build process by placing properties in the default.propert
         </tar>
         
         <!-- Gzip the files -->
-		<property name="value.build.package.file" value="${value.build.packageoutput.directory}/${value.build.appname}.tar.gz"/>
         <gzip src="${value.temp.tar_package.file}" destfile="${value.build.package.file}"/>
         
         <!-- Delete the temporary location so that old files do not get streamed in -->
@@ -787,9 +787,25 @@ Below is an example of the file:
 	</target>
 
     <!-- ================================= 
+          target: verify_package
+         ================================= -->
+	<target name="verify_package"  depends="initialize_libraries">
+
+		<if>
+			<available file="${value.build.package.file}" />
+			<then>
+				<!-- Package exists, we are good -->
+			</then>
+			<else>
+				<fail message="Package file does not exist; expected it to be at ${value.build.package.file}" />
+			</else>
+		</if>
+	</target>
+
+    <!-- ================================= 
           target: splunk.install_cli
          ================================= -->
-	<target name="splunk.install_cli" description="Installs the package into Splunk" depends="verify_splunk_home,initialize_libraries">
+	<target name="splunk.install_cli" description="Installs the package into Splunk" depends="verify_splunk_home,verify_package,initialize_libraries">
 
 		<exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${basedir}">
         	<arg line="install" />
@@ -806,7 +822,7 @@ Below is an example of the file:
     <!-- ================================= 
           target: splunk.install_api
          ================================= -->
-	<target name="splunk.install_api" description="Installs the package into Splunk using the REST API" depends="verify_splunkd_url,initialize_libraries">
+	<target name="splunk.install_api" description="Installs the package into Splunk using the REST API" depends="verify_splunkd_url,verify_package,initialize_libraries">
 
 		<property name="absolute_package_file" location="${value.build.package.file}"/> 
 		<splunkappinstall name="${absolute_package_file}" url="${value.deploy.splunkd_url}" username="${value.deploy.splunk_username}" password="${value.deploy.splunk_password}"/>
