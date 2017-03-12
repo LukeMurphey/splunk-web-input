@@ -162,4 +162,6 @@ Change History
 |         | Fixed issue where selectors would not match an ID that was not lowercase                                         |
 |         | Added ability to include empty matches                                                                           |
 |         | Added ability to delete inputs                                                                                   |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.1.1   | Fixed issue where Firefox driver was not correctly added to the path on Windows                                  |
 +---------+------------------------------------------------------------------------------------------------------------------+
