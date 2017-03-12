@@ -531,7 +531,14 @@ class WebInput(ModularInput):
         full_driver_path = os.path.join(get_apps_dir(), "website_input", "bin", "browser_drivers", driver_path)
         
         if not full_driver_path in os.environ["PATH"]:
-            os.environ["PATH"] += ":" +full_driver_path
+
+            # Use the correct path separator per the platform
+            # https://lukemurphey.net/issues/1782
+            if os.name == 'nt':
+                os.environ["PATH"] += ";" +full_driver_path
+            else:
+                os.environ["PATH"] += ":" +full_driver_path
+            
             logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
     
     @classmethod
