@@ -14,16 +14,18 @@ from lxml.html.clean import Cleaner
 import cherrypy
 import urlparse
 from httplib2 import ServerNotFoundError
+import json
+
 from splunk.appserver.mrsparkle.lib import jsonresponse
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 from splunk.appserver.mrsparkle.lib.decorators import expose_page
 import splunk.appserver.mrsparkle.controllers as controllers
-
 import splunk
 import splunk.util as util
 import splunk.entity as entity
+import splunk.rest as rest
 
-sys.path.append( os.path.join("..", "..", "..", "bin") )
+sys.path.append(os.path.join("..", "..", "..", "bin"))
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import WebInput
@@ -66,6 +68,55 @@ class WebInputController(controllers.BaseController):
         output.success = False
         output.addError(msg)
         return self.render_json(output)
+
+    @staticmethod
+    def hasCapability(capabilities, user=None, session_key=None):
+
+        # Assign defaults if the user or session key is None
+        if user is None:
+            user = cherrypy.session['user']['name']
+
+        if session_key is None:
+            session_key = cherrypy.session.get('sessionKey')
+
+        # Convert the capability to a list if it was a scalar
+        if not isinstance(capabilities, list) or isinstance(capabilities, basestring):
+            capabilities = [capabilities]
+
+        # Get the capabilities that the user has
+        try:
+            users_capabilities = WebInputController.getCapabilities4User(user, session_key)
+        except splunk.LicenseRestriction:
+            # This can happen when the Splunk install is using the free license
+
+            # Check to see if the Splunk install is using the free license and allow access if so
+            # We are only going to check for this if it is the admin user since that is the user
+            # that the non-authenticated user is logged in as when the free license is used.
+            if user == 'admin':
+
+                # See the free license is active
+                response, content = rest.simpleRequest('/services/licenser/groups/Free?output_mode=json',
+                                                       sessionKey=session_key)
+
+                # If the response didn't return a 200 code, then the entry likely didn't exist and
+                # the host is not using the free license
+                if response.status == 200:
+
+                    # Parse the JSON content
+                    logger.warn(content)
+                    license_info = json.loads(content)
+
+                    if license_info['entry'][0]['content']['is_active'] == 1:
+                        # This host is using the free license, allow this through
+                        return True
+
+
+        # Check the capabilities
+        for capability in capabilities:
+            if capability not in users_capabilities:
+                return False
+
+        return True
 
     @staticmethod
     def getCapabilities4User(user=None, session_key=None):
@@ -115,7 +166,7 @@ class WebInputController(controllers.BaseController):
                 '<body>' + msg + '</body>' \
                 '</html>'
 
-    @expose_page(must_login=True, methods=['GET', 'POST']) 
+    @expose_page(must_login=True, methods=['GET', 'POST'])
     def load_page(self, url, **kwargs):
         """
         Proxy a web-page through so that a UI can be displayed for showing potential results.
@@ -124,16 +175,13 @@ class WebInputController(controllers.BaseController):
         try:
 
             # --------------------------------------
-            # 1: Make sure that user has permission to make inputs. We don't want to allow people to use this as a general proxy.
+            # 1: Make sure that user has permission to make inputs. We don't want to allow people
+            #    to use this as a general proxy.
             # --------------------------------------
+            if not WebInputController.hasCapability('edit_modinput_web_input'):
 
-            # Get the user's name and session
-            user = cherrypy.session['user']['name'] 
-            session_key = cherrypy.session.get('sessionKey')
-            capabilities = self.getCapabilities4User(user, session_key) 
-
-            if 'edit_modinput_web_input' not in capabilities:
-                return self.render_error_html("You need the 'edit_modinput_web_input' capability to make website inputs")
+                return self.render_error_html('You need the "edit_modinput_web_input" capability ' +
+                                              'to make website inputs')
 
             # Don't allow proxying of the javascript files
             if url.endswith(".js"):
@@ -149,7 +197,10 @@ class WebInputController(controllers.BaseController):
 
             try:
                 web_input = WebInput(timeout=10)
-                proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
+
+                proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = \
+                web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
+
             except splunk.ResourceNotFound:
                 cherrypy.response.status = 202
                 return self.render_error_html("Proxy server information could not be obtained")
@@ -162,7 +213,8 @@ class WebInputController(controllers.BaseController):
                 username = kwargs['username']
                 password = kwargs['password']
 
-            http = WebInput.get_http_client(username, password, 30, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+            http = WebInput.get_http_client(username, password, 30, proxy_type, proxy_server,
+                                            proxy_port, proxy_user, proxy_password)
 
             # Setup the headers as necessary
             user_agent = None
@@ -203,7 +255,11 @@ class WebInputController(controllers.BaseController):
                 # Try rendering the content using a web-browser
                 try:
                     if browser is not None and browser != WebInput.INTEGRATED_CLIENT:
-                        content = WebInput.get_result_browser(urlparse.urlparse(url), browser, timeout, username, password, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+
+                        content = WebInput.get_result_browser(urlparse.urlparse(url), browser,
+                                                              timeout, username, password,
+                                                              proxy_type, proxy_server, proxy_port,
+                                                              proxy_user, proxy_password)
 
                     content_decoded = content.decode(encoding=encoding, errors='replace')
                 except:

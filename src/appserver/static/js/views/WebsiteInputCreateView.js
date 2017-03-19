@@ -70,6 +70,7 @@ define([
         	
         	// These are internal variables
         	this.capabilities = null; // The list of capabilities the user has
+			this.is_using_free_license = null; // Indicates whether the free license is being used
         	this.inputs = null; // The list of inputs
         	this.existing_input_names = []; // The list if existing inputs names (to help make a name that isn't used yet)
         	this.selector_gadget_added_interval = null; // The interval that keeps checking to see if the selectot gadget is loaded in the iframe
@@ -1461,7 +1462,7 @@ define([
 
         	var uri = Splunk.util.make_url("/splunkd/__raw/services/authentication/current-context?output_mode=json");
 
-        	if( this.capabilities === null ){
+        	if(this.capabilities === null){
 
 	            // Fire off the request
 	            jQuery.ajax({
@@ -1478,7 +1479,36 @@ define([
 	            });
         	}
 
-            return $.inArray(capability, this.capabilities) >= 0;
+			// See if the user is running the free license
+			if(this.capabilities.length === 0 && this.is_using_free_license === null){
+
+				uri = Splunk.util.make_url("/splunkd/__raw/services/licenser/groups/Free?output_mode=json");
+
+				// Do a call to see if the host is running the free license
+	            jQuery.ajax({
+	            	url:     uri,
+	                type:    'GET',
+	                async:   false,
+	                success: function(result) {
+
+	                	if(result !== undefined){
+	                		this.is_using_free_license = result.entry[0].content['is_active'];
+	                	}
+						else{
+							this.is_using_free_license = false;
+						}
+
+	                }.bind(this)
+	            });
+			}
+
+			// Determine if the user should be considered as having access
+			if(this.is_using_free_license){
+				return true;
+			}
+			else{
+				return $.inArray(capability, this.capabilities) >= 0;
+			}
 
         },
         
