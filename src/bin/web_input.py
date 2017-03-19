@@ -582,7 +582,7 @@ class WebInput(ModularInput):
                 profile = cls.get_firefox_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 
                 if profile is not None:
-                    logger.info("Using a proxy with Firefox")
+                    logger.debug("Using a proxy with Firefox")
                     driver = webdriver.Firefox(profile, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
                 else:
                     driver = webdriver.Firefox(log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
@@ -855,11 +855,11 @@ class WebInput(ModularInput):
         # Setup the proxy info if so configured
         if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
             proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
-            logger.info('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
+            logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
         else:
             # No proxy is being used
             proxy_info = None
-            logger.info("Not using a proxy server")
+            logger.debug("Not using a proxy server")
                         
         # Make the HTTP object
         http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
@@ -931,11 +931,11 @@ class WebInput(ModularInput):
             # Setup the proxy info if so configured
             if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
                 proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
-                logger.info('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
+                logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
             else:
                 # No proxy is being used
                 proxy_info = None
-                logger.info("Not using a proxy server")
+                logger.debug("Not using a proxy server")
                         
             # Make the HTTP object
             http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
@@ -955,7 +955,7 @@ class WebInput(ModularInput):
             headers = {}
             
             if user_agent is not None:
-                logger.info("Setting user-agent=%s", user_agent)
+                logger.debug("Setting user-agent=%s", user_agent)
                 headers['User-Agent'] = user_agent
                         
             # Run the scraper and get the results
@@ -981,7 +981,7 @@ class WebInput(ModularInput):
                 
                 # Stop if we have no more URLs to process
                 if url is None:
-                    logger.info("No more URLs in the list to process")
+                    logger.debug("No more URLs in the list to process")
                     break
                 
                 # Make the keyword argument list
@@ -1053,7 +1053,7 @@ class WebInput(ModularInput):
         try:
             website_input_config = WebsiteInputConfig.get( WebsiteInputConfig.build_id( stanza, "website_input", "nobody"), sessionKey=session_key )
             
-            logger.info("Proxy information loaded, stanza=%s", stanza)
+            logger.debug("Proxy information loaded, stanza=%s", stanza)
             
         except splunk.ResourceNotFound:
             logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s, error="not found"', stanza)
@@ -1154,7 +1154,7 @@ class WebInput(ModularInput):
                     
                         # Write the event as a stash new file
                         writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype)
-                        logger.info("Wrote stash file=%s", writer.write_event(r))
+                        logger.debug("Wrote stash file=%s", writer.write_event(r))
                         
                     else:
                         
