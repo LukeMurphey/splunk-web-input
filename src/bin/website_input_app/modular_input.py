@@ -612,12 +612,12 @@ class ModularInput():
         else:
             return s
     
-    def create_event_string(self, data_dict, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_quotes=False, escape_endlines=True):
+    def create_event_string(self, data, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_quotes=False, escape_endlines=True):
         """
         Create a string representing the event.
         
         Argument:
-        data_dict -- A dictionary containing the fields  or a string with the raw event
+        data -- A dictionary containing the fields or a string with the raw event
         stanza -- The stanza used for the input
         sourcetype -- The sourcetype
         source -- The source field value
@@ -632,7 +632,7 @@ class ModularInput():
         data_str = ''
         
         if isinstance(data, dict):
-            for k, v in data_dict.items():
+            for k, v in data.items():
             
                 # If the value is a list, then write out each matching value with the same name (as mv)
                 if isinstance(v, list) and not isinstance(v, basestring):
