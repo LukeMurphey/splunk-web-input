@@ -34,6 +34,9 @@ from easyprocess import EasyProcessCheckInstalledError
 def setup_logger():
     """
     Setup a logger.
+
+    Note that the modular input base class has a logger too. However, it isn't currently used 
+    because there are several classmethods that don't have access to the logger.
     """
     
     logger = logging.getLogger('web_input_modular_input')
@@ -1138,7 +1141,7 @@ class WebInput(ModularInput):
                     matches = len(result)
                 else:
                     logger.debug("No match returned in the result")
-                
+
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
             except Exception:
                 logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
@@ -1153,7 +1156,7 @@ class WebInput(ModularInput):
                     if self.OUTPUT_USING_STASH:
                     
                         # Write the event as a stash new file
-                        writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype)
+                        writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
                         logger.debug("Wrote stash file=%s", writer.write_event(r))
                         
                     else:
