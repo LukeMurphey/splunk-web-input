@@ -654,11 +654,11 @@ class ModularInput():
                     # Escape the spaces if necessary
                     v_escaped = self.escape_spaces(v_escaped, encapsulate_in_double_quotes=encapsulate_value_in_double_quotes)
                 
-                # Add a little space between KV pairs
-                if len(data_str) > 0:
-                    data_str += ' '
-                
-                data_str += '%s=%s' % (k_escaped, v_escaped)
+                    # Add a little space between KV pairs
+                    if len(data_str) > 0:
+                        data_str += ' '
+                    
+                    data_str += '%s=%s' % (k_escaped, v_escaped)
 
         # If the input is a string, then include it raw
         elif isinstance(data, basestring):

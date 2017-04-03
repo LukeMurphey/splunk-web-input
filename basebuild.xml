@@ -49,16 +49,19 @@ Here are the most important parameters:
 ╚═════════════════════════════════════╩══════════════════════╩══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩═══════════════╩════════════════════════╝
 
 Here are some other supported variables:
-╔══════════════════════════╦══════════════════════╦═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╦══════════════════════════════════════════════╗
-║      Property file       ║ Environment variable ║                                                        Description                                                        ║                Default value                 ║
-╠══════════════════════════╬══════════════════════╬═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╬══════════════════════════════════════════════╣
-║ value.build.minimize     ║ BUILD_MINIMIZED      ║ If set to 1 or true, the JS and CSS in the package will be minimized                                                      ║ true (code is minified automatically)        ║
-║ value.deploy.minimize    ║                      ║ If set to 1 or true, the JS and CSS will be minimized when copying to your local Splunk build for testing                 ║ true (code is minified automatically)        ║
-║ value.src.directory      ║                      ║ Indicates which directory has the source-code                                                                             ║ /src                                         ║
-║ value.build.number       ║                      ║ Indicates the build number to use (if you want to ${value.build.number} to be substituted in the txt and conf files)      ║ Generated the date of the last change in git ║
-║ value.build.package.file ║ PACKAGE_FILE         ║ Indicates the resulting file that will be created or the file that will be installed via splunk.install                   ║ A file in tmp/packages                       ║
-║ skip_bump                ║                      ║ Indicates if the build script shouldn't try to bump the web-server in order to prevent SplunkWeb from returning old files ║                                              ║
-╚══════════════════════════╩══════════════════════╩═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩══════════════════════════════════════════════╝
+╔══════════════════════════════╦══════════════════════╦═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╦══════════════════════════════════════════════╗
+║        Property file         ║ Environment variable ║                                                        Description                                                        ║                Default value                 ║
+╠══════════════════════════════╬══════════════════════╬═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╬══════════════════════════════════════════════╣
+║ value.build.minimize         ║ BUILD_MINIMIZED      ║ If set to 1 or true, the JS and CSS in the package will be minimized                                                      ║ true (code is minified automatically)        ║
+║ value.deploy.minimize        ║                      ║ If set to 1 or true, the JS and CSS will be minimized when copying to your local Splunk build for testing                 ║ true (code is minified automatically)        ║
+║ value.src.directory          ║                      ║ The directory containing the source-code                                                                                  ║ /src                                         ║
+║ value.build.number           ║                      ║ The build number to use (if you want to ${value.build.number} to be substituted in the txt and conf files)                ║ Generated the date of the last change in git ║
+║ value.build.package.file     ║ PACKAGE_FILE         ║ The resulting file that will be created or the file that will be installed via splunk.install                             ║ A file in tmp/packages                       ║
+║ value.build.package.username ║ PACKAGE_USERNAME     ║ The username to use when downloading the package (if it was a URL)                                                        ║                                              ║
+║ value.build.package.password ║ PACKAGE_PASSWORD     ║ The password to use when downloading the package                                                                          ║                                              ║
+║ skip_bump                    ║                      ║ Indicates if the build script shouldn't try to bump the web-server in order to prevent SplunkWeb from returning old files ║                                              ║
+║ value.build.test.directory   ║ TEST_DIRECTORY       ║ Indicates where the tests reside                                                                                          ║                                              ║
+╚══════════════════════════════╩══════════════════════╩═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩══════════════════════════════════════════════╝
 
 ======================================================
 Build targets
@@ -134,6 +137,9 @@ You can also use ${value.version.number} to substitute your version number in ap
 	<import_environment_var property="value.build.minimize" variable="BUILD_MINIMIZED" />
 	<import_environment_var property="value.deploy.minimize" variable="DEPLOY_MINIMIZED" />
 	<import_environment_var property="value.build.package.file" variable="PACKAGE_FILE" />
+	<import_environment_var property="value.build.package.username" variable="PACKAGE_USERNAME" />
+	<import_environment_var property="value.build.package.password" variable="PACKAGE_PASSWORD" />
+	<import_environment_var property="value.build.test.directory" variable="TEST_DIRECTORY" />
 	
 	<!-- Import the default properties -->
     <property file="default.properties" />
@@ -145,6 +151,7 @@ You can also use ${value.version.number} to substitute your version number in ap
 	<property name="value.deploy.splunkd_url" value="https://127.0.0.1:8089" />
 	<property name="value.deploy.splunk_username" value="admin" />
 	<property name="value.deploy.splunk_password" value="changeme" />
+	<property name="value.build.test.directory" value="tests" />
 	
     <!-- Set up some basic properties that are internal to this build script -->
     <property name="value.src.directory" value="src" />
@@ -239,7 +246,7 @@ A build script has been setup. To run your build run the following:
 Place the source-code of your app in the following "src" directory, a.k.a:
 			
 	${absolute_src_path}
-			
+	
 You can customize the build process by placing properties in the default.properties file or the local.properties files.</echo>
 		
 	</target>
@@ -536,10 +543,10 @@ You can customize the build process by placing properties in the default.propert
 		<fail unless="value.deploy.splunk_home">
 "value.deploy.splunk_home" has not been defined
 Declare it in the a local.properties file in the following path:
-			
+	
    ${absolute_src_path}/local.properties
-			
-Below is an example of the file:
+
+Below is an example of the entry in the file:
 
    value.deploy.splunk_home=/Applications/Splunk
 		</fail>
@@ -673,7 +680,7 @@ Declare it in the a local.properties file in the following path:
 			
    ${absolute_src_path}/local.properties
 			
-Below is an example of the file:
+Below is an example of the entry in the file:
 
    value.deploy.splunkd_url=http://splunk.example.com:8000
 		</fail>
@@ -690,7 +697,7 @@ Declare it in the a local.properties file in the following path:
 			
    ${absolute_src_path}/local.properties
 			
-Below is an example of the file:
+Below is an example of the entry in the file:
 
    value.deploy.splunkweb_url=https://splunk.example.com:8089
 		</fail>
@@ -787,30 +794,14 @@ Below is an example of the file:
 	</target>
 
     <!-- ================================= 
-          target: verify_package
-         ================================= -->
-	<target name="verify_package"  depends="initialize_libraries">
-
-		<if>
-			<available file="${value.build.package.file}" />
-			<then>
-				<!-- Package exists, we are good -->
-			</then>
-			<else>
-				<fail message="Package file does not exist; expected it to be at ${value.build.package.file}" />
-			</else>
-		</if>
-	</target>
-
-    <!-- ================================= 
           target: splunk.install_cli
          ================================= -->
-	<target name="splunk.install_cli" description="Installs the package into Splunk" depends="verify_splunk_home,verify_package,initialize_libraries">
+	<target name="splunk.install_cli" description="Installs the package into Splunk" depends="verify_splunk_home,resolve_package_file,initialize_libraries">
 
 		<exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${basedir}">
         	<arg line="install" />
         	<arg line="app" />
-        	<arg line="${value.build.package.file}" />
+        	<arg line="${absolute_package_file}" />
 			<arg line="-update" />
 			<arg line="1" />
 			<arg line="-auth" />
@@ -820,13 +811,77 @@ Below is an example of the file:
 	</target>
 
     <!-- ================================= 
+          target: resolve_package_file
+         ================================= -->
+	<target name="resolve_package_file" description="Resolve the package file name; downloads the package file necessary" depends="initialize_libraries">
+
+		<!-- See if the package is a URL and download the package if it is -->
+		<if>
+			<matches pattern="^http(s?):\/\/.*$" string="${value.build.package.file}"/>
+		 	<then>
+
+			 	<!-- Extract the filename from the URL -->
+				<propertyregex property="extracted_filename"
+					input="${value.build.package.file}"
+					regexp=".*\/([^\/]+)\/?"
+					select="\1"
+					casesensitive="false" /> 
+				
+				<!-- Resolve the file name to an absolute path -->
+				<property name="absolute_package_file" location="${basedir}/${extracted_filename}"/> 
+
+				<!-- Download the file from the server and use authentication if provided -->
+				<if>
+					<bool>
+						<and>
+							<isset property="value.build.package.username"/>
+							<isset property="value.build.package.password"/>
+						</and>
+					</bool>
+					<then>
+						<!-- Download the file using the provided username and password -->
+						<get src="${value.build.package.file}" 
+							dest="${absolute_package_file}" 
+							verbose="true"
+							username="${value.build.package.username}"
+							password="${value.build.package.password}"
+							skipexisting="false" />
+					</then>
+					<else>
+						<!-- Download the file -->
+						<get src="${value.build.package.file}" 
+							dest="${absolute_package_file}" 
+							verbose="true"
+							skipexisting="false" />
+					</else>
+				</if>
+				
+		 	</then>
+		 	<else>
+
+			 	<!-- Resolve the absolute filename -->
+		 		<property name="absolute_package_file" location="${value.build.package.file}"/> 
+		 	</else>
+		</if>
+
+		<!-- Verify that the package exists -->
+		<if>
+			<available file="${absolute_package_file}" />
+			<then>
+				<!-- Package exists, we are good -->
+			</then>
+			<else>
+				<fail message="Package file does not exist; expected it to be at ${absolute_package_file}" />
+			</else>
+		</if>
+		
+
+	</target>
+    <!-- ================================= 
           target: splunk.install_api
          ================================= -->
-	<target name="splunk.install_api" description="Installs the package into Splunk using the REST API" depends="verify_splunkd_url,verify_package,initialize_libraries">
-
-		<property name="absolute_package_file" location="${value.build.package.file}"/> 
+	<target name="splunk.install_api" description="Installs the package into Splunk using the REST API" depends="verify_splunkd_url,initialize_libraries,resolve_package_file">
 		<splunkappinstall name="${absolute_package_file}" url="${value.deploy.splunkd_url}" username="${value.deploy.splunk_username}" password="${value.deploy.splunk_password}"/>
-		
 	</target>
 
 	<!-- ================================= 
@@ -834,42 +889,61 @@ Below is an example of the file:
          ================================= -->
 	<target name="splunk.install_and_restart" description="Builds the package, installs it, and restarts Splunk" depends="splunk.install,splunk.restart"/>
 
+    <!-- Define a macro that can be used for refreshing Splunk endpoints -->
+    <macrodef name="reload_conf">
+    	<attribute name="endpoint"/>
+    	<sequential>
+    		<exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk"> <!-- Fail on error is set to true -->
+    			<arg value="_internal"/>
+    			<arg value="call"/>
+    			<arg value="/admin/@{endpoint}/_reload"/>
+    			<arg value="-auth"/>
+    			<arg value="${value.deploy.splunk_username}:${value.deploy.splunk_password}"/>
+    			<arg value="--accept-license"/>
+    		</exec>
+    	</sequential>
+    </macrodef>
+
     <!-- ================================= 
           target: splunk.refresh
          ================================= -->
     <target name="splunk.refresh" description="Refresh Splunk" depends="verify_splunk_home">
-
-      	<!-- Define a macro that can be used for refreshing Splunk endpoints -->
-      	<macrodef name="reload_conf">
-    		<attribute name="endpoint"/>
-    		<sequential>
-    			<exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk"> <!-- Fail on error is set to true -->
-    				<arg value="_internal"/>
-    				<arg value="call"/>
-    				<arg value="/admin/@{endpoint}/_reload"/>
-    				<arg value="-auth"/>
-    				<arg value="${value.deploy.splunk_username}:${value.deploy.splunk_password}"/>
-    				<arg value="--accept-license"/>
-    			</exec>
-    		</sequential>
-      	</macrodef>
-    	
     	<reload_conf endpoint="savedsearch" />
     	<reload_conf endpoint="nav" />
     	<reload_conf endpoint="views" />
-    	
     </target>
 	
     <!-- ================================= 
+          target: test.deploy_and_run
+         ================================= -->
+    <target name="test.deploy_and_run" description="Deploys the application and runs tests" depends="verify_splunk_home,skip_bump,deploy,test.run" />
+	
+    <!-- ================================= 
+          target: test.run
+         ================================= -->
+    <target name="test.run" description="Run tests" depends="verify_splunk_home">
+        <exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk">
+        	<arg line="cmd" />
+        	<arg line="python" />
+        	<arg line="-m" />
+			<arg line="unittest" />
+			<arg line="discover" />
+			<arg line="${value.build.test.directory}" />
+			<arg line="-p" />
+			<arg line="*.py" />
+        </exec>
+    </target>
+
+    <!-- ================================= 
           target: test.deploy_and_run_unit
          ================================= -->
-    <target name="test.deploy_and_run_unit" description="Deploys the application and runs tests" depends="verify_splunk_home,skip_bump,deploy,test.run_unit" />
+    <target name="test.deploy_and_run_unit" description="Deploys the application and runs tests" depends="skip_bump,deploy,test.run_unit" />
 	
     <!-- ================================= 
           target: test.run_unit
          ================================= -->
-    <target name="test.run_unit" description="Run unit tests" depends="verify_splunk_home">
-        <exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${basedir}/tests">
+    <target name="test.run_unit" description="Run unit tests">
+        <exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${value.build.test.directory}">
         	<arg line="cmd" />
         	<arg line="python" />
         	<arg line="unit.py" />

@@ -10,6 +10,12 @@ import unicodedata
 import lxml.html
 from StringIO import StringIO
 
+# Change into the tests directory if necessary
+# This is necessary when tests are executed from the main directory as opposed to the tests
+# directory.
+if not os.getcwd().endswith("tests"):
+    os.chdir("tests")
+
 sys.path.append(os.path.join("..", "src", "bin"))
 sys.path.append(os.path.join("..", "src", "bin", "website_input_app"))
 
@@ -122,14 +128,16 @@ class TestWebInput(UnitTestWithWebServer):
         web_input = WebInput(timeout=3)
         
         url_field = URLField( "test_web_input", "title", "this is a test" )
-        selector_field = SelectorField( "test_web_input_css", "title", "this is a test" )
-        results = WebInput.scrape_page( url_field.to_python("http://textcritical.net/"), selector_field.to_python("h2"), output_matches_as_mv=True )
+        selector_field = SelectorField("test_web_input_css", "title", "this is a test")
+        results = WebInput.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python("h2"), output_matches_as_mv=True)
+        print results
         result = results[0]
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 3)
         
         out = StringIO()
         web_input.output_event(result, stanza="web_input://textcritical_net", index="main", source="test_web_input", sourcetype="sourcetype", out=out)
+        print out.getvalue()
         self.assertEquals( len(re.findall("match=", out.getvalue())), 3)
         
     def test_scrape_unavailable_page(self):
