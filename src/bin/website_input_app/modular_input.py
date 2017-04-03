@@ -1,6 +1,7 @@
 import logging
 from logging import handlers
 from xml.dom.minidom import Document
+import traceback
 import xml.dom
 import sys
 import re
@@ -9,6 +10,7 @@ import os
 import hashlib
 import json
 from urlparse import urlparse
+from threading import RLock
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 from splunk.util import normalizeBoolean as normBool
@@ -572,7 +574,7 @@ class ModularInput():
 
         # Return the content as a string WITHOUT the XML header.
         return doc.documentElement.toxml()
-    
+
     def escape_endlines(self, s):
         """
         If the string contains spaces, then add double quotes around the string. This is useful when outputting fields and values to Splunk since a space will cause Splunk to not recognize the entire value.
@@ -585,7 +587,7 @@ class ModularInput():
             return re.sub('[\n\r]', '', str(s))
         else:
             return s
-    
+
     def escape_spaces(self, s, encapsulate_in_double_quotes=False):
         """
         If the string contains spaces or is empty, then add double quotes around the string. This is useful when outputting fields and values to Splunk since a space will cause Splunk to not recognize the entire value.
@@ -610,12 +612,12 @@ class ModularInput():
         else:
             return s
     
-    def create_event_string(self, data, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_quotes=False, escape_endlines=True):
+    def create_event_string(self, data_dict, stanza, sourcetype, source, index, host=None, unbroken=False, close=False, encapsulate_value_in_double_quotes=False, escape_endlines=True):
         """
         Create a string representing the event.
         
         Argument:
-        data -- A dictionary containing the fields or a string with the raw event
+        data_dict -- A dictionary containing the fields  or a string with the raw event
         stanza -- The stanza used for the input
         sourcetype -- The sourcetype
         source -- The source field value
@@ -629,10 +631,9 @@ class ModularInput():
         # Make the content of the event
         data_str = ''
         
-        # If the data is a dict, then accumulate the fields into a string of KV pairs
         if isinstance(data, dict):
-            for k, v in data.items():
-                
+            for k, v in data_dict.items():
+            
                 # If the value is a list, then write out each matching value with the same name (as mv)
                 if isinstance(v, list) and not isinstance(v, basestring):
                     values = v
@@ -652,13 +653,13 @@ class ModularInput():
                     
                     # Escape the spaces if necessary
                     v_escaped = self.escape_spaces(v_escaped, encapsulate_in_double_quotes=encapsulate_value_in_double_quotes)
-                    
-                    # Add a little space between KV pairs
-                    if len(data_str) > 0:
-                        data_str += ' '
-                    
-                    data_str += '%s=%s' % (k_escaped, v_escaped)
-        
+                
+                # Add a little space between KV pairs
+                if len(data_str) > 0:
+                    data_str += ' '
+                
+                data_str += '%s=%s' % (k_escaped, v_escaped)
+
         # If the input is a string, then include it raw
         elif isinstance(data, basestring):
             
@@ -675,7 +676,7 @@ class ModularInput():
                 data_str = self.escape_endlines(data)
             else:
                 data_str = data
-            
+
         # Make the event
         event_dict = {'stanza': stanza,
                       'data' : data_str}
@@ -691,7 +692,7 @@ class ModularInput():
             
         if host is not None:
             event_dict['host'] = host
-        
+
         event = self._create_event(self.document, 
                                    params=event_dict,
                                    stanza=stanza,
@@ -702,12 +703,12 @@ class ModularInput():
         # added with a "</done>" tag.
         return self._print_event(self.document, event)
         
-    def output_event(self, data, stanza, index=None, sourcetype=None, source=None, host=None, unbroken=False, close=False, out=sys.stdout, encapsulate_value_in_double_quotes=False ):
+    def output_event(self, data_dict, stanza, index=None, sourcetype=None, source=None, host=None, unbroken=False, close=False, out=sys.stdout, encapsulate_value_in_double_quotes=False ):
         """
         Output the given event (based on the dictionary of fields provided) so that Splunk can see it.
         
         Arguments:
-        data -- A dictionary containing the fields or a string with the raw event
+        data_dict -- A dictionary containing the fields or a string with the raw event
         stanza -- The stanza used for the input
         sourcetype -- The sourcetype
         source -- The source to use
@@ -719,12 +720,13 @@ class ModularInput():
         encapsulate_value_in_double_quotes -- If true, the value will have double-quotes added around it. This is useful in cases where the app contains props & transforms that require the value to have double-spaces.
         """
         
-        output = self.create_event_string(data, stanza, sourcetype, source, index, host, unbroken, close, encapsulate_value_in_double_quotes=encapsulate_value_in_double_quotes)
+        output = self.create_event_string(data_dict, stanza, sourcetype, source, index, host, unbroken, close, encapsulate_value_in_double_quotes=encapsulate_value_in_double_quotes)
         
-        out.write(output)
-        out.flush()
+        with self.lock:
+            out.write(output)
+            out.flush()
     
-    def __init__(self, scheme_args, args=None, sleep_interval=5, logger_name='python_modular_input'):
+    def __init__(self, scheme_args, args=None, sleep_interval=5, logger_name='python_modular_input', logger_level=None):
         """
         Set up the modular input.
         
@@ -763,6 +765,15 @@ class ModularInput():
             
         # Create the document used for sending events to Splunk through
         self.document = self._create_document()
+        
+        # Make a lock for controlling access to underlying functions
+        self.lock = RLock()
+        
+        # Initialize the logger level
+        if logger_level is None:
+            self.logger_level = logging.INFO
+        else:
+            self.logger_level = logger_level
         
         # Check and save the logger name
         self._logger = None
@@ -817,7 +828,7 @@ class ModularInput():
         
         logger = logging.getLogger(self.logger_name)
         logger.propagate = False # Prevent the log messages from being duplicated in the python.log file
-        logger.setLevel(logging.INFO)
+        logger.setLevel(self.logger_level)
         
         file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', self.logger_name + '.log']), maxBytes=25000000, backupCount=5)
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -1013,7 +1024,7 @@ class ModularInput():
             # Allow the interval argument since it is internal but allowed even if not explicitly declared
             elif name == "interval" and self.use_single_instance == False:
                 self.logger.warn("use_single_instance=%r", self.use_single_instance)
-                pass
+                pass 
             
             # Throw an exception if the argument could not be found
             else:
@@ -1198,7 +1209,7 @@ class ModularInput():
             # To catch up, we'll set it to the current time
             last_ran_derived = time.time()
             
-            self.logger.info("Previous run was too far in the past (gap=%r) and thus some executions of the input have been missed (stanza=%s)", last_ran_derived-last_ran, stanza)
+            self.logger.info("Previous run was too far in the past (gap=%rs) and thus some executions of the input may have been missed (stanza=%s)", int(round(last_ran_derived-last_ran)), stanza)
             
         #self.logger.info("Calculated non-deviated last_ran=%r from previous_last_ran=%r", last_ran_derived, last_ran)
         return last_ran_derived
@@ -1213,19 +1224,20 @@ class ModularInput():
         data -- A dictionary with the data to save
         """
         
-        fp = None
-        
-        try:
-            fp = open( self.get_file_path(checkpoint_dir, stanza), 'w' )
+        with self.lock:
+            fp = None
             
-            json.dump(data, fp)
-            
-        except Exception:
-            self.logger.exception("Failed to save checkpoint directory") 
-            
-        finally:
-            if fp is not None:
-                fp.close()
+            try:
+                fp = open( self.get_file_path(checkpoint_dir, stanza), 'w' )
+                
+                json.dump(data, fp)
+                
+            except Exception:
+                self.logger.exception("Failed to save checkpoint directory") 
+                
+            finally:
+                if fp is not None:
+                    fp.close()
     
     def do_shutdown(self):
         """
