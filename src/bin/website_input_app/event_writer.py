@@ -233,7 +233,7 @@ class StashNewWriter(EventWriter):
     ==##~~##~~  1E8N3D4E6V5E7N2T9 ~~##~~##==
     """
 
-    def __init__(self, index, source_name, file_extension=".stash_new", sourcetype=None):
+    def __init__(self, index, source_name, file_extension=".stash_new", sourcetype=None, host=None):
         """
         Constructor for the stash writer,=.
 
@@ -241,22 +241,57 @@ class StashNewWriter(EventWriter):
         index -- the index to send the events to
         source_name -- the search that is being used to generate the results
         file_extension -- the extension of the stash file (usually .stash_new)
+        sourcetype -- the sourcetype to use for the event
+        host -- the host to assign the event to
         """
         self.index = index
         self.source_name = source_name
         self.file_extension = file_extension
         self.sourcetype = sourcetype
+        self.host = host
+
+    def make_fields_list(self, fields_dict):
+        """
+        Make a string with the list of fields in KV format.
+        """
+
+        fields_str = None
+
+        for field_name, field_value in fields_dict.items():
+
+            # Populate the field string if it is empty
+            if fields_str is None:
+                fields_str = ''
+
+            # Add the spacer if necessary
+            elif fields_str is not None:
+                fields_str += ' '
+
+            # Add the field
+            fields_str += field_name + '="' + field_value + '"'
+
+        return fields_str
 
     def get_header(self):
         """
         Provides a header for the stash file which defines the index and the source for the event.
         """
 
-        if self.source_name is not None:
-            return "***SPLUNK*** index=" + self.index + ' source="' + str(self.source_name) \
-            + '\"\r\n'
+        fields_dict = {
+            'index' : self.index
+        }
+
+        # Make sure the source is defined
+        if self.source_name is None:
+            fields_dict['source'] = 'undefined'
         else:
-            return "***SPLUNK*** index=" + self.index + ' source="undefined"\r\n'
+            fields_dict['source'] = self.source_name
+
+        # Add the host if it is defined
+        if self.host is not None:
+            fields_dict['host'] = self.host
+
+        return "***SPLUNK*** " + self.make_fields_list(fields_dict) + '"\r\n'
 
     def get_file_name(self):
         "Get a file name that can be used for creating a stash file"
