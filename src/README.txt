@@ -166,4 +166,6 @@ Change History
 | 4.1.1   | Fixed issue where Firefox driver was not correctly added to the path on Windows                                  |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.1.2   | Added support for Splunk installs running with the free license                                                  |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.1.3   | Fixed issue where the host field was not being set properly                                                      |
 +---------+------------------------------------------------------------------------------------------------------------------+
