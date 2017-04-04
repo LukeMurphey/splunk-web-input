@@ -1,24 +1,24 @@
-#splunk-web-input app
+# splunk-web-input app
 
-##A Splunk app for obtaining information from web apps
+## A Splunk app for obtaining information from web apps
 
-###Features
+### Features
 
 Website Data Extraction: setup an input that will extract data from a web-page and get it into Splunk
 Data Preview: click "Preview results" on the input configuration page to get a sample of the what the output would look like before you save the configuration
 Configuration
 
-###Initial setup
+### Initial setup
 
 Once you install the app, it will ask you to set it up on the app configuration page. The setup only contains options related to configuring a proxy server. If no proxy server is used, you can just press save.
 
-###Creating an input
+### Creating an input
 
-####CSS selectors
+#### CSS selectors
 
 You will need to create an input to define the websites that you would like to extract information from. You can setup a new input using Splunk's manager at Settings » Data Inputs » Web-pages. The most difficult part of configuring the app is making the CSS selector that will capture the data you want. See [W3schools](http://www.w3schools.com/cssref/css_selectors.asp) for information on how to create CSS selectors.
 
-**Tip, CSS selector extraction in chrome;**
+** Tip, CSS selector extraction in chrome;**
 
 * Navigate to the webpage to be splunked
 * Right click on the page > select “Inspect element”. 
@@ -30,14 +30,14 @@ You will need to create an input to define the websites that you would like to e
 * Repeat this for other elements on the same page you wish to ingest separated by commas (Example: #TIRatesDisplay_tblTermDeposit, #TIRatesDisplay_tblLoan)
 
 
-####Outputs
+#### Outputs
 You can usually ignore the "Output" section. This is only necessary if you want to name the fields that the input will get based on content within the page [(see "Can I use attributes to set the field names?" for details).](http://lukemurphey.net/projects/splunk-web-input/wiki/FAQ#Can-I-use-attributes-to-set-the-field-names)
 
 
-####Authentication
+#### Authentication
 The "Authentication" can be left blank unless the web-page requires authentication. Only HTTP authentication is supported at the current time.
 
-###FAQs
+### FAQs
 
 See the links below for answers to frequently asked questions:
 
@@ -45,7 +45,7 @@ See the links below for answers to frequently asked questions:
 
 [Can I use attributes to set the field names?](http://lukemurphey.net/projects/splunk-web-input/wiki/FAQ)
 
-###More Information
+### More Information
 
 This project is open source. 
 
