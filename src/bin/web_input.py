@@ -1,3 +1,15 @@
+"""
+This module provides the classes for support web-scraping in Splunk.
+
+The classes included are:
+
+  * SelectorField: a modular input field for verifying that a selector is valid
+  * WebsiteInputConfig: a class for getting information from Splunk for configuration of the app
+  * Timer: a class for tracking the amount of time an operation takes
+  * DiscoveredURL: represents a URL that was discovered
+  * WebInput: the main modular input class
+  * WebScraper: a class for performing web-scrapes
+"""
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField
@@ -120,28 +132,6 @@ class WebInput(ModularInput):
 
     OUTPUT_USING_STASH = True
 
-    RESERVED_FIELD_NAMES = [
-        # Splunk reserved fields:
-        'source',
-        'sourcetype',
-        'host',
-        '_time',
-        'punct',
-
-        # Internal reserved fields:
-        'request_time',
-        'response_code',
-        'raw_match_count'
-    ]
-
-    FIREFOX = "firefox"
-    INTEGRATED_CLIENT = "integrated_client"
-    SAFARI = "safari"
-    INTERNET_EXPLORER = "internet_explorer"
-    CHROME = "chrome"
-
-    SUPPORTED_BROWSERS = [INTEGRATED_CLIENT, FIREFOX]
-
     def __init__(self, timeout=30, **kwargs):
 
         scheme_args = {'title': "Web-pages",
@@ -189,6 +179,168 @@ class WebInput(ModularInput):
         """
 
         return os.path.join(checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json")
+
+    def get_proxy_config(self, session_key, stanza="default"):
+        """
+        Get the proxy configuration
+
+        Arguments:
+        session_key -- The session key to use when connecting to the REST API
+        stanza -- The stanza to get the proxy information from (defaults to "default")
+        """
+
+        # If the stanza is empty, then just use the default
+        if stanza is None or stanza.strip() == "":
+            stanza = "default"
+
+        # Get the proxy configuration
+        try:
+            website_input_config = WebsiteInputConfig.get(WebsiteInputConfig.build_id( stanza, "website_input", "nobody"), sessionKey=session_key)
+
+            logger.debug("Proxy information loaded, stanza=%s", stanza)
+            
+        except splunk.ResourceNotFound:
+            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s, error="not found"', stanza)
+            raise
+        except splunk.SplunkdConnectionException:
+            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s error="splunkd connection error"', stanza)
+            raise
+        
+        return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
+        
+    
+    def run(self, stanza, cleaned_params, input_config):
+        
+        # Make the parameters
+        interval         = cleaned_params["interval"]
+        title            = cleaned_params["title"]
+        url              = cleaned_params["url"]
+        selector         = cleaned_params.get("selector", None)
+        username         = cleaned_params.get("username", None)
+        password         = cleaned_params.get("password", None)
+        name_attributes  = cleaned_params.get("name_attributes", [])
+        user_agent       = cleaned_params.get("user_agent", None)
+        timeout          = cleaned_params.get("timeout", self.timeout)
+        sourcetype       = cleaned_params.get("sourcetype", "web_input")
+        host             = cleaned_params.get("host", None)
+        index            = cleaned_params.get("index", "default")
+        conf_stanza      = cleaned_params.get("configuration", None)
+        use_element_name = cleaned_params.get("use_element_name", False)
+        page_limit       = cleaned_params.get("page_limit", 1)
+        url_filter       = cleaned_params.get("url_filter", None)
+        depth_limit      = cleaned_params.get("depth_limit", 25)
+        raw_content      = cleaned_params.get("raw_content", False)
+        text_separator   = cleaned_params.get("text_separator", " ")
+        browser          = cleaned_params.get("browser", self.INTEGRATED_CLIENT)
+        output_as_mv     = cleaned_params.get("output_as_mv", True)
+        source           = stanza
+        
+        if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
+            
+            # Get the proxy configuration
+            try:
+                proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = self.get_proxy_config(input_config.session_key, conf_stanza)
+            except splunk.ResourceNotFound:
+                logger.error("The proxy configuration could not be loaded (resource not found). The execution will be skipped for now for this input with stanza=%s", stanza)
+                return
+            except splunk.SplunkdConnectionException:
+                logger.error("The proxy configuration could not be loaded (splunkd connection problem). The execution will be skipped for now for this input with stanza=%s", stanza)
+                return
+            
+            # Get the information from the page
+            result = None
+            
+            try:
+                
+                # Make sure the page_limit is not too small
+                if page_limit < 1 or page_limit is None or page_limit == "":
+                    logger.warn("The parameter is too small for page_limit=%r", page_limit)
+                    page_limit = 1
+                    
+                # Make sure the depth_limit is valid
+                if depth_limit < 1 or depth_limit is None or depth_limit == "":
+                    logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
+                    depth_limit = 50
+                    
+                # Determine how to make the match fields
+                output_matches_as_mv = True
+                output_matches_as_separate_fields = False
+                
+                if not output_as_mv:
+                    output_matches_as_mv = False
+                    output_matches_as_separate_fields = True
+                
+                additional_fields = {
+                    'title' : title
+                }
+                
+                result = WebScraper.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
+                
+                matches = 0
+                
+                if result:
+                    matches = len(result)
+                else:
+                    logger.debug("No match returned in the result")
+
+                logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
+            except Exception:
+                logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
+            
+            # Process the result (if we got one)
+            if result is not None:
+                
+                # Process each event
+                for r in result:
+                    
+                    # Send the event
+                    if self.OUTPUT_USING_STASH:
+                    
+                        # Write the event as a stash new file
+                        writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
+                        logger.debug("Wrote stash file=%s", writer.write_event(r))
+                        
+                    else:
+                        
+                        # Write the event using the built-in modular input method
+                        self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
+
+                    
+                # Get the time that the input last ran
+                last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
+                
+                # Save the checkpoint so that we remember when we last executed this
+                self.save_checkpoint_data(input_config.checkpoint_dir, stanza, { 'last_run' : self.get_non_deviated_last_run(last_ran, interval, stanza) })
+
+class WebScraper(object):
+    """
+    This class performs the operation of web-scraping.
+    """
+
+    RESERVED_FIELD_NAMES = [
+        # Splunk reserved fields:
+        'source',
+        'sourcetype',
+        'host',
+        '_time',
+        'punct',
+
+        # Internal reserved fields:
+        'request_time',
+        'response_code',
+        'raw_match_count'
+    ]
+
+    FIREFOX = "firefox"
+    INTEGRATED_CLIENT = "integrated_client"
+    SAFARI = "safari"
+    INTERNET_EXPLORER = "internet_explorer"
+    CHROME = "chrome"
+
+    SUPPORTED_BROWSERS = [INTEGRATED_CLIENT, FIREFOX]
+
+    def __init__(self, timeout=30):
+        self.timeout = timeout
 
     @classmethod
     def add_auth_to_url(cls, url, username, password):
@@ -273,7 +425,7 @@ class WebInput(ModularInput):
         # Iterate through the child nodes and add up the text
         for child_element in element:
 
-            text = cls.append_if_not_empty(text, WebInput.get_text(child_element, text_separator), text_separator, include_empty)
+            text = cls.append_if_not_empty(text, WebScraper.get_text(child_element, text_separator), text_separator, include_empty)
 
             # Get the tail text
             if child_element.tail:
@@ -582,7 +734,7 @@ class WebInput(ModularInput):
     def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
 
         # Update the path if necessary so that the drivers can be found
-        WebInput.add_browser_driver_to_path()
+        WebScraper.add_browser_driver_to_path()
 
         driver = None
         display = None
@@ -751,7 +903,7 @@ class WebInput(ModularInput):
                 for match in matches:
 
                     # Unescape the text in case it includes HTML entities
-                    match_text = cls.unescape(WebInput.get_text(match, text_separator, include_empty_matches))
+                    match_text = cls.unescape(WebScraper.get_text(match, text_separator, include_empty_matches))
 
                     # Don't include the field if it is empty
                     if include_empty_matches or len(match_text) > 0:
@@ -1057,139 +1209,6 @@ class WebInput(ModularInput):
         h = HTMLParser.HTMLParser()
         
         return h.unescape(text)
-    
-    def get_proxy_config(self, session_key, stanza="default"):
-        """
-        Get the proxy configuration
-        
-        Arguments:
-        session_key -- The session key to use when connecting to the REST API
-        stanza -- The stanza to get the proxy information from (defaults to "default")
-        """
-        
-        # If the stanza is empty, then just use the default
-        if stanza is None or stanza.strip() == "":
-            stanza = "default"
-        
-        # Get the proxy configuration
-        try:
-            website_input_config = WebsiteInputConfig.get( WebsiteInputConfig.build_id( stanza, "website_input", "nobody"), sessionKey=session_key )
-            
-            logger.debug("Proxy information loaded, stanza=%s", stanza)
-            
-        except splunk.ResourceNotFound:
-            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s, error="not found"', stanza)
-            raise
-        except splunk.SplunkdConnectionException:
-            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s error="splunkd connection error"', stanza)
-            raise
-        
-        return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
-        
-    
-    def run(self, stanza, cleaned_params, input_config):
-        
-        # Make the parameters
-        interval         = cleaned_params["interval"]
-        title            = cleaned_params["title"]
-        url              = cleaned_params["url"]
-        selector         = cleaned_params.get("selector", None)
-        username         = cleaned_params.get("username", None)
-        password         = cleaned_params.get("password", None)
-        name_attributes  = cleaned_params.get("name_attributes", [])
-        user_agent       = cleaned_params.get("user_agent", None)
-        timeout          = cleaned_params.get("timeout", self.timeout)
-        sourcetype       = cleaned_params.get("sourcetype", "web_input")
-        host             = cleaned_params.get("host", None)
-        index            = cleaned_params.get("index", "default")
-        conf_stanza      = cleaned_params.get("configuration", None)
-        use_element_name = cleaned_params.get("use_element_name", False)
-        page_limit       = cleaned_params.get("page_limit", 1)
-        url_filter       = cleaned_params.get("url_filter", None)
-        depth_limit      = cleaned_params.get("depth_limit", 25)
-        raw_content      = cleaned_params.get("raw_content", False)
-        text_separator   = cleaned_params.get("text_separator", " ")
-        browser          = cleaned_params.get("browser", self.INTEGRATED_CLIENT)
-        output_as_mv     = cleaned_params.get("output_as_mv", True)
-        source           = stanza
-        
-        if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
-            
-            # Get the proxy configuration
-            try:
-                proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = self.get_proxy_config(input_config.session_key, conf_stanza)
-            except splunk.ResourceNotFound:
-                logger.error("The proxy configuration could not be loaded (resource not found). The execution will be skipped for now for this input with stanza=%s", stanza)
-                return
-            except splunk.SplunkdConnectionException:
-                logger.error("The proxy configuration could not be loaded (splunkd connection problem). The execution will be skipped for now for this input with stanza=%s", stanza)
-                return
-            
-            # Get the information from the page
-            result = None
-            
-            try:
-                
-                # Make sure the page_limit is not too small
-                if page_limit < 1 or page_limit is None or page_limit == "":
-                    logger.warn("The parameter is too small for page_limit=%r", page_limit)
-                    page_limit = 1
-                    
-                # Make sure the depth_limit is valid
-                if depth_limit < 1 or depth_limit is None or depth_limit == "":
-                    logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
-                    depth_limit = 50
-                    
-                # Determine how to make the match fields
-                output_matches_as_mv = True
-                output_matches_as_separate_fields = False
-                
-                if not output_as_mv:
-                    output_matches_as_mv = False
-                    output_matches_as_separate_fields = True
-                
-                additional_fields = {
-                    'title' : title
-                }
-                
-                result = WebInput.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
-                
-                matches = 0
-                
-                if result:
-                    matches = len(result)
-                else:
-                    logger.debug("No match returned in the result")
-
-                logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
-            except Exception:
-                logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
-            
-            # Process the result (if we got one)
-            if result is not None:
-                
-                # Process each event
-                for r in result:
-                    
-                    # Send the event
-                    if self.OUTPUT_USING_STASH:
-                    
-                        # Write the event as a stash new file
-                        writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
-                        logger.debug("Wrote stash file=%s", writer.write_event(r))
-                        
-                    else:
-                        
-                        # Write the event using the built-in modular input method
-                        self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
-
-                    
-                # Get the time that the input last ran
-                last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
-                
-                # Save the checkpoint so that we remember when we last executed this
-                self.save_checkpoint_data(input_config.checkpoint_dir, stanza, { 'last_run' : self.get_non_deviated_last_run(last_ran, interval, stanza) })
-        
             
 if __name__ == '__main__':
     try:
