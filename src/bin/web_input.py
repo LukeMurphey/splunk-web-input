@@ -35,43 +35,45 @@ def setup_logger():
     """
     Setup a logger.
 
-    Note that the modular input base class has a logger too. However, it isn't currently used 
+    Note that the modular input base class has a logger too. However, it isn't currently used
     because there are several classmethods that don't have access to the logger.
     """
-    
+
     logger = logging.getLogger('web_input_modular_input')
     logger.propagate = False # Prevent the log messages from being duplicated in the python.log file
     logger.setLevel(logging.DEBUG)
-    
+
     file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', 'web_input_modular_input.log']), maxBytes=25000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     file_handler.setFormatter(formatter)
-    
+
     logger.addHandler(file_handler)
-    
+
     return logger
 
 logger = setup_logger()
 
 class SelectorField(Field):
     """
-    Represents a selector for getting information from a web-page. The selector is converted to a LXML CSS selector instance.
+    Represents a selector for getting information from a web-page. The selector is converted to a
+    LXML CSS selector instance.
     """
-    
+
     @classmethod
     def parse_selector(cls, value, name):
-        
+
         if value is not None and len(value.strip()) != 0:
             try:
-                return CSSSelector(value, translator='html') # Use the HTML translation so that selectors match accordingly ("DIV" should match "div")
+                # Use the HTML translation so that selectors match accordingly ("DIV" should match "div")
+                return CSSSelector(value, translator='html')
             except AssertionError as e:
                 raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), name, str(e)))
-    
+
     def to_python(self, value):
         Field.to_python(self, value)
-        
+
         return SelectorField.parse_selector(value, self.name)
-    
+
     def to_string(self, value):
         return value.css
 
@@ -79,7 +81,7 @@ class Timer(object):
     """
     This class is used to time durations.
     """
-    
+
     def __init__(self, verbose=False):
         self.verbose = verbose
 
@@ -93,53 +95,53 @@ class Timer(object):
         self.msecs = self.secs * 1000  # millisecs
 
 class WebsiteInputConfig(SplunkAppObjModel):
-    
-    resource       = '/admin/app_website_input'
-    proxy_server   = ModelField()
-    proxy_port     = ModelIntField()
-    proxy_type     = ModelField()
-    proxy_user     = ModelField()
+
+    resource = '/admin/app_website_input'
+    proxy_server = ModelField()
+    proxy_port = ModelIntField()
+    proxy_type = ModelField()
+    proxy_user = ModelField()
     proxy_password = ModelField()
 
 class DiscoveredURL(object):
-    
+
     depth = None
     processed = False
-    
+
     def __init__(self, depth, processed=False):
         self.depth = depth
         self.processed = False
-    
+
 
 class WebInput(ModularInput):
     """
     The web input modular input connects to a web-page obtains information from it.
     """
-    
+
     OUTPUT_USING_STASH = True
-    
+
     RESERVED_FIELD_NAMES = [
-                            # Splunk reserved fields:
-                            'source',
-                            'sourcetype',
-                            'host',
-                            '_time',
-                            'punct',
-                            
-                            # Internal reserved fields:
-                            'request_time',
-                            'response_code',
-                            'raw_match_count'
-                            ]
-    
+        # Splunk reserved fields:
+        'source',
+        'sourcetype',
+        'host',
+        '_time',
+        'punct',
+
+        # Internal reserved fields:
+        'request_time',
+        'response_code',
+        'raw_match_count'
+    ]
+
     FIREFOX = "firefox"
     INTEGRATED_CLIENT = "integrated_client"
     SAFARI = "safari"
     INTERNET_EXPLORER = "internet_explorer"
     CHROME = "chrome"
-    
-    SUPPORTED_BROWSERS= [INTEGRATED_CLIENT, FIREFOX]
-    
+
+    SUPPORTED_BROWSERS = [INTEGRATED_CLIENT, FIREFOX]
+
     def __init__(self, timeout=30, **kwargs):
 
         scheme_args = {'title': "Web-pages",
@@ -147,7 +149,7 @@ class WebInput(ModularInput):
                        'use_external_validation': "true",
                        'streaming_mode': "xml",
                        'use_single_instance': "true"}
-        
+
         args = [
                 Field("title", "Title", "A short description (typically just the domain name)", empty_allowed=False),
                 URLField("url", "URL", "The URL to connect to (must be be either HTTP or HTTPS protocol)", empty_allowed=False),
@@ -168,64 +170,63 @@ class WebInput(ModularInput):
                 IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
                 BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
                 ]
-        
-        ModularInput.__init__( self, scheme_args, args )
-        
+
+        ModularInput.__init__(self, scheme_args, args)
+
         if timeout > 0:
             self.timeout = timeout
         else:
             self.timeout = 30
-    
+
     @classmethod
-    def get_file_path( cls, checkpoint_dir, stanza ):
+    def get_file_path(cls, checkpoint_dir, stanza):
         """
         Get the path to the checkpoint file.
-        
+
         Arguments:
         checkpoint_dir -- The directory where checkpoints ought to be saved
         stanza -- The stanza of the input being used
         """
-        
-        return os.path.join( checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json" )
-       
+
+        return os.path.join(checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json")
+
     @classmethod
     def add_auth_to_url(cls, url, username, password):
         """
         Add the username and password to the URL. For example, convert http://test.com to http://admin:opensesame@test.com.
-        
+
         Arguments:
         url -- A string version of the URL
         username -- The username
         password -- The password
         """
-        
+
         if username is not None and password is not None and username != "" and password != "":
-            
+
             # Split up the URL
             u = urlsplit(url)
-            
+
             # Now, build a new URL with the new username and password
             split = []
-            
+
             for item in (u[:]):
                 split.append(item)
-            
+
             # Replace the netloc with one that contains the username and password. Note that this will drop the existing username and password if it exists
             if u.port is None: #(u.port == 80 and u.scheme == "http") or (u.port == 443 and u.scheme == "https"):
                 split[1] = username + ":" + password + "@" + u.hostname
             else:
                 split[1] = username + ":" + password + "@" + u.hostname + ":" + str(u.port)
-                
+
             return urlunsplit(split)
-            
-            #return re.sub("://", "://" + username + ":" + password + "@", url, 1)
         else:
             return url
-       
+
     @classmethod
     def append_if_not_empty(cls, str1, str2, separator, include_empty=False):
         """
-        
+        Append the strings together if they are not blank.
+
         Arguments:
         str1 -- The first string
         str2 -- The second string
@@ -234,10 +235,10 @@ class WebInput(ModularInput):
 
         if str1 is None:
             str1 = ""
-            
+
         if str2 is None:
             str2 = ""
-        
+
         if separator is None:
             separator = " "
 
@@ -249,64 +250,63 @@ class WebInput(ModularInput):
             return str2
         else:
             return ""
-            
-       
+
     @classmethod
     def get_text(cls, element, text_separator=" ", include_empty=False):
         """
         Get the accumulated text from the child nodes.
-        
+
         Arguments:
         element -- The element to get the text from
         text_separator -- The content to put between each text node that matches within a given selector
         """
-        
+
         # Assign a default value to the separator
         if text_separator is None:
             text_separator = " "
-        
+
         if element.text is not None:
             text = element.text.strip()
         else:
             text = None
-        
+
         # Iterate through the child nodes and add up the text
         for child_element in element:
-            
+
             text = cls.append_if_not_empty(text, WebInput.get_text(child_element, text_separator), text_separator, include_empty)
-            
+
             # Get the tail text
             if child_element.tail:
                 tail_text = child_element.tail.strip()
                 text = cls.append_if_not_empty(text, tail_text, text_separator, include_empty)
-            
+
         if text is not None:
             return text.strip()
         else:
             return ""
-       
+
     @classmethod
     def escape_field_name(cls, name):
         name = re.sub(r'[^A-Z0-9]', '_', name.strip(), flags=re.IGNORECASE)
-        
+
         if len(name) == 0:
             return "blank"
-        
+
         if name in cls.RESERVED_FIELD_NAMES:
             return "match_" + name
-        
+
         return name
-        
+
     @classmethod
     def resolve_proxy_type(cls, proxy_type):
-        
+
         # Make sure the proxy string is not none
         if proxy_type is None:
             return None
-        
+
         # Prepare the string so that the proxy type can be matched more reliably
         t = proxy_type.strip().lower()
-        
+
         if t == "socks4":
             return socks.PROXY_TYPE_SOCKS4
         elif t == "socks5":
@@ -318,12 +318,12 @@ class WebInput(ModularInput):
         else:
             logger.warn("Proxy type is not recognized: %s", proxy_type)
             return None
-    
+
     @classmethod
     def detect_encoding(cls, content, response, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
         """
         Detect the encoding that is used in the given website/webpage.
-        
+
         Arguments:
         content -- The downloaded content (as raw bytes) http.request()
         response -- The response object from http.request()
@@ -331,208 +331,226 @@ class WebInput(ModularInput):
         charset_detect_content_type_header_enabled -- Enable detection from the content-type header
         charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
         """
-        
+
         # This will contain the detected encoding
         encoding = None
-        
+
         # Try getting the encoding from the "meta" attribute
         if charset_detect_meta_enabled:
-            find_meta_charset = re.compile("<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE) #http://stackoverflow.com/questions/3458217/how-to-use-regular-expression-to-match-the-charset-string-in-html
+            #http://stackoverflow.com/questions/3458217/how-to-use-regular-expression-to-match-the-charset-string-in-html
+            find_meta_charset = re.compile("<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE)
             matched_encoding = find_meta_charset.search(content)
-                
+
             if matched_encoding:
                 encoding = matched_encoding.groups()[0]
-            
+
         # Try getting the encoding from the content-type header
         if encoding is None and charset_detect_content_type_header_enabled:
-            
+
             if response is not None and 'content-type' in response:
-                find_header_charset = re.compile("charset=(.*)",re.IGNORECASE)
+                find_header_charset = re.compile("charset=(.*)", re.IGNORECASE)
                 matched_encoding = find_header_charset.search(response['content-type'])
-                
+
                 if matched_encoding:
                     encoding = matched_encoding.groups()[0]
-            
+
         # Try sniffing the encoding
         if encoding is None and charset_detect_sniff_enabled:
             encoding_detection = chardet.detect(content)
             encoding = encoding_detection['encoding']
-            
+
         # If all else fails, default to "Windows-1252"
         if encoding is None:
             encoding = "cp1252"
-            
+
         return encoding
-    
+
     @classmethod
     def is_url_in_domain(cls, url, domain):
         """
         Determine if the URL is within the given domain.
-        
+
         Arguments:
         url -- A URL as a string.
         domain -- A string representing a domain (like "textcritical.net")
         """
-        
+
         if domain is None:
             return True
-        
+
         # Parse the link
         url_parsed = urlparse(url)
-        
+
         # Verify the link is within the domain
         return url_parsed.netloc == domain
-    
+
     @classmethod
     def wildcard_to_re(cls, wildcard):
         """
         Convert the given wildcard to a regular expression.
-        
+
         Arguments:
         wildcard -- A string representing a wild-card (like "http://textcritical.net*")
         """
-        
-        r = re.escape(wildcard)
-        return r.replace('\*', ".*")
-    
+
+        regex = re.escape(wildcard)
+        return regex.replace('\*', ".*")
+
     @classmethod
     def is_url_in_url_filter(cls, url, url_filter):
         """
         Determine if the URL is within the provided filter wild-card.
-        
+
         Arguments:
         url -- A URL as a string.
         url_filter -- A string representing a wild-card (like "http://textcritical.net*")
         """
-        
+
         if url_filter is None:
             return True
-        
+
         # Convert the filter to a regular expression
         url_filter_re = cls.wildcard_to_re(url_filter)
-        
+
         # See if the filter matches
         if re.match(url_filter_re, url):
             return True
         else:
             return False
-    
+
     @classmethod
     def remove_anchor(cls, url):
         """
         Removing the anchor from a link.
-        
+
         Arguments:
         url -- A URL or partial URL
         """
-        
+
         m = re.search('([^#]*).*', url)
         return m.group(1)
-    
+
     @classmethod
     def cleanup_link(cls, url, source_url):
         """
         Prepare a link for processing by removing the anchor and making it absolute.
-        
+
         Arguments:
         url -- A URL or partial URL
         source_url -- The URL from which the URL was obtained from
         """
-        
+
         if source_url is not None:
             return cls.remove_anchor(urljoin(source_url, url))
-        else: 
+        else:
             return cls.remove_anchor(url)
-    
+
     @classmethod
     def extract_links(cls, lxml_html_tree, source_url, links=None, url_filter=None):
         """
         Get the results from performing a HTTP request and parsing the output.
-        
+
         Arguments:
         lxml_html_tree -- A parsed XML tree.
         source_url -- The url from which the content came from; this should be a string.
         links -- An array to put the links into
         url_filter -- The URL to filter extraction to (a wild-card as a string)
         """
-        
+
         # Set a default for the links argument
         if links is None:
             links = []
-        
+
         # Get a selector grab the hrefs
         selector = SelectorField.parse_selector("a[href]", "selector")
-        
+
         # Get the matches
         matches = selector(lxml_html_tree)
-        
+
         for match in matches:
             attributes = dict(match.attrib)
-            
+
             # If the a tag has an href, then get it
             if 'href' in attributes:
-                
+
                 # CLeanup the link to remove the local parts like the #
                 link = cls.cleanup_link(attributes['href'], source_url)
-                
+
                 # Make sure the link wasn't already in the list
-                if link not in links and cls.is_url_in_url_filter(link, url_filter): #cls.is_url_in_domain(source_url, domain_limit):
+                if link not in links and cls.is_url_in_url_filter(link, url_filter):
                     links.append(link)
-        
+
         return links
-    
+
     @classmethod
-    def get_result_built_in_client(cls, http, url, headers, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
-        
-        response, content = http.request( url.geturl(), 'GET', headers=headers)
-        
+    def get_result_built_in_client(cls, http, url, headers, charset_detect_meta_enabled=True,
+                                   charset_detect_content_type_header_enabled=True,
+                                   charset_detect_sniff_enabled=True):
+        """
+        Get the results using the built-in client.
+
+        Arguments:
+        http -- The HTTP object to perform the request with
+        url -- The url to connect to. This object ought to be an instance derived from using
+               urlparse
+        headers -- The HTTP headers
+        name_attributes -- Attributes to use the values for assigning the names
+        charset_detect_meta_enabled -- Enable detection from the META attribute in the head tag
+        charset_detect_content_type_header_enabled -- Enable detection from the content-type header
+        charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying
+                                        different encodings
+        """
+
+        response, content = http.request(url.geturl(), 'GET', headers=headers)
+
         encoding = cls.detect_encoding(content, response, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
-        
+
         return response.status, content, encoding
-    
+
     @classmethod
     def get_firefox_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         profile = webdriver.FirefoxProfile()
-        
-        # This is necessary in order to avoid the dialog that FireFox uses to stop potential phishing attacks that use credentials encoded in the URL
+
+        # This is necessary in order to avoid the dialog that FireFox uses to stop potential
+        # phishing attacks that use credentials encoded in the URL
         # See http://lukemurphey.net/issues/1658
         profile.set_preference('network.http.phishy-userpass-length', 255)
-        
+
         # Return none if no proxy is defined
         if proxy_server is None or proxy_port is None:
             pass
-        
+
         # Use a socks proxy
         elif proxy_type == "socks4" or proxy_type == "socks5":
             profile.set_preference('network.proxy.type', 1)
             profile.set_preference('network.proxy.socks', proxy_server)
             profile.set_preference('network.proxy.socks_port', int(proxy_port))
-            
+
         # Use an HTTP proxy
         elif proxy_type == "http":
-            
+
             profile.set_preference('network.proxy.type', 1)
             profile.set_preference('network.proxy.http', proxy_server)
-            profile.set_preference('network.proxy.http_port', int(proxy_port)) 
+            profile.set_preference('network.proxy.http_port', int(proxy_port))
             profile.set_preference('network.proxy.ssl', proxy_server)
-            profile.set_preference('network.proxy.ssl_port', int(proxy_port)) 
-            
+            profile.set_preference('network.proxy.ssl_port', int(proxy_port))
+
         return profile
-    
+
     @classmethod
     def add_browser_driver_to_path(cls):
-        
+
         driver_path = None
-        
+
         if sys.platform == "linux2" and platform.architecture()[0] == '64bit':
             driver_path = "linux64"
         elif sys.platform == "linux2":
             driver_path = "linux32"
         else:
             driver_path = sys.platform
-        
+
         full_driver_path = os.path.join(get_apps_dir(), "website_input", "bin", "browser_drivers", driver_path)
-        
+
         if not full_driver_path in os.environ["PATH"]:
 
             # Use the correct path separator per the platform
@@ -541,49 +559,49 @@ class WebInput(ModularInput):
                 os.environ["PATH"] += ";" +full_driver_path
             else:
                 os.environ["PATH"] += ":" +full_driver_path
-            
+
             logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
-    
+
     @classmethod
     def get_display(cls):
-        
+
         # Start a display so that this works on headless hosts
         if not os.name == 'nt':
             try:
                 display = Display(visible=0, size=(800, 600))
                 display.start()
-                
+
                 return display
             except EasyProcessCheckInstalledError:
                 logger.warn("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
             except Exception:
                 logger.exception("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
-                
-    
+
+
     @classmethod
     def get_result_browser(cls, url, browser="firefox", sleep_seconds=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
-        
+
         # Update the path if necessary so that the drivers can be found
         WebInput.add_browser_driver_to_path()
-        
+
         driver = None
         display = None
         logger.debug("Attempting to get content using browser=%s", browser)
-        
+
         try:
             # Assign a default argument for browser
             if browser is None:
                 browser = cls.FIREFOX
             else: 
                 browser = browser.lower().strip()
-            
+
             # Make the browser
             if browser == cls.FIREFOX:
-                
+
                 display = cls.get_display()
-                
+
                 profile = cls.get_firefox_profile(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
-                
+
                 if profile is not None:
                     logger.debug("Using a proxy with Firefox")
                     driver = webdriver.Firefox(profile, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
@@ -591,32 +609,32 @@ class WebInput(ModularInput):
                     driver = webdriver.Firefox(log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
             else:
                 raise Exception("Browser '%s' not recognized" % (browser))
-            
+
             # Load the page
             driver.get(cls.add_auth_to_url(url.geturl(), username, password))
-            
+
             # Wait for the content to load
             time.sleep(sleep_seconds)
-            
+
             # Get the content
             content = driver.execute_script("return document.documentElement.outerHTML")
-            
+
             return content
         finally:
-            
+
             # Stop the driver so that the web-browser closes. Otherwise, the process would be left open.
             if driver is not None:
                 driver.quit()
-                
+
             # Stop the display that is used to run a headless browser.
             if display is not None:
                 display.stop()
-    
+
     @classmethod
     def get_result_single(cls, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, timeout=5, username=None, password=None, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, additional_fields=None, match_prefix=None, empty_value=None):
         """
         Get the results from performing a HTTP request and parsing the output.
-        
+
         Arguments:
         http -- The HTTP object to perform the request with
         url -- The url to connect to. This object ought to be an instance derived from using urlparse
@@ -648,22 +666,22 @@ class WebInput(ModularInput):
         match_prefix -- A prefix to attach to prepend to the front of the match fields
         empty_value -- The value to use for empty matches
         """
-        
+
         try:
-            
+
             if match_prefix is None:
                 match_prefix = ''
-            
+
             # This will be where the result information will be stored
             result = OrderedDict()
-            
+
             if additional_fields is not None:
                 for k, v in additional_fields.items():
                     result[k] = v
-            
+
             # Perform the request
             with Timer() as timer:
-                
+
                 response_code, content, encoding = cls.get_result_built_in_client( http, url, headers, charset_detect_meta_enabled, charset_detect_content_type_header_enabled, charset_detect_sniff_enabled)
                 result['browser'] = cls.INTEGRATED_CLIENT
                 
@@ -675,25 +693,25 @@ class WebInput(ModularInput):
                     result['browser'] = browser
                 except:
                     logger.exception("Unable to get the content using the browser=%s", browser)
-                
+
             # Get the size of the content
             result['response_size'] = len(content)
-            
+
             # Retrieve the meta-data
             result['response_code'] = response_code   
             result['request_time'] = timer.msecs
             result['url'] = url.geturl()
-            
+
             # Get the hash of the content
             result['content_md5'] = hashlib.md5(content).hexdigest()
             result['content_sha224'] = hashlib.sha224(content).hexdigest()
-            
+
             # Store the encoding in the result
             result['encoding'] = encoding
-            
+
             # Decode the content
             content_decoded = content.decode(encoding=encoding, errors='replace')
-            
+
             # Parse the HTML
             try:
                 tree = lxml.html.fromstring(content_decoded)
@@ -704,143 +722,143 @@ class WebInput(ModularInput):
                 # lxml to discover the encoding on its own since it doesn't know what the HTTP headers are and cannot sniff the encoding as well as the input does
                 # (which uses several methods to determine the encoding).
                 logger.info('The content is going to be parsed without decoding because the parser refused to parse it with the detected encoding (http://goo.gl/4GRjJF), url="%s", encoding="%s"', url.geturl(), encoding)
-                
+
                 try:
                     tree = lxml.html.fromstring(content)
                 except Exception:
                     logger.info('The content could not be parsed, it doesn\'t appear to be valid HTML, url="%s"', url.geturl())
                     tree = None
-                    
+
             except Exception:
                 logger.info('A unexpected exception was generated while attempting to parse the content, url="%s"', url.geturl())
-            
+
             # Perform extraction if a selector is provided
             if selector is not None and tree is not None:
-                
+
                 # Apply the selector to the DOM tree
                 matches = selector(tree)
-                   
+
                 # Store the raw match count (the nodes that the CSS matches)
                 result['raw_match_count'] = len(matches)
-                
+  
                 # Get the text from matching nodes
                 if output_matches_as_mv:
                     result[match_prefix + 'match'] = []
-                    
+
                 # We are going to count how many fields we made
                 fields_included = 0
-                
+
                 for match in matches:
-                    
+
                     # Unescape the text in case it includes HTML entities
                     match_text = cls.unescape(WebInput.get_text(match, text_separator, include_empty_matches))
 
                     # Don't include the field if it is empty
                     if include_empty_matches or len(match_text) > 0:
-                        
+
                         # Use the empty value if necessary     
                         if empty_value is not None and len(empty_value) > 0 and (match_text is None or len(match_text) == 0):
                             match_text = empty_value
-                        
+
                         # Keep a count of how many fields we matched
                         fields_included = fields_included + 1
-                        
+
                         # Save the match
                         field_made = False
-                        
+
                         # Try to use the name attributes for determining the field name
                         for a in name_attributes:
-                            
+
                             attributes = dict(match.attrib)
-                            
+
                             if a in attributes:
-                                
+
                                 field_made = True
                                 field_name = cls.escape_field_name(attributes[a])
-                                
+
                                 # If the field does not exist, create it
                                 if not field_name in result and output_matches_as_mv:
                                     result[match_prefix + field_name] = [match_text]
-                                    
+
                                 # If the field exists and we are adding them as mv, then add it
                                 elif field_name in result and output_matches_as_mv:
                                     result[match_prefix + field_name].append(match_text)
-                                    
+  
                                 # Otherwise, output it as a separate field
                                 if output_matches_as_separate_fields:
                                     result[match_prefix + 'match_' + field_name + "_" + str(fields_included)] = match_text
-                                    
+
                         # Try to use the name of the element
                         if use_element_name and not field_made:
-                            
+
                             # If the field does not exists, create it
                             if not (match_prefix + match.tag) in result and output_matches_as_mv:
                                 result[match_prefix + match.tag] = [match_text]
-                            
+
                             # If the field exists and we are adding them as mv, then add it
                             elif output_matches_as_mv:
                                 result[match_prefix + match.tag].append(match_text)
-                            
+
                             # Otherwise, output it as a separate field
                             if output_matches_as_separate_fields:
                                 result[match_prefix + 'match_' + match.tag] = match_text
-                            
+
                         # Otherwise, output the fields as generic fields
                         if not field_made:
 
                             if output_matches_as_mv:
                                 result[match_prefix + 'match'].append(match_text) # Note: the 'match' in the dictionary will already be populated
-                            
+
                             if output_matches_as_separate_fields:
                                 result[match_prefix + 'match_' + str(fields_included)] = match_text
-            
+ 
             # Include the raw content if requested
             if include_raw_content:
                 result['content'] = content
-                            
+
             # If we are to extract links, do it
             if tree is not None:
                 if extracted_links is not None and source_url_depth is not None:
-                    
+
                     for extracted in cls.extract_links(tree, url.geturl(), url_filter=url_filter):
-                        
+
                         # Add the extracted link if it is not already in the list
                         if extracted not in extracted_links:
-                            
+
                             # Add the discovered URL (with the appropriate depth)
                             extracted_links[extracted] = DiscoveredURL(source_url_depth + 1)
                 else:
                     logger.debug("Not extracting links since extracted_links is None")
-        
+
         # Handle time outs    
         except socket.timeout:
-            
+
             # Note that the connection timed out    
             result['timed_out'] = True
-            
+
         except socket.error as e:
-            
+
             if e.errno in [60, 61]:
                 result['timed_out'] = True
-        
+
         except httplib2.SSLHandshakeError as e:
             logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
             return None # Unable to connect to this site due to an SSL issue
-        
+
         except httplib2.RelativeURIError:
             return None # Not a real URI
-        
+
         except Exception:
             logger.exception("A general exception was thrown when executing a web request")
             raise
-        
+
         return result  
-    
+
     @classmethod
     def get_http_client(cls, username=None, password=None, timeout=30, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
         """
         Retrieve data from a website.
-        
+
         Arguments:
         username -- The username to use for authentication
         password -- The username to use for authentication
@@ -851,10 +869,10 @@ class WebInput(ModularInput):
         proxy_password -- The password of the proxy server account
         user_agent -- The string to use for the user-agent
         """
-        
+
         # Determine which type of proxy is to be used (if any)
         resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
-            
+
         # Setup the proxy info if so configured
         if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
             proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
@@ -863,24 +881,24 @@ class WebInput(ModularInput):
             # No proxy is being used
             proxy_info = None
             logger.debug("Not using a proxy server")
-                        
+
         # Make the HTTP object
         http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
-        
+
         # Setup the credentials if necessary
         if username is not None or password is not None:
-                
+
             if username is None:
                 username = ""
-                    
+ 
             if password is None:
                 password = ""
-                    
+ 
             http.add_credentials(username, password)
-        
+
         # Return the client
         return http
-    
+
     @classmethod
     def scrape_page(cls, url, selector, username=None, password=None, timeout=30, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True, include_empty_matches=False, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None, user_agent=None, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value='NULL'):
         """
@@ -1017,7 +1035,8 @@ class WebInput(ModularInput):
                     results.append(result)
                 
         except Exception:
-            logger.exception("A general exception was thrown when executing a web request") # TODO: remove this one or the one in get_result_single() 
+            # TODO: remove this one or the one in get_result_single() 
+            logger.exception("A general exception was thrown when executing a web request")
             raise
         
         return results
