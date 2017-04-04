@@ -76,7 +76,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_input_timeout(self):
         url_field = URLField("test_input_timeout", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("https://192.168.30.23/"), selector_field.to_python("div"), timeout=3)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("https://192.168.30.23/"), selector_field.to_python("div"))
         result = results[0]
         self.assertEquals(result['timed_out'], True)
 
@@ -108,7 +110,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_page(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python(".hero-unit.main_background"))
+
+        web_scraper = WebScraper()
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python(".hero-unit.main_background"))
         result = results[0]
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 1)
@@ -117,7 +121,9 @@ class TestWebInput(UnitTestWithWebServer):
         # This text ensure that text from nodes under the selected nodes is properly extracted
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python(".hero-unit.main_background"), output_matches_as_mv=True)
+
+        web_scraper = WebScraper()
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python(".hero-unit.main_background"), output_matches_as_mv=True)
         result = results[0]
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 1)
@@ -127,7 +133,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_page_mv(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python("h2"), output_matches_as_mv=True)
+
+        web_scraper = WebScraper()
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python("h2"), output_matches_as_mv=True)
 
         result = results[0]
         self.assertEqual(result['response_code'], 200)
@@ -141,7 +149,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_unavailable_page(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://192.168.30.23/"), selector_field.to_python(".hero-unit.main_background"), timeout=3)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://192.168.30.23/"), selector_field.to_python(".hero-unit.main_background"))
         result = results[0]
         self.assertEqual(result['timed_out'], True)
 
@@ -149,7 +159,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_page_with_credentials(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), username="admin", password="changeme", timeout=3, output_matches_as_mv=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)
         result = results[0]
         #print result['match']
         self.assertEqual(len(result['match']), 30)
@@ -158,7 +170,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_page_with_invalid_credentials(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), timeout=3, output_matches_as_mv=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), output_matches_as_mv=True)
         result = results[0]
         #print result['match']
         self.assertEqual(len(result['match']), 0)
@@ -168,22 +182,28 @@ class TestWebInput(UnitTestWithWebServer):
         # https://lukemurphey.net/issues/1739
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python("H1"), timeout=3, output_matches_as_mv=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python("H1"), output_matches_as_mv=True)
         result = results[0]
-        #print result['match']
+
         self.assertEqual(len(result['match']), 1)
-    
+
     def test_unparsable(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/media/images/link_external.png"), selector_field.to_python(".hero-unit .main_background"), timeout=3, output_matches_as_mv=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/media/images/link_external.png"), selector_field.to_python(".hero-unit .main_background"), output_matches_as_mv=True)
         result = results[0]
         self.assertEqual(result['match'], [])
         
     def test_scrape_encoding_detect_page(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"))
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"))
         result = results[0]
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 45)
@@ -194,7 +214,11 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_encoding_detect_sniff(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"), charset_detect_meta_enabled=False, charset_detect_content_type_header_enabled=False, charset_detect_sniff_enabled=True)
+
+        web_scraper = WebScraper(timeout=3)
+        # Enable only sniffing
+        web_scraper.set_charset_detection(False, False, True)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
@@ -204,7 +228,11 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_encoding_detect_meta(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2"), selector_field.to_python(".verse-container"), charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=False, charset_detect_sniff_enabled=False)
+
+        web_scraper = WebScraper()
+        # Enable only meta detection
+        web_scraper.set_charset_detection(True, False, False)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2"), selector_field.to_python(".verse-container"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
@@ -213,7 +241,11 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_encoding_detect_content_type_header(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"), charset_detect_meta_enabled=False, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=False)
+
+        # Enable only content-type detection
+        web_scraper = WebScraper()
+        web_scraper.set_charset_detection(False, True, False)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
@@ -225,7 +257,9 @@ class TestWebInput(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python("h1+p,.sharing-buttons"), timeout=3, output_matches_as_mv=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/"), selector_field.to_python("h1+p,.sharing-buttons"), output_matches_as_mv=True)
         result = results[0]
 
         self.assertEqual(len(result['match']), 2)
@@ -234,7 +268,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_page_name_attributes(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), username="admin", password="changeme", timeout=3, name_attributes=["class"])
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), username="admin", password="changeme", name_attributes=["class"])
         result = results[0]
 
         self.assertEqual(len(result['hd']), 31)
@@ -243,7 +279,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_page_name_attributes_separate_fields(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), username="admin", password="changeme", timeout=3, name_attributes=["class"], output_matches_as_separate_fields=True, output_matches_as_mv=False)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), username="admin", password="changeme", name_attributes=["class"], output_matches_as_separate_fields=True, output_matches_as_mv=False)
         result = results[0]
 
         self.assertEqual(result['match_hd_1'], 'Mode:')
@@ -252,7 +290,9 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scrape_page_name_attributes_escaped_name(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("input"), username="admin", password="changeme", timeout=3, name_attributes=["onclick"], include_empty_matches=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("input"), username="admin", password="changeme", name_attributes=["onclick"], include_empty_matches=True)
         result = results[0]
 
         self.assertTrue('btnBerTest__' in result)
@@ -264,7 +304,9 @@ class TestWebInput(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField( "test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a"), timeout=3, include_empty_matches=True, text_separator=",")
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a"), include_empty_matches=True, text_separator=",")
         result = results[0]
 
         # The result below includes more empty items than expected. This is because text nodes can occur after elements.
@@ -279,7 +321,8 @@ class TestWebInput(UnitTestWithWebServer):
         #
         self.assertEqual(result['match'][0], ',,,Text_1,,Text_2,,,')
 
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".b"), timeout=3, include_empty_matches=True, text_separator=",")
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".b"), include_empty_matches=True, text_separator=",")
         result = results[0]
 
         self.assertEqual(result['match'][0], ',Text_0,,Text_1,,Text_2,,Text_3,')
@@ -290,7 +333,9 @@ class TestWebInput(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a > *"), timeout=3, include_empty_matches=True, text_separator=",")
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a > *"), include_empty_matches=True, text_separator=",")
 
         result = results[0]
         self.assertEqual(result['match'][0], 'NULL')
@@ -315,7 +360,9 @@ class TestWebInput(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://rss.slashdot.org/Slashdot/slashdot"), selector_field.to_python("description"))
+
+        web_scraper = WebScraper()
+        results = web_scraper.scrape_page(url_field.to_python("http://rss.slashdot.org/Slashdot/slashdot"), selector_field.to_python("description"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
@@ -326,7 +373,10 @@ class TestWebInput(UnitTestWithWebServer):
     def test_scape_page_custom_user_agent(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/header_reflection"), selector_field.to_python(".user-agent"), timeout=3, output_matches_as_mv=True, user_agent="test_scape_page_custom_user_agent")
+
+        web_scraper = WebScraper(timeout=3)
+        web_scraper.user_agent = "test_scape_page_custom_user_agent"
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/header_reflection"), selector_field.to_python(".user-agent"), output_matches_as_mv=True)
         result = results[0]
 
         #print result['match']
@@ -338,7 +388,9 @@ class TestWebInput(UnitTestWithWebServer):
         # http://lukemurphey.net/issues/1144
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), output_matches_as_mv=True)
         result = results[0]
 
         self.assertEqual(len(result['match']), 1)
@@ -349,7 +401,9 @@ class TestWebInput(UnitTestWithWebServer):
         # http://lukemurphey.net/issues/1145
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True, use_element_name=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), output_matches_as_mv=True, use_element_name=True)
         result = results[0]
 
         self.assertEqual(len(result['match']), 1)
@@ -362,7 +416,9 @@ class TestWebInput(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True, use_element_name=True, match_prefix="prefix_")
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), output_matches_as_mv=True, use_element_name=True, match_prefix="prefix_")
         result = results[0]
 
         self.assertEqual(len(result['prefix_cook_temp']), 1)
@@ -374,7 +430,9 @@ class TestWebInput(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("MISC > *"), timeout=3, output_matches_as_mv=True, use_element_name=True, match_prefix="prefix_")
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("MISC > *"), output_matches_as_mv=True, use_element_name=True, match_prefix="prefix_")
         result = results[0]
 
         self.assertEqual(len(result['prefix_string']), 3)
@@ -471,7 +529,9 @@ class TestWebInputCrawling(unittest.TestCase):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), timeout=3, output_matches_as_mv=True, page_limit=5)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), output_matches_as_mv=True, page_limit=5)
         result = results[0]
 
         self.assertEqual(len(results), 5)
@@ -489,7 +549,9 @@ class TestWebInputCrawling(unittest.TestCase):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), timeout=3, output_matches_as_mv=True, page_limit=5, depth_limit=0)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), output_matches_as_mv=True, page_limit=5, depth_limit=0)
         self.assertEqual(len(results), 1)
 
     def test_scape_page_spider_from_non_matching_links(self):
@@ -497,7 +559,9 @@ class TestWebInputCrawling(unittest.TestCase):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".ajah-loading"), timeout=3, output_matches_as_mv=True, page_limit=5, depth_limit=3)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".ajah-loading"), output_matches_as_mv=True, page_limit=5, depth_limit=3)
 
         self.assertGreater(len(results), 1) # This should return only one result if link extraction only applies to matched pages 
 
@@ -510,7 +574,9 @@ class TestRawContent(UnitTestWithWebServer):
     def test_get_raw_content(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_get_raw_content", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), timeout=3, output_matches_as_mv=True, include_raw_content=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("COOK_TEMP"), output_matches_as_mv=True, include_raw_content=True)
         result = results[0]
 
         self.assertEqual(len(results), 1)
@@ -520,7 +586,9 @@ class TestRawContent(UnitTestWithWebServer):
     def test_get_raw_content_empty_selector(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_get_raw_content_empty_selector", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python(""), timeout=3, output_matches_as_mv=True, include_raw_content=True)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python(""), output_matches_as_mv=True, include_raw_content=True)
         result = results[0]
 
         self.assertEqual(len(results), 1)
@@ -535,7 +603,9 @@ class TestCustomSeparator(UnitTestWithWebServer):
     def test_custom_separator(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_custom_separator", "title", "this is a test")
-        results = WebScraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("FOOD1"), timeout=3, output_matches_as_mv=True, text_separator=":")
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml"), selector_field.to_python("FOOD1"), output_matches_as_mv=True, text_separator=":")
         result = results[0]
 
         self.assertEqual(len(results), 1)
@@ -565,7 +635,9 @@ class TestBrowserRendering(UnitTestWithWebServer):
     def test_scrape_page(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_custom_separator", "title", "this is a test")
-        results = WebScraper.scrape_page( url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python("h1"), timeout=3, output_matches_as_mv=True, browser=self.BROWSER)
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page( url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python("h1"), output_matches_as_mv=True, browser=self.BROWSER)
         result = results[0]
 
         self.assertEqual(len(results), 1)
@@ -581,7 +653,8 @@ class TestBrowserRendering(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
 
-        content = WebScraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), browser=self.BROWSER, sleep_seconds=2)
+        web_scraper = WebScraper(timeout=2)
+        content = web_scraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), browser=self.BROWSER)
 
         self.assertEqual(content[0:5], '<html')
 
@@ -594,7 +667,8 @@ class TestBrowserRendering(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
 
-        content = WebScraper.get_result_browser(url_field.to_python("http://admin:changeme@127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER, sleep_seconds=2)
+        web_scraper = WebScraper(timeout=2)
+        content = web_scraper.get_result_browser(url_field.to_python("http://admin:changeme@127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER)
 
         self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
 
@@ -607,7 +681,8 @@ class TestBrowserRendering(UnitTestWithWebServer):
 
         url_field = URLField("test_web_input", "title", "this is a test")
 
-        content = WebScraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER, sleep_seconds=2, username="admin", password="changeme")
+        web_scraper = WebScraper(timeout=2)
+        content = web_scraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER, username="admin", password="changeme")
 
         self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
 
