@@ -230,7 +230,7 @@ class WebInput(ModularInput):
         depth_limit      = cleaned_params.get("depth_limit", 25)
         raw_content      = cleaned_params.get("raw_content", False)
         text_separator   = cleaned_params.get("text_separator", " ")
-        browser          = cleaned_params.get("browser", self.INTEGRATED_CLIENT)
+        browser          = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
         output_as_mv     = cleaned_params.get("output_as_mv", True)
         source           = stanza
         
@@ -273,7 +273,12 @@ class WebInput(ModularInput):
                     'title' : title
                 }
                 
-                result = WebScraper.scrape_page(url, selector, username, password, timeout, name_attributes, proxy_type=proxy_type, proxy_server=proxy_server, proxy_port=proxy_port, proxy_user=proxy_user, proxy_password=proxy_password, user_agent=user_agent, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
+                web_scraper = WebScraper(timeout)
+
+                web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+                web_scraper.user_agent = user_agent
+
+                result = web_scraper.scrape_page(url, selector, username, password, name_attributes, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
                 
                 matches = 0
                 

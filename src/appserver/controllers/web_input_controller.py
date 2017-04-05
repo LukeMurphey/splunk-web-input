@@ -28,7 +28,7 @@ import splunk.rest as rest
 sys.path.append(os.path.join("..", "..", "..", "bin"))
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
-from web_input import WebInput
+from web_input import WebInput, WebScraper
 from website_input_app.modular_input import FieldValidationException
 from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 
@@ -213,8 +213,8 @@ class WebInputController(controllers.BaseController):
                 username = kwargs['username']
                 password = kwargs['password']
 
-            http = WebInput.get_http_client(username, password, 30, proxy_type, proxy_server,
-                                            proxy_port, proxy_user, proxy_password)
+            http = WebScraper.get_http_client(username, password, 30, proxy_type, proxy_server,
+                                              proxy_port, proxy_user, proxy_password)
 
             # Setup the headers as necessary
             user_agent = None
@@ -244,7 +244,7 @@ class WebInputController(controllers.BaseController):
             if 'text/html' in response['content-type']:
 
                 # Discover the encoding
-                encoding = WebInput.detect_encoding(content, response)
+                encoding = WebScraper.detect_encoding(content, response)
 
                 # Get the information on the browser to use
                 browser = None
@@ -254,12 +254,12 @@ class WebInputController(controllers.BaseController):
 
                 # Try rendering the content using a web-browser
                 try:
-                    if browser is not None and browser != WebInput.INTEGRATED_CLIENT:
+                    if browser is not None and browser != WebScraper.INTEGRATED_CLIENT:
 
-                        content = WebInput.get_result_browser(urlparse.urlparse(url), browser,
-                                                              timeout, username, password,
-                                                              proxy_type, proxy_server, proxy_port,
-                                                              proxy_user, proxy_password)
+                        content = WebScraper.get_result_browser(urlparse.urlparse(url), browser,
+                                                                timeout, username, password,
+                                                                proxy_type, proxy_server, proxy_port,
+                                                                proxy_user, proxy_password)
 
                     content_decoded = content.decode(encoding=encoding, errors='replace')
                 except:
@@ -390,10 +390,6 @@ class WebInputController(controllers.BaseController):
                 kw['username'] = kwargs['username']
                 kw['password'] = kwargs['password']
 
-            # Get the user-agent string
-            if 'user_agent' in kwargs:
-                kw['user_agent'] = kwargs['user_agent']
-
             # Determine if we should include empty matches
             if 'empty_matches' in kwargs:
                 kw['include_empty_matches'] = util.normalizeBoolean(kwargs['empty_matches'], True)
@@ -419,15 +415,6 @@ class WebInputController(controllers.BaseController):
             # Get the field match prefix
             if 'match_prefix' in kwargs:
                 kw['match_prefix'] = kwargs['match_prefix']
-
-            # Get the timeout parameter
-            kw['timeout'] = 5
-
-            if 'timeout' in kwargs:
-                try:
-                    kw['timeout'] = int(kwargs['timeout'])
-                except:
-                    pass # timeout is invalid. Ignore this for now, it will get picked up when the user attempts to save the input
 
             # Get the browser parameter
             if 'browser' in kwargs:
@@ -456,23 +443,35 @@ class WebInputController(controllers.BaseController):
             # Get the proxy configuration
             conf_stanza = "default"
 
+            # Get the timeout parameter
+            timeout = 5
+
+            if 'timeout' in kwargs:
+                try:
+                    timeout = int(kwargs['timeout'])
+                except:
+                    pass # timeout is invalid. Ignore this for now, it will get picked up when the user attempts to save the input
+            
+            # Make the web scraper instance
+            web_scraper = WebScraper(timeout)
+
+            # Get the user-agent string
+            if 'user_agent' in kwargs:
+                web_scraper.user_agent = kwargs['user_agent']
+
             try:
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
 
-                kw['proxy_type'] = proxy_type
-                kw['proxy_server'] = proxy_server
-                kw['proxy_port'] = proxy_port
-                kw['proxy_user'] = proxy_user
-                kw['proxy_password'] = proxy_password
+                web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
 
             except splunk.ResourceNotFound:
                 cherrypy.response.status = 202
                 return self.render_error_json(_("Proxy server information could not be obtained"))
 
             # Scrape the page
-            result = WebInput.scrape_page(url, selector, **kw)
+            result = web_scraper.scrape_page(url, selector, **kw)
 
-        except FieldValidationException, e:
+        except FieldValidationException as e:
             cherrypy.response.status = 220
             return self.render_error_json(_(str(e)))
 
