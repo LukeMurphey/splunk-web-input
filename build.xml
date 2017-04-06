@@ -53,4 +53,14 @@
     	<echo>App ${value.build.appname} build ${value.build.number} deployed to ${export_dir}</echo>
     </target>
 
+    <!-- ================================= 
+          target: splunk.refresh
+         ================================= -->
+    <target name="splunk.refresh" description="Refresh Splunk" depends="verify_splunk_home">
+    	<reload_conf endpoint="savedsearch" />
+    	<reload_conf endpoint="nav" />
+    	<reload_conf endpoint="views" />
+        <reload_conf endpoint="ui-tour" />
+    </target>
+
 </project>

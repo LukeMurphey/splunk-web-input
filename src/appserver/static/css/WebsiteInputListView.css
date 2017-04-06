@@ -112,3 +112,10 @@ td{
 .btn-group.open .btn-primary.dropdown-toggle {
     background-color: #65a637;
 }
+
+/*
+ * Make the link on the list page fit right next to the "new input" button.
+ */
+.button-link{
+	margin: 12px;
+}
