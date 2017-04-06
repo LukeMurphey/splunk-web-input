@@ -167,7 +167,7 @@ class WebInput(ModularInput):
                 IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
                 BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
                 StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS)
-                ]
+        ]
 
         ModularInput.__init__(self, scheme_args, args)
 
