@@ -171,6 +171,9 @@ class WebInput(ModularInput):
 
         ModularInput.__init__(self, scheme_args, args)
 
+        # Make the base class use our logger
+        self.logger = logger
+
         if timeout > 0:
             self.timeout = timeout
         else:
@@ -372,6 +375,9 @@ class WebInput(ModularInput):
                     matches_hash = self.hash_data(result, WebScraper.GENERATED_FIELDS)
 
                 logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), matches_hash, checkpoint_data.get('matches_hash', ''))
+                
+                # Assign a default for the content hash; it will be populated later
+                content_hash = ""
 
                 # Don't output the results if we are set to not output results unless the matches change
                 if output_results == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == matches_hash:
