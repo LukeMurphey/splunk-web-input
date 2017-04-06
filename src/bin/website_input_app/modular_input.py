@@ -374,6 +374,36 @@ class DeprecatedField(Field):
     def to_string(self, value):
         return ""
 
+class StaticListField(Field):
+    """
+    This allows you to specify a list of field values that are allowed.
+    All other values will be rejected.
+    """
+
+    _valid_values = None
+    
+    def __init__(self, name, title, description, none_allowed=False, empty_allowed=True, required_on_create=None, required_on_edit=None, valid_values=None):
+        super(StaticListField,self).__init__(name, title, description, none_allowed, empty_allowed, required_on_create, required_on_edit)
+        
+        self.valid_values = valid_values
+
+    @property
+    def valid_values(self):
+        return self._valid_values
+
+    @valid_values.setter
+    def valid_values(self, values):
+        self._valid_values = values
+
+    def to_python(self, value):
+        
+        Field.to_python(self, value)
+        
+        if value is None:
+            return None
+        elif value not in self.valid_values:
+            raise FieldValidationException('The value of the "' + self.name + '" field is invalid, it must be one of:' + ','.join(self.valid_values))
+
 class ModularInputConfig():
     
     def __init__(self, server_host, server_uri, session_key, checkpoint_dir, configuration):
@@ -1087,7 +1117,7 @@ class ModularInput():
             return False
     
     @classmethod
-    def last_ran( cls, checkpoint_dir, stanza ):
+    def last_ran(cls, checkpoint_dir, stanza):
         """
         Determines the date that the analysis was last performed for the given input (denoted by the stanza name).
         

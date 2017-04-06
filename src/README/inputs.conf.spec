@@ -54,3 +54,7 @@ output_as_mv = <value>
 
 empty_matches = <value>
 * Indicates whether empty matches should be included
+
+output_results = <value>
+* Indicates if the results should only only be included if they changed from the prior run
+* valid values include: always, when_matches_change, when_contents_change

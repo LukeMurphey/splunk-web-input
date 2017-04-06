@@ -12,7 +12,7 @@ The classes included are:
 """
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
-from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField
+from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
 from splunk.models.field import IntField as ModelIntField
@@ -132,6 +132,13 @@ class WebInput(ModularInput):
 
     OUTPUT_USING_STASH = True
 
+    # Static variables for when to output results
+    OUTPUT_RESULTS_ALWAYS = 'always'
+    OUTPUT_RESULTS_WHEN_MATCHES_CHANGE = 'when_matches_change'
+    OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE = 'when_contents_change'
+
+    OUTPUT_RESULTS_OPTIONS = [OUTPUT_RESULTS_ALWAYS, OUTPUT_RESULTS_WHEN_MATCHES_CHANGE, OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE]
+
     def __init__(self, timeout=30, **kwargs):
 
         scheme_args = {'title': "Web-pages",
@@ -158,7 +165,8 @@ class WebInput(ModularInput):
                 Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
                 Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
                 IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
-                BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False)
+                BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+                StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS)
                 ]
 
         ModularInput.__init__(self, scheme_args, args)
@@ -208,6 +216,59 @@ class WebInput(ModularInput):
 
         return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
 
+    def hash_data(self, data, ignore_keys=None):
+        """
+        Hash the data and compute a SHA224 hex digest that uniquely represents the data.
+
+        Arguments:
+        data -- The data to hash
+        ignore_keys -- A list of keys to ignore in the dictionaries
+        """
+
+        # Make a hasher capable of handling SHA224
+        hash_data = hashlib.sha224()
+
+        # Update the hash data accordingly
+        self.update_hash(data, hash_data, ignore_keys)
+
+        # Compute the hex result
+        return hash_data.hexdigest()
+
+    def update_hash(self, data, hash_data, ignore_keys=None):
+        """
+        Update the hash data.
+
+        Arguments:
+        data -- The data to hash
+        hash_data -- The existing hash that contains the hash thus far
+        ignore_keys -- A list of keys to ignore in the dictionaries
+        """
+
+        # Handle the dictionary
+        if isinstance(data, dict) or isinstance(data, OrderedDict):
+
+            # Sort the dictionary by key
+            for key, value in sorted(data.items()):
+
+                if ignore_keys is None or key not in ignore_keys:
+                    self.update_hash(key, hash_data, ignore_keys)
+                    self.update_hash(value, hash_data, ignore_keys)
+
+        # If the input is a string
+        elif isinstance(data, basestring):
+            hash_data.update(data)
+
+        elif isinstance(data, list) and not isinstance(data, basestring):
+
+            # Sort the list
+            data.sort()
+
+            for entry in data:
+                self.update_hash(entry, hash_data, ignore_keys)
+
+        else:
+            hash_data.update(str(data))
+
     def run(self, stanza, cleaned_params, input_config):
 
         # Make the parameters
@@ -232,9 +293,10 @@ class WebInput(ModularInput):
         text_separator   = cleaned_params.get("text_separator", " ")
         browser          = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
         output_as_mv     = cleaned_params.get("output_as_mv", True)
+        output_results   = cleaned_params.get("output_results", None)
         source           = stanza
         
-        if self.needs_another_run( input_config.checkpoint_dir, stanza, interval ):
+        if self.needs_another_run(input_config.checkpoint_dir, stanza, interval):
             
             # Get the proxy configuration
             try:
@@ -273,11 +335,13 @@ class WebInput(ModularInput):
                     'title' : title
                 }
                 
+                # Make an instance of the web-scraper and initialize it
                 web_scraper = WebScraper(timeout)
 
                 web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 web_scraper.user_agent = user_agent
 
+                # Perform the scrape
                 result = web_scraper.scrape_page(url, selector, username, password, name_attributes, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
                 
                 matches = 0
@@ -294,27 +358,72 @@ class WebInput(ModularInput):
             # Process the result (if we got one)
             if result is not None:
                 
-                # Process each event
-                for r in result:
-                    
-                    # Send the event
-                    if self.OUTPUT_USING_STASH:
-                    
-                        # Write the event as a stash new file
-                        writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
-                        logger.debug("Wrote stash file=%s", writer.write_event(r))
-                        
-                    else:
-                        
-                        # Write the event using the built-in modular input method
-                        self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
+                # Keep a list of the matches so that we can determine if any of results changed
+                result_hashes = []
 
+                # Determine the prior hash of the results
+                checkpoint_data = self.get_checkpoint_data(input_config.checkpoint_dir, stanza)
+
+                if checkpoint_data is None:
+                    checkpoint_data = {}
+
+                # Compute the hash of the results
+                with Timer() as timer:
+                    matches_hash = self.hash_data(result, WebScraper.GENERATED_FIELDS)
+
+                logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), matches_hash, checkpoint_data.get('matches_hash', ''))
+                logger.debug("output_results=%r", output_results)
+                # Don't output the results if we are set to not output results unless the matches change
+                if output_results == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == matches_hash:
+                    logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results, matches_hash)
+
+                else:
                     
+                    # Build up a list of the hashes so that we can determine if the content changed
+                    for r in result:
+
+                        # Add the hash
+                        if r.get('content_sha224', None) != None:
+                            result_hashes.append(r.get('content_sha224', ''))
+
+
+                    # Compute a hash on the results
+                    content_hash = self.hash_data(result_hashes)
+
+                    # Check to see if the content changed
+                    # Don't output the results if we are set to not output results unless the matches change
+                    if output_results == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == content_hash:
+                        logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results, content_hash)
+
+                    else:
+
+                        # Process each event
+                        for r in result:
+
+                            # Send the event
+                            if self.OUTPUT_USING_STASH:
+
+                                # Write the event as a stash new file
+                                writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
+                                logger.debug("Wrote stash file=%s", writer.write_event(r))
+
+                            else:
+
+                                # Write the event using the built-in modular input method
+                                self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
+
                 # Get the time that the input last ran
                 last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
-                
+
+                # Make the new checkpoint data dictionary
+                new_checkpoint_data = {
+                    'last_run' : self.get_non_deviated_last_run(last_ran, interval, stanza),
+                    'matches_hash' : matches_hash,
+                    'content_hash' : content_hash
+                }
+
                 # Save the checkpoint so that we remember when we last executed this
-                self.save_checkpoint_data(input_config.checkpoint_dir, stanza, { 'last_run' : self.get_non_deviated_last_run(last_ran, interval, stanza) })
+                self.save_checkpoint_data(input_config.checkpoint_dir, stanza, new_checkpoint_data)
 
 class WebScraper(object):
     """
@@ -342,6 +451,10 @@ class WebScraper(object):
     CHROME = "chrome"
 
     SUPPORTED_BROWSERS = [INTEGRATED_CLIENT, FIREFOX]
+
+    GENERATED_FIELDS = ['browser', 'response_size', 'response_code', 'request_time', 'url',
+                        'content_md5', 'content_sha224', 'encoding', 'raw_match_count', 'content',
+                        'timed_out', 'title', '_time']
 
     # Below are the class parameters
 
@@ -1088,7 +1201,12 @@ class WebScraper(object):
         # Return the client
         return http
 
-    def scrape_page(self, url, selector, username=None, password=None, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, page_limit=1, depth_limit=50, url_filter=None, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value='NULL'):
+    def scrape_page(self, url, selector, username=None, password=None, name_attributes=[],
+                    output_matches_as_mv=True, output_matches_as_separate_fields=False,
+                    include_empty_matches=False, use_element_name=False, page_limit=1,
+                    depth_limit=50, url_filter=None, include_raw_content=False,
+                    text_separator=None, browser=None, additional_fields=None, match_prefix=None,
+                    empty_value='NULL'):
         """
         Retrieve data from a website.
         

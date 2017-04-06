@@ -9,6 +9,7 @@ import tempfile
 import unicodedata
 import lxml.html
 from StringIO import StringIO
+from collections import OrderedDict
 
 # Change into the tests directory if necessary
 # This is necessary when tests are executed from the main directory as opposed to the tests
@@ -38,12 +39,12 @@ class TestURLField(unittest.TestCase):
         self.assertRaises(FieldValidationException, lambda: url_field.to_python("hxxp://google.com"))
         self.assertRaises(FieldValidationException, lambda: url_field.to_python("http://"))
         self.assertRaises(FieldValidationException, lambda: url_field.to_python("google.com"))
-    
+
 class TestDurationField(unittest.TestCase):
-    
+
     def test_duration_valid(self):
-        duration_field = DurationField( "test_duration_valid", "title", "this is a test" )
-        
+        duration_field = DurationField("test_duration_valid", "title", "this is a test")
+
         self.assertEqual(duration_field.to_python("1m"), 60)
         self.assertEqual(duration_field.to_python("5m"), 300)
         self.assertEqual(duration_field.to_python("5 minute"), 300)
@@ -51,12 +52,12 @@ class TestDurationField(unittest.TestCase):
         self.assertEqual(duration_field.to_python("5h"), 18000)
         self.assertEqual(duration_field.to_python("2d"), 172800)
         self.assertEqual(duration_field.to_python("2w"), 86400 * 7 * 2)
-        
+
     def test_url_field_invalid(self):
         duration_field = DurationField("test_url_field_invalid", "title", "this is a test")
 
         self.assertRaises(FieldValidationException, lambda: duration_field.to_python("1 treefrog"))
-        self.assertRaises(FieldValidationException, lambda: duration_field.to_python("minute"))   
+        self.assertRaises(FieldValidationException, lambda: duration_field.to_python("minute"))
 
 class TestWebInput(UnitTestWithWebServer):
 
@@ -71,7 +72,10 @@ class TestWebInput(UnitTestWithWebServer):
         return os.path.dirname(os.path.abspath(__file__))
 
     def test_get_file_path(self):
-        self.assertEquals( WebInput.get_file_path("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com"), os.path.join("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "2c70b6c76574eb4d825bfb194a460558.json"))
+
+        file_path = WebInput.get_file_path("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com")
+        expected_path = os.path.join("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "2c70b6c76574eb4d825bfb194a460558.json")
+        self.assertEquals(file_path, expected_path)
 
     def test_input_timeout(self):
         url_field = URLField("test_input_timeout", "title", "this is a test")
@@ -87,7 +91,7 @@ class TestWebInput(UnitTestWithWebServer):
         web_input = WebInput(timeout=3)
 
         web_input.save_checkpoint_data(self.tmp_dir, "web_input://TextCritical.com", {'last_run': 100})
-        self.assertEquals( WebInput.last_ran(self.tmp_dir, "web_input://TextCritical.com"), 100)
+        self.assertEquals(WebInput.last_ran(self.tmp_dir, "web_input://TextCritical.com"), 100)
 
     def test_is_expired(self):
         self.assertFalse(WebInput.is_expired(time.time(), 30))
@@ -197,7 +201,7 @@ class TestWebInput(UnitTestWithWebServer):
         results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/media/images/link_external.png"), selector_field.to_python(".hero-unit .main_background"), output_matches_as_mv=True)
         result = results[0]
         self.assertEqual(result['match'], [])
-        
+
     def test_scrape_encoding_detect_page(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
@@ -685,6 +689,213 @@ class TestBrowserRendering(UnitTestWithWebServer):
         content = web_scraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER, username="admin", password="changeme")
 
         self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
+
+class TestResultHashing(unittest.TestCase):
+    """
+    https://lukemurphey.net/issues/1806
+    """
+
+    def setUp(self):
+        self.web_input = WebInput()
+
+    def test_hash_string(self):
+        """
+        Test hashing of a string.
+        """
+
+        data = "Test"
+
+        self.assertEqual(
+            self.web_input.hash_data(data),
+            "3606346815fd4d491a92649905a40da025d8cf15f095136b19f37923"
+        )
+
+    def test_hash_dictionary(self):
+        """
+        Test hashing of a dictionary.
+        This dictionary will include some odd cases such as:
+            1) Integer values
+            2) Key that are integers
+            3) Values that include lists
+        """
+
+        data = {
+            "A": "aaaa",
+            "B": "bbbb",
+            "One": 1,
+            2: "Two",
+            "list" : [1, 2, 3, 4]
+        }
+
+        self.assertEqual(
+            self.web_input.hash_data(data),
+            "2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2"
+        )
+
+    def test_hash_dictionary_sorting(self):
+        """
+        Test hashing of a dictionary and make sure that the dictionary is sorted so that two
+        dictionaries with the same values in a different order are not considered different.
+        """
+
+        data = {
+            "B": "bbbb",
+            "A": "aaaa",
+            "One": 1,
+            2: "Two",
+            "list" : [1, 2, 3, 4]
+        }
+
+        data2 = {
+            2: "Two",
+            "A": "aaaa",
+            "B": "bbbb",
+            "list" : [1, 2, 3, 4],
+            "One": 1
+        }
+
+        pre_sorted = self.web_input.hash_data(data)
+        post_sorted = self.web_input.hash_data(data2)
+
+        self.assertEqual(pre_sorted, '2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2')
+        self.assertEqual(pre_sorted, post_sorted)
+
+    def test_hash_dictionary_with_list(self):
+        """
+        Test hashing of a dictionary and make sure that a list within the dictionary properly
+        affects the hash.
+        """
+
+        data = {
+            "B": "bbbb",
+            "A": "aaaa",
+            "One": 1,
+            2: "Two",
+            "list" : [1, 2, 3, 4]
+        }
+
+        data2 = {
+            "B": "bbbb",
+            "A": "aaaa",
+            "One": 1,
+            2: "Two",
+            "list" : [1, 2, 3] # This was changed, should cause the hash to change
+        }
+
+        pre_sorted = self.web_input.hash_data(data)
+        post_sorted = self.web_input.hash_data(data2)
+
+        self.assertEqual(pre_sorted, '2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2')
+        self.assertNotEqual(pre_sorted, post_sorted)
+
+    def test_hash_integer(self):
+        """
+        Test the hashing of an integer.
+        """
+
+        data = 1
+
+        self.assertEqual(
+            self.web_input.hash_data(data),
+            "e25388fde8290dc286a6164fa2d97e551b53498dcbf7bc378eb1f178"
+        )
+
+    def test_hash_list(self):
+        """
+        Test the hashing of a list.
+        """
+
+        data = ["DEF", "ABC"]
+
+        self.assertEqual(
+            self.web_input.hash_data(data),
+            'fd6639af1cc457b72148d78e90df45df4d344ca3b66fa44598148ce4'
+        )
+
+    def test_hash_empty_list(self):
+        """
+        Test the hashing of an empty list.
+        """
+
+        data = []
+
+        self.assertEqual(
+            self.web_input.hash_data(data),
+            'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f'
+        )
+
+    def test_hash_none(self):
+        """
+        Test the hashing of None.
+        """
+
+        data = None
+
+        self.assertEqual(
+            self.web_input.hash_data(data),
+            '741e1753b71b2b6b2879a507a69a00f8933bca84317a40e04a011d77'
+        )
+
+    def test_hash_list_ordering(self):
+        """
+        Test the hashing of lists verifying that two lists that are only different in ordering are
+        considered the same.
+        """
+
+        pre_sorted = self.web_input.hash_data(["DEF", "ABC", 1])
+        post_sorted = self.web_input.hash_data([1, "ABC", "DEF"])
+
+        self.assertEqual(pre_sorted, '9fe0831cf1aa981d9781d112a6a87ed102752b16682a0bbb2fda9163')
+        self.assertEqual(pre_sorted, post_sorted)
+
+    def test_hash_dictionary_filtered(self):
+        """
+        Test hashing of a dictionary but with a list of keys that should not be included in the
+        hash.
+        """
+
+        data = {
+            "A": "aaaa",
+            "B": "bbbb",
+            "One": 1,
+            2: "Two",
+            "list" : [1, 2, 3, 4]
+        }
+
+        self.assertEqual(
+            self.web_input.hash_data(data, ["A", 2]),
+            "6485bff299355123ad83272c364132c8c5e1641a4026b23af45b7d70"
+        )
+
+        # Make sure an ordered dict is handled as a dict
+        self.assertEqual(
+            self.web_input.hash_data(OrderedDict(data), ["A", 2]),
+            "6485bff299355123ad83272c364132c8c5e1641a4026b23af45b7d70"
+        )
+
+    def test_hash_dictionary_filtered_in_list(self):
+        """
+        Test hashing of a dictionary but with a list of keys that should not be included in the
+        hash.
+        """
+
+        data = {
+            "A": "aaaa",
+            "dict" : {
+                'B' : 'bbbb',
+                'C' : 'cccc'
+            }
+        }
+
+        self.assertEqual(
+            self.web_input.hash_data(data, ["B"]),
+            "9646b619d3e7ae9951a80aa68d29ddf62205033c6d67b31d625f5b72"
+        )
+
+        self.assertEqual(
+            self.web_input.hash_data(data, ["C"]),
+            "048f88e05df4c32adb4309285c7069c3689228b8d4cf4d7f5f58b26e"
+        )
 
 class TestBrowserRenderingFirefox(TestBrowserRendering):
     BROWSER = WebScraper.FIREFOX
