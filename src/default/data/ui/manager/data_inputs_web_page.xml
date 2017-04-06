@@ -140,10 +140,10 @@
 	        <element name="browser" type="select" label="Browser">
 	          <view name="edit"/>
 	          <view name="create"/>
-		      <options>
-		      	<opt value="integrated_client" label="Built-in client"/>
-		      	<opt value="firefox" label="Firefox"/>
-		      </options>
+		        <options>
+		      	   <opt value="integrated_client" label="Built-in client"/>
+		      	   <opt value="firefox" label="Firefox"/>
+		        </options>
 	          <key name="exampleText">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</key>
 	        </element>
 	        
@@ -257,6 +257,17 @@
 	            <view name="edit"/>
 	            <key name="exampleText">A custom user-agent is only used when the built-in HTTP client is used</key>
 		  	</element>
+
+				<element name="output_results" type="select" label="Output Results">
+	          <view name="edit"/>
+	          <view name="create"/>
+		        <options>
+		      	   <opt value="always" label="Always"/>
+		      	   <opt value="when_matches_change" label="Only when the matches change"/>
+							 <opt value="when_contents_change" label="Only when the contents of the raw web-pages change"/>
+		        </options>
+	          <key name="exampleText">Output results only when the data changes</key>
+	        </element>
 	        
 	      </elements>
 	  	</element>

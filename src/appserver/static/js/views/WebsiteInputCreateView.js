@@ -158,7 +158,8 @@ define([
         			'host' : null,
         			'index' : null,
         			'title' : null,
-        			'name' : null
+        			'name' : null,
+					'output_results' : null
         	};
         	
         	// Make a list of the default arguments. If the argument match, then will be excluded from the search string (in order to make it simpler)
@@ -373,6 +374,10 @@ define([
 			this.setCheckboxInput('#inputIncludeEmpty', input.content.empty_matches);
         	this.setCheckboxInput('#inputMV', input.content.output_as_mv);
         	this.setCheckboxInput('#inputUseTagAsField', input.content.use_element_name);
+
+			if(input.content.output_results !== null){
+        		mvc.Components.getInstance("output_results").val(input.content.output_results);
+        	}
         	
         },
         
@@ -1259,6 +1264,10 @@ define([
 			this.addCheckboxInput(data, "empty_matches", '#inputIncludeEmpty');
         	this.addCheckboxInput(data, "output_as_mv", '#inputMV');
         	this.addCheckboxInput(data, "use_element_name", '#inputUseTagAsField');
+			//data.output_results = $('#inputOutputResults').val();
+			if(mvc.Components.getInstance("output_results").val()){
+        		data['output_results'] = mvc.Components.getInstance("output_results").val();
+        	}
         	
         	// Populate defaults for the arguments
         	if(!data.hasOwnProperty('name') && this.isNew()){
@@ -1728,6 +1737,26 @@ define([
                 "id": "name",
                 "searchWhenChanged": false,
                 "el": $('#nameInput', this.$el)
+            }, {tokens: true}).render();
+
+        	// Make the output_results selection drop-down
+            var output_results_dropdown = new DropdownInput({
+                "id": "output_results",
+                "selectFirstChoice": false,
+                "showClearButton": false,
+                "el": $('#inputOutputResults', this.$el),
+                "choices": [{
+        			'label': 'Always',
+        			'value': 'always'
+        		},
+				{
+        			'label': 'Only when the matches change',
+        			'value': 'when_matches_change'
+        		},
+				{
+        			'label': 'Only when the contents of the raw web-pages change',
+        			'value': 'when_contents_change'
+        		}]
             }, {tokens: true}).render();
     		
             // Initialize the steps model

@@ -403,7 +403,8 @@ class StaticListField(Field):
             return None
         elif value not in self.valid_values:
             raise FieldValidationException('The value of the "' + self.name + '" field is invalid, it must be one of:' + ','.join(self.valid_values))
-
+        else:
+            return value
 class ModularInputConfig():
     
     def __init__(self, server_host, server_uri, session_key, checkpoint_dir, configuration):

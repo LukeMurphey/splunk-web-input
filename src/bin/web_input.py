@@ -372,7 +372,7 @@ class WebInput(ModularInput):
                     matches_hash = self.hash_data(result, WebScraper.GENERATED_FIELDS)
 
                 logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), matches_hash, checkpoint_data.get('matches_hash', ''))
-                logger.debug("output_results=%r", output_results)
+
                 # Don't output the results if we are set to not output results unless the matches change
                 if output_results == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == matches_hash:
                     logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results, matches_hash)

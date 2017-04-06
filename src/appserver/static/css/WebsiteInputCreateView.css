@@ -83,6 +83,15 @@
 	margin-left: 12px;
 }
 
+/* Make the Splunk JS combo box line-up with the other plain Bootstrap elements */
+#inputOutputResults > .splunk-choice-input{
+	margin-left: 0px;
+}
+
+#inputOutputResults > .splunk-choice-input > .select2-container{
+	width: 284px !important; /* TODO: figure out a better way to handle this */
+}
+
 /*
   * Step control wizard styling. This is needed for the step wizard to work on Splunk 6.4.
   */
