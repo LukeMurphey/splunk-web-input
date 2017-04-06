@@ -169,4 +169,6 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.1.3   | Fixed issue where the host field was not being set properly                                                      |
 |         | Reduced some unimportant log messages to debug level                                                             |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.2     | Added the ability to output results only when the results change or when the contents of the pages change        |
 +---------+------------------------------------------------------------------------------------------------------------------+
