@@ -168,7 +168,7 @@ You can also use ${value.version.number} to substitute your version number in ap
           <include name="*.jar" />
         </fileset>
     </path>
-	
+
     <!-- ================================= 
           target: download_git_ignore
          ================================= -->
@@ -371,6 +371,28 @@ You can customize the build process by placing properties in the default.propert
         
     </target>
     
+	<patternset id="substituted_files">
+    	<include name="**/*.conf" />
+        <include name="**/*.txt" />
+        <include name="**/*.xml" />
+    </patternset>
+
+	<patternset id="exclude_substituted_files">
+    	<exclude name="**/*.conf" />
+        <exclude name="**/*.txt" />
+        <exclude name="**/*.xml" />
+    </patternset>
+
+	<patternset id="minified_files">
+    	<include name="**/*.js" />
+        <include name="**/*.css" />
+    </patternset>
+
+	<patternset id="exclude_minified_files">
+    	<exclude name="**/*.js" />
+        <exclude name="**/*.css" />
+    </patternset>
+	
     <!-- ================================= 
           target: populate_export_dir
          ================================= -->
@@ -389,9 +411,7 @@ You can customize the build process by placing properties in the default.propert
              applied to text files since Ant may corrupt binary files otherwise. -->
         <copy todir="${export_dir}/${value.build.appname}">
             <fileset dir="${value.src.directory}">
-                <include name="**/*.conf" />
-                <include name="**/*.txt" />
-                <include name="**/*.xml" />
+                <patternset refid="substituted_files" />
             </fileset>
             
             <!-- Perform the substitution of the build information -->
@@ -405,11 +425,8 @@ You can customize the build process by placing properties in the default.propert
         <!-- Copy the binary files over (excluding the javascript files which are to be minified) -->
         <copy todir="${export_dir}/${value.build.appname}">
             <fileset dir="${value.src.directory}">
-                <exclude name="**/*.conf" />
-                <exclude name="**/*.txt" />
-                <exclude name="**/*.xml" />
-            	<exclude name="**/*.js" />
-            	<exclude name="**/*.css" />
+				<patternset refid="exclude_substituted_files" />
+				<patternset refid="exclude_minified_files" />
             </fileset>
         </copy>
     	
@@ -444,8 +461,7 @@ You can customize the build process by placing properties in the default.propert
 			    	
 			    	<!-- Source of the files -->	
 			        <fileset dir="${basedir}/src">
-			    		<include name="**/*.js" />
-			        	<include name="**/*.css" />
+			    		<patternset refid="minified_files" />
 			        </fileset>
 			        <arg line="-jar" />
 			        <arg path="${yuicompressorlib}" />
@@ -459,8 +475,7 @@ You can customize the build process by placing properties in the default.propert
     	        <!-- Copy the unoptimized files over -->
     	        <copy todir="${export_dir}/${value.build.appname}">
     	            <fileset dir="${value.src.directory}">
-    	            	<include name="**/*.js" />
-    	            	<include name="**/*.css" />
+    	            	<patternset refid="minified_files" />
     	            </fileset>
     	        </copy>
     		</else>
