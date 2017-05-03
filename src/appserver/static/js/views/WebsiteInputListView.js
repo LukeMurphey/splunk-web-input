@@ -281,7 +281,7 @@ define([
         	
         	// Perform the call
         	$.ajax({
-        			url: splunkd_utils.fullpath(['/services/data/inputs/web_input', name, 'enable'].join('/')),
+					url: splunkd_utils.fullpath(['/servicesNS',  owner , namespace, '/data/inputs/web_input', name, 'enable'].join('/')),
         			type: 'POST',
         			
         			// On success, populate the table
