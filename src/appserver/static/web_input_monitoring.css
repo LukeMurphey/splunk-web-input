@@ -20,6 +20,13 @@
 }
 
 /*
+ * Make sure that the icon is white (needed for Splunk 6.6)
+ */
+#statistics .icon-check{
+	color: white;
+}
+
+/*
 #dashboard > .fieldset{
 	margin-bottom: 0px;
 }
