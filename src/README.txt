@@ -171,4 +171,7 @@ Change History
 |         | Reduced some unimportant log messages to debug level                                                             |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.2     | Added the ability to output results only when the results change or when the contents of the pages change        |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.2.1   | Improved compatibility with Splunk 6.6                                                                           |
+|         | Fixed issue where you cannot enable inputs sometimes                                                             |
 +---------+------------------------------------------------------------------------------------------------------------------+
