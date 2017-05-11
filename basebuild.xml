@@ -253,23 +253,29 @@ You can customize the build process by placing properties in the default.propert
 	<target name="initialize" depends="initialize_properties,download_libraries,initialize_libraries" />
 
     <!-- ================================= 
-          target: initialize_properties
+          target: make_package_name
          ================================= -->
-	<target name="initialize_properties">
+	<target name="make_package_name">
+		<property name="value.build.package.file" value="${value.build.packageoutput.directory}/${value.build.appname}.tar.gz" />
+	</target>
 
-		<!--
-		Properties will be loaded in the following order with the first one taking precedence:
-		
-		* local.properties
-		* Environment variables
-		* default.properties
-		-->
-		
+    <!-- ================================= 
+          target: initialize_local_properties
+         ================================= -->
+	<target name="initialize_local_properties">
+
 		<!--
 		Load the properties files, local is loaded first since properties are immutable (cannot be changed
 		by later property files) and we want the local properties to override the default properties
 		-->
 		<property file="local.properties" />
+
+	</target>
+
+    <!-- ================================= 
+          target: initialize_environment_properties
+         ================================= -->
+	<target name="initialize_environment_properties">
 
 		<!-- Import some parameters from environment variables -->
 		<import_environment_var property="value.deploy.splunk_home" variable="SPLUNK_HOME" />
@@ -284,9 +290,20 @@ You can customize the build process by placing properties in the default.propert
 		<import_environment_var property="value.build.package.username" variable="PACKAGE_USERNAME" />
 		<import_environment_var property="value.build.package.password" variable="PACKAGE_PASSWORD" />
 		<import_environment_var property="value.build.test.directory" variable="TEST_DIRECTORY" />
-		
-		<!-- Import the default properties -->
+
+	</target>
+
+    <!-- ================================= 
+          target: initialize_default_properties
+         ================================= -->
+	<target name="initialize_default_properties">
 		<property file="default.properties" />
+	</target>
+
+    <!-- ================================= 
+          target: initialize_property_defaults
+         ================================= -->
+	<target name="initialize_property_defaults">
 		
 		<!-- Set some default values in case they were not set in the default.properties file -->
 		<property name="value.build.packageoutput.directory" value="tmp/packages" />
@@ -304,8 +321,22 @@ You can customize the build process by placing properties in the default.propert
 		<property name="value.build.appname" value="${ant.project.name}" />
 		<property name="value.build.libraries" value="${basedir}/lib" />
 		<property name="absolute_lib_path" location="${value.build.libraries}"/>
-		<property name="value.build.package.file" value="${value.build.packageoutput.directory}/${value.build.appname}.tar.gz"/>
+
+	</target>
+
+    <!-- ================================= 
+          target: initialize_properties
+         ================================= -->
+	<target name="initialize_properties" depends="initialize_local_properties,initialize_environment_properties,initialize_default_properties,initialize_property_defaults,make_package_name">
+
+		<!--
+		Properties will be loaded in the following order with the first one taking precedence:
 		
+		* local.properties
+		* Environment variables
+		* default.properties
+		-->
+
 		<!-- Set up the ant classpath -->
 		<path id="ant.classpath">
 			<fileset dir="ant">
