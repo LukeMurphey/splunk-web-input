@@ -18,7 +18,23 @@ Some websites disallow web-scraping in the terms of use. Make sure to check the 
 Configuring Splunk
 ================================================
 
-This app exposes a new input type. You will need to create an input to define the websites that you would like to extract information from. You can setup a new input using the wizard or using the page in Splunk's manager at Settings » Data Inputs » Web-pages or by using the GUI provided in the app itself.
+Install this app into Splunk by doing the following:
+
+  1. Log in to Splunk Web and navigate to "Apps » Manage Apps" via the app dropdown at the top left of Splunk's user interface
+  2. Click the "install app from file" button
+  3. Upload the file by clicking "Choose file" and selecting the app
+  4. Click upload
+  5. Restart Splunk if a dialog asks you to
+
+Once the app is installed, you can use the app by configuring a new input:
+  1. Open the "Website Input" app from the main launcher.
+  2. Open the "Inputs" view from the app navigation
+  3. Click "Create a New Input" to open the wizard to create a new input
+
+Alternatively, you can configure the app from the Splunk manager:
+  1. Navigate to "Settings » Data Inputs" at the menu at the top of Splunk's user interface.
+  2. Click "Web-pages"
+  3. Click "New" to make a new instance of an input
 
 
 
