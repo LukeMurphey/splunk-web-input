@@ -81,8 +81,8 @@ class SelectorField(Field):
             except AssertionError as e:
                 raise FieldValidationException("The value of '%s' for the '%s' parameter is not a valid selector: %s" % (str(value), name, str(e)))
 
-    def to_python(self, value):
-        Field.to_python(self, value)
+    def to_python(self, value, session_key=None):
+        Field.to_python(self, value, session_key)
 
         return SelectorField.parse_selector(value, self.name)
 
