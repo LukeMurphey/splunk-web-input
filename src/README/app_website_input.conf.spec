@@ -28,6 +28,7 @@ proxy_user = <string>
     
 proxy_password = <string>
     * Defines the user account to use (leave blank to use no authentication)
+    * DEPRECATED: the password should be stored in the secure password storage system
     * Examples: 0p3n_sesame
     
 proxy_type = <string>
