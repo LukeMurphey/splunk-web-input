@@ -191,9 +191,9 @@ define([
 
                     $.when(
                         this.fetchAppConfiguration(),
-                        this.getEncryptedCredential(this.secure_storage_stanza, true)
+                        this.getEncryptedCredential(this.options.secure_storage_realm_prefix + this.fetched_input_name, true)
                     )
-                    // If successful, then load the 
+                    // If successful, then load the information
                     .then(
                         function(a, credential){
 

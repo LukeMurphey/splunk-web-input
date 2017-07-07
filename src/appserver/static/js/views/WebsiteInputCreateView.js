@@ -1,7 +1,8 @@
 require.config({
     paths: {
         "text": "../app/website_input/js/lib/text",
-        "preview_website_input_results" : "../app/website_input/js/views/PreviewWebsiteInputResultsView"
+        "preview_website_input_results" : "../app/website_input/js/views/PreviewWebsiteInputResultsView",
+		"setup_view" : "../app/website_input/js/views/SetupView"
     }
 });
 
@@ -18,6 +19,7 @@ define([
     "splunkjs/mvc/simpleform/input/dropdown",
     "splunkjs/mvc/simpleform/input/text",
     "preview_website_input_results",
+	"setup_view",
     'text!../app/website_input/js/templates/WebsiteInputCreateView.html',
     "bootstrap.dropdown",
     "css!../app/website_input/css/WebsiteInputCreateView.css"
@@ -34,6 +36,7 @@ define([
     DropdownInput,
     TextInput,
     PreviewWebsiteInputResultsView,
+	SetupView,
     Template
 ){
 	
@@ -45,11 +48,13 @@ define([
 	});
 	
     // Define the custom view class
-    var WebsiteInputCreateView = SimpleSplunkView.extend({
+	// Note: this view is going to inherit from SetupView in order to gain access to the secure password helper functions.ada
+    var WebsiteInputCreateView = SetupView.extend({
         className: "WebsiteInputCreateView",
         
         defaults: {
-        	
+            "secure_storage_realm_prefix" : "web_input://",
+            "secure_storage_username" : "IN_CONF_FILE"
         },
         
         events: {
@@ -364,7 +369,7 @@ define([
         	
         	// Credentials
         	this.setIfValueIsNonEmpty('#inputUsername', input.content.username);
-        	this.setIfValueIsNonEmpty('#inputPassword', input.content.password);
+			this.setIfValueIsNonEmpty('#inputPassword', input.content.password);
         	
         	// Output options
         	this.setIfValueIsNonEmpty('#inputNameAttributes', input.content.name_attributes);
@@ -399,7 +404,7 @@ define([
         	var promise = $.Deferred();
         	
         	// Prepare the arguments
-            var params = new Object();
+            var params = {};
             params.output_mode = 'json';
             
             // Make the URI for getting the info
@@ -652,7 +657,7 @@ define([
         	$('.page-preview-loading', this.$el).show();
         	
         	// Prepare the arguments
-            var params = new Object();
+            var params = {};
             params.url = url;
             
             if( $('#inputUsername', this.$el).val().length > 0 && $('#inputPassword', this.$el).val().length > 0 ){
@@ -836,7 +841,6 @@ define([
          * Clear the validation error.
          */
         clearValidationError: function(inputID){
-        	addIfCheckboxInput
         	// Remove the error class
         	$(inputID).parent().parent().removeClass("error");
         },
@@ -879,21 +883,6 @@ define([
         	// Set the message
         	$(".help-inline", $(inputID).parent()).text(message);
         	
-        },
-        
-        /**
-         * Returns true if the item is a valid interval.
-         */
-        isValidInterval: function(interval){
-        	
-        	var re = /^\s*([0-9]+([.][0-9]+)?)\s*([dhms])?\s*$/gi;
-        	
-        	if(re.exec(interval)){
-        		return true;
-        	}
-        	else{
-        		return false;
-        	}
         },
         
         /**
@@ -976,6 +965,9 @@ define([
         		var promise = $.Deferred();
             	
         		$.when(this.saveInput(data)).then(function(){
+        			//promise.resolve();
+        		})
+				.then(this.savePassword(data['name'])).then(function(){
         			promise.resolve();
         		})
         		.fail(function(msg){
@@ -1254,7 +1246,7 @@ define([
         	
         	// Credentials
         	this.addIfInputIsNonEmpty(data, "username", '#inputUsername');
-        	this.addIfInputIsNonEmpty(data, "password", '#inputPassword');
+			data.password = ""; // Clear the password, it should be stored in secure storage
         	
         	// Output options
         	this.addIfInputIsNonEmpty(data, "name_attributes", '#inputNameAttributes');
@@ -1281,8 +1273,34 @@ define([
         	return data;
         },
         
+		/**
+		 * Save the password
+		 */
+        savePassword: function(name){
+            var password = $('#inputPassword', this.$el).val();
+
+			var stanza_name;
+			if(name !== undefined){
+				stanza_name = name;
+			}
+			else{
+				stanza_name = this.fetched_input_name;
+			}
+
+            // Delete the secured password if the password was cleared
+            if(password.length === 0){
+				// Get the stanza name
+				secure_storage_stanza = this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm_prefix + stanza_name);
+                return this.deleteEncryptedCredential(secure_storage_stanza, true);
+            }
+            // Otherwise, update it
+            else{
+                return this.saveEncryptedCredential(this.options.secure_storage_username, password, this.options.secure_storage_realm_prefix + stanza_name);
+            }
+        },
+
         /**
-         * Save the input
+         * Save the input config entry
          */
         saveInput: function(config){
         	
@@ -1290,7 +1308,7 @@ define([
         	var promise = jQuery.Deferred();
         	
         	// Prepare the arguments
-            var params = new Object();
+            var params = {};
             params.output_mode = 'json';
         	
         	var uri = splunkd_utils.fullpath("/servicesNS/admin/website_input/data/inputs/web_input");
@@ -1769,11 +1787,15 @@ define([
         	// Fetch the default information
             if(Splunk.util.getParameter("name")){
             	
-            	$.when( this.fetchInput(decodeURIComponent(Splunk.util.getParameter("name")),
-            							decodeURIComponent(Splunk.util.getParameter("namespace")),
-            							decodeURIComponent(Splunk.util.getParameter("owner"))
+				var secure_storage_stanza = this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm_prefix + Splunk.util.getParameter("name"));
+
+            	$.when(
+					this.fetchInput(decodeURIComponent(Splunk.util.getParameter("name")),
+            						decodeURIComponent(Splunk.util.getParameter("namespace")),
+            						decodeURIComponent(Splunk.util.getParameter("owner"))),
+					this.getEncryptedCredential(secure_storage_stanza, true)
             		   					).done(
-			            				   function(input){
+			            				   function(input, credential){
 			            					   console.info("Successfully retrieved the input");
 			            					   this.loaded_input = input;
 			            					   this.loadInput(this.loaded_input);
@@ -1785,6 +1807,11 @@ define([
 			            					   
 			            					   // Hide items only intended for new entries
 			            					   $('.hide-if-existing', this.$el).hide();
+
+											   // Load the credential
+											   if(credential){
+													$('#inputPassword', this.$el).val(credential.entry.content.attributes.clear_password);
+											   }
 			            				   }.bind(this)
 			            				).fail(
 			            					function(msg){
@@ -1793,8 +1820,7 @@ define([
 			            						$('#step-control-wizard', this.$el).hide();
 			            						$('.wizard-content', this.$el).hide();
 			            					}.bind(this)
-					            		)
-			           );
+					            		);
             }
             else{
             	
