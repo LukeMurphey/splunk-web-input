@@ -15,6 +15,7 @@ define([
     "util/splunkd_utils",
     "jquery",
     "splunkjs/mvc/simplesplunkview",
+	"models/services/server/ServerInfo",
     'views/shared/controls/StepWizardControl',
     "splunkjs/mvc/simpleform/input/dropdown",
     "splunkjs/mvc/simpleform/input/text",
@@ -32,6 +33,7 @@ define([
     splunkd_utils,
     $,
     SimpleSplunkView,
+	ServerInfo,
     StepWizardControl,
     DropdownInput,
     TextInput,
@@ -86,7 +88,8 @@ define([
         	this.fetched_input_namespace = null; // The namespace of the input that was loaded
         	this.form_key = Splunk.util.getFormKey(); // The form key to use for to work with Splunk's CSRF protection
         	this.loaded_iframe_url = null; // The URL of the site loaded in the iframe
-        	
+			this.is_on_cloud = null; // Remembers if the host is on cloud
+
         	// Get the list of existing inputs
         	this.getExistingInputs();
         	
@@ -913,6 +916,10 @@ define([
         			this.addValidationError($("#inputURL"), "Enter a valid URL");
         			issues += 1;
         		}
+				else if(this.is_on_cloud && !$("#inputURL").val().startsWith("https://")){
+					this.addValidationError($("#inputURL"), "Enter a URL that uses HTTPS (only HTTPS is allowed on cloud)");
+        			issues += 1;
+				}
         		
         		// Validate the depth limit
         		if($("#inputDepthLimit").val().length !== 0 && $("#inputDepthLimit").val().match(/^[0-9]+$/gi) === null){
@@ -1703,139 +1710,152 @@ define([
         render: function () {
         	
         	var has_permission = this.hasCapability('edit_modinput_web_input');
-        	
-        	this.$el.html(_.template(Template, {
-        		'has_permission' : has_permission
-        	}));
-        	
-        	// Make an instance of the results preview modal
-            this.previewResultsView = new PreviewWebsiteInputResultsView({
-            	el: $('#preview-results-modal-holder', this.$el)
-            });
-        	
-        	// Make the indexes selection drop-down
-            var indexes_dropdown = new DropdownInput({
-                "id": "index",
-                "selectFirstChoice": false,
-                "showClearButton": true,
-                "el": $('#inputIndexes', this.$el),
-                "choices": this.getChoices(this.indexes)
-            }, {tokens: true}).render();
-            
-        	// Make the sourcetype input
-        	var sourcetype_input = new TextInput({
-                "id": "sourcetype",
-                "searchWhenChanged": false,
-                "el": $('#inputSourcetype', this.$el)
-            }, {tokens: true}).render();
-        	
-        	// Make the host input
-        	var host_input = new TextInput({
-                "id": "host",
-                "searchWhenChanged": false,
-                "el": $('#inputHost', this.$el)
-            }, {tokens: true}).render();
-        	
-        	// Make the title input
-        	var title_input = new TextInput({
-                "id": "title",
-                "searchWhenChanged": false,
-                "el": $('#titleInput', this.$el)
-            }, {tokens: true}).render();
-    		
-        	// Generate a name from the title if the name is blank
-        	title_input.on("change", function(newValue) {
-        		if(!mvc.Components.getInstance("name").val() && newValue !== ""){
-        			mvc.Components.getInstance("name").val(this.generateStanzaFromString(newValue));
-        		}
-            }.bind(this));
-        	
-        	// Make the name input
-        	var name_input = new TextInput({
-                "id": "name",
-                "searchWhenChanged": false,
-                "el": $('#nameInput', this.$el)
-            }, {tokens: true}).render();
 
-        	// Make the output_results selection drop-down
-            var output_results_dropdown = new DropdownInput({
-                "id": "output_results",
-                "selectFirstChoice": false,
-                "showClearButton": false,
-                "el": $('#inputOutputResults', this.$el),
-                "choices": [{
-        			'label': 'Always',
-        			'value': 'always'
-        		},
-				{
-        			'label': 'Only when the matches change',
-        			'value': 'when_matches_change'
-        		},
-				{
-        			'label': 'Only when the contents of the raw web-pages change',
-        			'value': 'when_contents_change'
-        		}]
-            }, {tokens: true}).render();
-    		
-            // Initialize the steps model
-            this.initializeSteps();
-            
-            // Create the step wizard and set the initial step as the "url-edit" step
-            this.setupStepWizard('url-edit');
-            
-            // Render the input entry
-        	// Fetch the default information
-            if(Splunk.util.getParameter("name")){
-            	
-				var secure_storage_stanza = this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm_prefix + Splunk.util.getParameter("name"));
+			if(this.is_on_cloud === null){
+				this.server_info = new ServerInfo();
+			}
+			
+			new ServerInfo().fetch().done(function(model){
 
-            	$.when(
-					this.fetchInput(decodeURIComponent(Splunk.util.getParameter("name")),
-            						decodeURIComponent(Splunk.util.getParameter("namespace")),
-            						decodeURIComponent(Splunk.util.getParameter("owner"))),
-					this.getEncryptedCredential(secure_storage_stanza, true)
-            		   					).done(
-			            				   function(input, credential){
-			            					   console.info("Successfully retrieved the input");
-			            					   this.loaded_input = input;
-			            					   this.loadInput(this.loaded_input);
-			            					   
-			            					   // Remember the parameters of what we loaded
-			            					   this.fetched_input_name = decodeURIComponent(Splunk.util.getParameter("name"));
-			            					   this.fetched_input_owner = decodeURIComponent(Splunk.util.getParameter("owner"));
-			            					   this.fetched_input_namespace = decodeURIComponent(Splunk.util.getParameter("namespace"));
-			            					   
-			            					   // Hide items only intended for new entries
-			            					   $('.hide-if-existing', this.$el).hide();
+				if(model.entry[0].content.instance_type){
+					this.is_on_cloud = model.entry[0].content.instance_type === 'cloud';
+				}
+				else{
+					this.is_on_cloud = false;
+				}
+				
+				this.$el.html(_.template(Template, {
+					'has_permission' : has_permission,
+					'is_on_cloud': this.is_on_cloud
+				}));
+				
+				// Make an instance of the results preview modal
+				this.previewResultsView = new PreviewWebsiteInputResultsView({
+					el: $('#preview-results-modal-holder', this.$el)
+				});
+				
+				// Make the indexes selection drop-down
+				var indexes_dropdown = new DropdownInput({
+					"id": "index",
+					"selectFirstChoice": false,
+					"showClearButton": true,
+					"el": $('#inputIndexes', this.$el),
+					"choices": this.getChoices(this.indexes)
+				}, {tokens: true}).render();
+				
+				// Make the sourcetype input
+				var sourcetype_input = new TextInput({
+					"id": "sourcetype",
+					"searchWhenChanged": false,
+					"el": $('#inputSourcetype', this.$el)
+				}, {tokens: true}).render();
+				
+				// Make the host input
+				var host_input = new TextInput({
+					"id": "host",
+					"searchWhenChanged": false,
+					"el": $('#inputHost', this.$el)
+				}, {tokens: true}).render();
+				
+				// Make the title input
+				var title_input = new TextInput({
+					"id": "title",
+					"searchWhenChanged": false,
+					"el": $('#titleInput', this.$el)
+				}, {tokens: true}).render();
+				
+				// Generate a name from the title if the name is blank
+				title_input.on("change", function(newValue) {
+					if(!mvc.Components.getInstance("name").val() && newValue !== ""){
+						mvc.Components.getInstance("name").val(this.generateStanzaFromString(newValue));
+					}
+				}.bind(this));
+				
+				// Make the name input
+				var name_input = new TextInput({
+					"id": "name",
+					"searchWhenChanged": false,
+					"el": $('#nameInput', this.$el)
+				}, {tokens: true}).render();
 
-											   // Load the credential
-											   if(credential){
-													$('#inputPassword', this.$el).val(credential.entry.content.attributes.clear_password);
-											   }
-			            				   }.bind(this)
-			            				).fail(
-			            					function(msg){
-			            						console.error("Failed to retrieve the input");
-			            						$('#input-not-loaded', this.$el).show();
-			            						$('#step-control-wizard', this.$el).hide();
-			            						$('.wizard-content', this.$el).hide();
-			            					}.bind(this)
-					            		);
-            }
-            else{
-            	
-            	this.fetched_input_name = null;
-            	this.fetched_input_namespace = null;
-            	this.fetched_input_owner = null;
-            	
-            	$.when(this.fetchInput("_new")).done(function(input){
-            		console.log("Got the _new input");
-            		this.loaded_input = input;
-            		this.loadInput(this.loaded_input);
-            	}.bind(this));
-            }
+				// Make the output_results selection drop-down
+				var output_results_dropdown = new DropdownInput({
+					"id": "output_results",
+					"selectFirstChoice": false,
+					"showClearButton": false,
+					"el": $('#inputOutputResults', this.$el),
+					"choices": [{
+						'label': 'Always',
+						'value': 'always'
+					},
+					{
+						'label': 'Only when the matches change',
+						'value': 'when_matches_change'
+					},
+					{
+						'label': 'Only when the contents of the raw web-pages change',
+						'value': 'when_contents_change'
+					}]
+				}, {tokens: true}).render();
+				
+				// Initialize the steps model
+				this.initializeSteps();
+				
+				// Create the step wizard and set the initial step as the "url-edit" step
+				this.setupStepWizard('url-edit');
+				
+				// Render the input entry
+				// Fetch the default information
+				if(Splunk.util.getParameter("name")){
+					
+					var secure_storage_stanza = this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm_prefix + Splunk.util.getParameter("name"));
 
-            
+					$.when(
+						this.fetchInput(decodeURIComponent(Splunk.util.getParameter("name")),
+										decodeURIComponent(Splunk.util.getParameter("namespace")),
+										decodeURIComponent(Splunk.util.getParameter("owner"))),
+						this.getEncryptedCredential(secure_storage_stanza, true)
+											).done(
+											function(input, credential){
+												console.info("Successfully retrieved the input");
+												this.loaded_input = input;
+												this.loadInput(this.loaded_input);
+												
+												// Remember the parameters of what we loaded
+												this.fetched_input_name = decodeURIComponent(Splunk.util.getParameter("name"));
+												this.fetched_input_owner = decodeURIComponent(Splunk.util.getParameter("owner"));
+												this.fetched_input_namespace = decodeURIComponent(Splunk.util.getParameter("namespace"));
+												
+												// Hide items only intended for new entries
+												$('.hide-if-existing', this.$el).hide();
+
+												// Load the credential
+												if(credential){
+														$('#inputPassword', this.$el).val(credential.entry.content.attributes.clear_password);
+												}
+											}.bind(this)
+											).fail(
+												function(msg){
+													console.error("Failed to retrieve the input");
+													$('#input-not-loaded', this.$el).show();
+													$('#step-control-wizard', this.$el).hide();
+													$('.wizard-content', this.$el).hide();
+												}.bind(this)
+											);
+				}
+				else{
+					
+					this.fetched_input_name = null;
+					this.fetched_input_namespace = null;
+					this.fetched_input_owner = null;
+					
+					$.when(this.fetchInput("_new")).done(function(input){
+						console.log("Got the _new input");
+						this.loaded_input = input;
+						this.loadInput(this.loaded_input);
+					}.bind(this));
+				}
+			}.bind(this));
         }
     });
     

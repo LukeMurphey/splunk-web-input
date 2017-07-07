@@ -29,7 +29,7 @@ sys.path.append(os.path.join("..", "..", "..", "bin"))
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import WebInput, WebScraper
-from website_input_app.modular_input import FieldValidationException
+from website_input_app.modular_input import FieldValidationException, ModularInput
 from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 
 def setup_logger(level):
@@ -189,7 +189,13 @@ class WebInputController(controllers.BaseController):
                 return ""
 
             # --------------------------------------
-            # 2: Perform a request for the page
+            # 2: Only allow HTTPS if the install is on Splunk Cloud
+            # --------------------------------------
+            if ModularInput.is_on_cloud(cherrypy.session.get('sessionKey')) and not url.startswith("https://"):
+                return self.render_error_html('URLs on Splunk Cloud must use HTTPS protocol')
+
+            # --------------------------------------
+            # 3: Perform a request for the page
             # --------------------------------------
 
             # Get the proxy configuration
@@ -239,7 +245,7 @@ class WebInputController(controllers.BaseController):
             response, content = http.request(url, 'GET', headers=headers)
 
             # --------------------------------------
-            # 3: Rewrite the links so that they also use the internal proxy
+            # 4: Rewrite the links so that they also use the internal proxy
             # --------------------------------------
             if 'text/html' in response['content-type']:
 
@@ -332,7 +338,7 @@ class WebInputController(controllers.BaseController):
                     content = lxml.html.tostring(html)
 
             # --------------------------------------
-            # 4: Respond with the results
+            # 5: Respond with the results
             # --------------------------------------
             if 'content-type' in response:
                 cherrypy.response.headers['Content-Type'] = response['content-type']
@@ -340,7 +346,7 @@ class WebInputController(controllers.BaseController):
                 cherrypy.response.headers['Content-Type'] = 'text/html'
 
             # --------------------------------------
-            # 5: Clear Javascript files
+            # 6: Clear Javascript files
             # --------------------------------------
             if response.get('content-type', "") == "application/javascript" or response.get('content-type', "") == "application/x-javascript" or response.get('content-type', "") == "text/javascript":
                 return ""
