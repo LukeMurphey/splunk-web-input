@@ -1,0 +1,84 @@
+<!--
+<div style="display:none" id="warning-message">
+    <div class="alert alert-error">
+	    <i class="icon-alert"></i>
+	    <span class="message"></span>
+	</div>
+</div>
+<div style="display:none" id="info-message">
+    <div class="alert alert-info">
+	    <i class="icon-alert"></i>
+	    <span class="message"></span>
+	</div>
+</div>
+-->
+<form class="form-horizontal">
+  <fieldset>
+    <legend>Proxy Server</legend>
+
+    <div class="control-group proxy-address">
+        <label class="control-label">Server Address</label>
+        <div class="controls">
+            <input type="text" name="proxy_server" placeholder="e.g. proxy.example.com">
+            <span class="help-inline"></span>
+            <span class="help-block">Enter the address of the proxy server to use (blank means no proxy will be used)</span>
+        </div>
+    </div>
+
+    <div class="control-group proxy-port">
+        <label class="control-label">Server Port</label>
+        <div class="controls">
+            <input type="text" name="proxy_port" placeholder="e.g. 8080">
+            <span class="help-inline"></span>
+            <span class="help-block">Enter the port of the proxy server to use</span>
+        </div>
+    </div>
+
+    <div class="control-group proxy-type">
+        <label class="control-label">Server Type</label>
+        <div class="controls">
+            <select>
+                <option value="http">HTTP</option>
+                <option value="socks4">SOCKS 4</option>
+                <option value="socks5">SOCKS 5</option>
+            </select>
+            <span class="help-block">Select the protocol that the proxy server uses</span>
+        </div>
+    </div>
+
+  </fieldset>
+
+  <fieldset>
+    <legend>Proxy Server Authentication</legend>
+
+    <div class="control-group proxy-user">
+        <label class="control-label">Username</label>
+        <div class="controls">
+            <input type="text" name="proxy_user">
+            <span class="help-inline"></span>
+            <span class="help-block">Enter the username to use when authenticating to the proxy server (blank means no username will be used)</span>
+        </div>
+    </div>
+
+    <div class="control-group proxy-password">
+        <label class="control-label">Password</label>
+        <div class="controls">
+            <input type="password" name="proxy_password">
+            <span class="help-inline"></span>
+            <span class="help-block">Enter the password of the proxy username</span>
+        </div>
+    </div>
+
+    <div class="control-group proxy-password-confirm">    
+        <label class="control-label">Password (Confirm)</label>
+        <div class="controls">
+            <input type="password" name="proxy_password_confirm">
+            <span class="help-inline"></span>
+        </div>
+    </div>
+    
+  </fieldset>
+
+  <button href="#" class="btn btn-primary horizontal-form-align-button" id="save-config">Save Configuration</button>
+  
+</form>

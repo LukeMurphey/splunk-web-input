@@ -13,5 +13,5 @@
   	<view name="alerts" />
   	<view name="dashboards" />
   </collection>
-  <a href='/manager/website_input/apps/local/website_input/setup?action=edit'>Configuration</a>
+  <view name="setup_website_input" />
 </nav>

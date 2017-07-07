@@ -139,6 +139,10 @@ class WebInput(ModularInput):
 
     OUTPUT_RESULTS_OPTIONS = [OUTPUT_RESULTS_ALWAYS, OUTPUT_RESULTS_WHEN_MATCHES_CHANGE, OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE]
 
+    # The following define which secure password entry to use for the proxy
+    PROXY_PASSWORD_REALM = 'website_input_app_proxy'
+    PROXY_PASSWORD_USERNAME = 'IN_CONF_FILE'
+
     def __init__(self, timeout=30, **kwargs):
 
         scheme_args = {'title': "Web-pages",
@@ -216,6 +220,17 @@ class WebInput(ModularInput):
         except splunk.SplunkdConnectionException:
             logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s error="splunkd connection error"', stanza)
             raise
+
+        # Get the proxy password from secure storage (if it exists)
+        secure_password = self.get_secure_password(realm=WebInput.PROXY_PASSWORD_REALM,
+                                                   username=WebInput.PROXY_PASSWORD_USERNAME,
+                                                   session_key=session_key)
+
+        if secure_password is not None:
+            proxy_password = secure_password['content']['clear_password']
+            self.logger.debug("Loaded the proxy password from secure storage")
+        else:
+            proxy_password = website_input_config.proxy_password
 
         return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
 
