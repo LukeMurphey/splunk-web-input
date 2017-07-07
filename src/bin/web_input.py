@@ -325,6 +325,14 @@ class WebInput(ModularInput):
             except splunk.SplunkdConnectionException:
                 logger.error("The proxy configuration could not be loaded (splunkd connection problem). The execution will be skipped for now for this input with stanza=%s", stanza)
                 return
+
+            # Get the secure password if necessary
+            if username is not None:
+                secure_password = self.get_secure_password(realm=stanza, session_key=input_config.session_key)
+
+                if secure_password is not None:
+                    password = secure_password['content']['clear_password']
+                    self.logger.debug("Successfully loaded the secure password for input=%s", stanza)
             
             # Get the information from the page
             result = None
