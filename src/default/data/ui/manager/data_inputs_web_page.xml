@@ -93,7 +93,7 @@
 	          <key name="exampleText"><![CDATA[Sets the string that will be placed between the extracted values (e.g. a separator of ":" for a match against "&lt;a&gt;tree&lt;/a&gt;&lt;a&gt;frog&lt;/a&gt;" would return "tree:frog")]]></key>
 	        </element>
 	        
-	        <element name="hide_optional_output" type="hide_optional_settings">
+	        <element name="hide_optional_output" type="website_input_hide_optional_settings">
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-outputFields</key>
@@ -122,7 +122,7 @@
 	          <key name="exampleText">The password to use for authenticating (only HTTP authentication supported)</key>
 	        </element>
 	        
-	        <element name="hide_optional_auth" type="hide_optional_settings">
+	        <element name="hide_optional_auth" type="website_input_hide_optional_settings">
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-authFields</key>
@@ -153,7 +153,7 @@
 	          <key name="exampleText">How long (in seconds) to wait until ending the extraction; increase this if you are using a browser to execute Javascript and the view doesn't render quickly enough</key>
 	        </element>
 	        
-	        <element name="hide_optional_browser" type="hide_optional_settings">
+	        <element name="hide_optional_browser" type="website_input_hide_optional_settings">
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-browserFields</key>
@@ -187,7 +187,7 @@
 	          <key name="exampleText">A wild-card that will indicate which pages it should search for matches in</key>
 	        </element>
 	        
-	        <element name="hide_optional_crawl" type="hide_optional_settings">
+	        <element name="hide_optional_crawl" type="website_input_hide_optional_settings">
 	          <view name="edit"/>
 	          <view name="create"/>
 	          <key name="fieldset_wrapper_id">item-selectionPolicyFields</key>
@@ -209,7 +209,7 @@
 	          <view name="create"/>
 	        </element>
 	        
-		  	<element name="selection_dialog" type="selection_dialog">
+		  	<element name="selection_dialog" type="website_input_selection_dialog">
 		  		<key name="title">Select a user-agent</key>
 		  		<key name="field_to_populate">user_agent_id</key>
 		  		<key name="description">Select a predefined user-agent string:</key>
@@ -286,11 +286,8 @@
 	        </group_set>
 	      </onChange>
 	    </element>
-	    <element name="sourcetype_selection_fix" type="sourcetype_selection_fix">
+	    <element name="sourcetype_selection_fix" type="website_input_sourcetype_selection_fix">
 		  <view name="create"/>
-	      <view name="edit"/>
-		</element>
-	    <element name="password_copy_fix" type="password_copy_fix">
 	      <view name="edit"/>
 		</element>
 	    <element name="advanced" type="fieldset" class="spl-mgr-advanced-options">
