@@ -60,7 +60,7 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'views/shared/results_table/rend
 					    return l;
 			     };
 				 
-			     $td.html(_.template('<img height="16" width="16" src="http://www.google.com/s2/favicons?domain=<%- domain %>" /> <%- value %>', {
+			     $td.html(_.template('<img height="16" width="16" src="https://www.google.com/s2/favicons?domain=<%- domain %>" /> <%- value %>', {
 		            	value: cell.value,
 		            	domain: getLocation(cell.value).hostname
 		         }));
