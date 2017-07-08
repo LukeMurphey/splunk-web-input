@@ -157,7 +157,7 @@ define([
             this.setControlsEnabled(false);
 
             return this.website_input_configuration.fetch({
-                url: '/splunkd/services/admin/app_website_input/default',
+                url: '/splunkd/__raw/services/admin/app_website_input/default',
                 id: 'default',
                 success: function (model, response, options) {
                     console.info("Successfully retrieved the default website_input configuration");
@@ -191,7 +191,7 @@ define([
 
                     $.when(
                         this.fetchAppConfiguration(),
-                        this.getEncryptedCredential(this.options.secure_storage_realm_prefix + this.fetched_input_name, true)
+                        this.getEncryptedCredential(this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm), true)
                     )
                     // If successful, then load the information
                     .then(
