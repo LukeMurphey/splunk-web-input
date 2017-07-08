@@ -7,6 +7,7 @@ web-scrape as the search command..
 """
 
 from website_input_app.search_command import SearchCommand
+from website_input_app.modular_input import ModularInput
 from web_input import WebInput, WebScraper
 
 from splunk.util import normalizeBoolean
@@ -73,6 +74,10 @@ class WebScraperSearchCommand(SearchCommand):
     def handle_results(self, results, session_key, in_preview):
 
         # FYI: we ignore results since this is a generating command
+
+        # Make sure that URL is using SSL if on Splunk Cloud
+        if ModularInput.is_on_cloud(session_key) and not self.params["url"].startswith("https"):
+            raise Exception("The URL to scrape must use HTTPS; Splunk Cloud doesn't allow unsecured network access")
 
         # Do the scraping
         results = self.web_scraper.scrape_page(**self.params)
