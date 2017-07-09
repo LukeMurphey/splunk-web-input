@@ -79,6 +79,9 @@ class WebScraperSearchCommand(SearchCommand):
         if ModularInput.is_on_cloud(session_key) and not self.params["url"].startswith("https"):
             raise Exception("The URL to scrape must use HTTPS; Splunk Cloud doesn't allow unsecured network access")
 
+        # Make sure that links get extracted if they point to HTTPS sites if on Splunk Cloud
+        self.params['https_only'] = ModularInput.is_on_cloud(session_key)
+
         # Do the scraping
         results = self.web_scraper.scrape_page(**self.params)
 

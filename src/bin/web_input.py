@@ -373,7 +373,18 @@ class WebInput(ModularInput):
                 web_scraper.user_agent = user_agent
 
                 # Perform the scrape
-                result = web_scraper.scrape_page(url, selector, username, password, name_attributes, use_element_name=use_element_name, page_limit=page_limit, depth_limit=depth_limit, url_filter=url_filter, include_raw_content=raw_content, text_separator=text_separator, browser=browser, output_matches_as_mv=output_matches_as_mv, output_matches_as_separate_fields=output_matches_as_separate_fields, additional_fields=additional_fields)
+                result = web_scraper.scrape_page(url, selector, username, password,
+                                                 name_attributes,
+                                                 use_element_name=use_element_name,
+                                                 page_limit=page_limit,
+                                                 depth_limit=depth_limit, url_filter=url_filter,
+                                                 include_raw_content=raw_content,
+                                                 text_separator=text_separator,
+                                                 browser=browser,
+                                                 output_matches_as_mv=output_matches_as_mv,
+                                                 output_matches_as_separate_fields=output_matches_as_separate_fields,
+                                                 additional_fields=additional_fields,
+                                                 https_only=self.is_on_cloud(input_config.session_key))
                 
                 matches = 0
                 
@@ -801,7 +812,7 @@ class WebScraper(object):
             return cls.remove_anchor(url)
 
     @classmethod
-    def extract_links(cls, lxml_html_tree, source_url, links=None, url_filter=None):
+    def extract_links(cls, lxml_html_tree, source_url, links=None, url_filter=None, https_only=False):
         """
         Get the results from performing a HTTP request and parsing the output.
 
@@ -810,6 +821,7 @@ class WebScraper(object):
         source_url -- The url from which the content came from; this should be a string.
         links -- An array to put the links into
         url_filter -- The URL to filter extraction to (a wild-card as a string)
+        https_only -- Only extract links that use HTTPS
         """
 
         # Set a default for the links argument
@@ -832,7 +844,10 @@ class WebScraper(object):
                 link = cls.cleanup_link(attributes['href'], source_url)
 
                 # Make sure the link wasn't already in the list
-                if link not in links and cls.is_url_in_url_filter(link, url_filter):
+                if https_only and not link.startswith("http://"):
+                    # Ignore this link since it isn't using HTTPS
+                    pass 
+                elif link not in links and cls.is_url_in_url_filter(link, url_filter):
                     links.append(link)
 
         return links
@@ -976,7 +991,7 @@ class WebScraper(object):
             if display is not None:
                 display.stop()
 
-    def get_result_single(self, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, username=None, password=None, additional_fields=None, match_prefix=None, empty_value=None):
+    def get_result_single(self, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, username=None, password=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """
         Get the results from performing a HTTP request and parsing the output.
 
@@ -1001,6 +1016,7 @@ class WebScraper(object):
         additional_fields -- Additional fields to put into the result set
         match_prefix -- A prefix to attach to prepend to the front of the match fields
         empty_value -- The value to use for empty matches
+        https_only -- Only extract links that use HTTPS
         """
 
         try:
@@ -1156,7 +1172,7 @@ class WebScraper(object):
             if tree is not None:
                 if extracted_links is not None and source_url_depth is not None:
 
-                    for extracted in self.extract_links(tree, url.geturl(), url_filter=url_filter):
+                    for extracted in self.extract_links(tree, url.geturl(), url_filter=url_filter, https_only=https_only):
 
                         # Add the extracted link if it is not already in the list
                         if extracted not in extracted_links:
@@ -1240,7 +1256,7 @@ class WebScraper(object):
                     include_empty_matches=False, use_element_name=False, page_limit=1,
                     depth_limit=50, url_filter=None, include_raw_content=False,
                     text_separator=None, browser=None, additional_fields=None, match_prefix=None,
-                    empty_value='NULL'):
+                    empty_value='NULL', https_only=False):
         """
         Retrieve data from a website.
         
@@ -1263,6 +1279,7 @@ class WebScraper(object):
         additional_fields -- Additional fields to put into the result set
         match_prefix -- A prefix to attach to prepend to the front of the match fields
         empty_value -- The value to use for empty matches
+        https_only -- Only extract links that use HTTPS
         """
 
         if isinstance(url, basestring):
@@ -1352,7 +1369,11 @@ class WebScraper(object):
                     kw['extracted_links'] = None
                 
                 # Perform the scrape
-                result = self.get_result_single(http, urlparse(url), selector, headers, name_attributes, output_matches_as_mv, output_matches_as_separate_fields, include_empty_matches, use_element_name, additional_fields=additional_fields, **kw)
+                result = self.get_result_single(http, urlparse(url), selector, headers,
+                                                name_attributes, output_matches_as_mv,
+                                                output_matches_as_separate_fields,
+                                                include_empty_matches, use_element_name,
+                                                additional_fields=additional_fields, **kw)
                 
                 # Append the result
                 if result is not None:
