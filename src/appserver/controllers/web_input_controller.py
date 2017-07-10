@@ -447,7 +447,11 @@ class WebInputController(controllers.BaseController):
                 kw['include_raw_content'] = util.normalizeBoolean(kwargs['raw_content'])
 
             # Only extract links using HTTPS if on Splunk Cloud
-            kw['https_only'] = ModularInput.is_on_cloud(cherrypy.session.get('sessionKey'))
+            if ModularInput.is_on_cloud(cherrypy.session.get('sessionKey')):
+                kw['https_only'] = True
+            # Otherwise, allow callers to specify which links to extract
+            elif 'https_only' in kwargs:
+                kw['https_only'] = util.normalizeBoolean(kwargs['https_only'])
 
             # Get the proxy configuration
             conf_stanza = "default"
