@@ -1,8 +1,11 @@
 """
-This controller provides some services that are important for the front-end to preview the output from inputs. There are two main functions that this controller provides:
+This controller provides some services that are important for the front-end to preview the output
+from inputs. There are two main functions that this controller provides:
 
-   scrape_page: this performs a page scrape like the input would. This is useful for previewing the output to make sure it looks like the expected output.
-   load_page: this proxies an HTTP request so that the browser can circumvent the cross-domain protections that would otherwise not allow Javascript to be added to the page.
+   scrape_page: this performs a page scrape like the input would. This is useful for previewing the
+                output to make sure it looks like the expected output.
+   load_page: this proxies an HTTP request so that the browser can circumvent the cross-domain
+              protections that would otherwise not allow Javascript to be added to the page.
    
 """
 
@@ -73,6 +76,9 @@ class WebInputController(controllers.BaseController):
 
     @staticmethod
     def hasCapability(capabilities, user=None, session_key=None):
+        """
+        Determine if the user has the given capabilities.
+        """
 
         # Assign defaults if the user or session key is None
         if user is None:
@@ -156,6 +162,10 @@ class WebInputController(controllers.BaseController):
         return capabilities
 
     def render_error_html(self, msg):
+        """
+        Render a block of HTML for displaying an error.
+        """
+
         return "<!DOCTYPE html><html>" \
                 "<head>" \
                     '<style>body{' \
@@ -331,7 +341,8 @@ class WebInputController(controllers.BaseController):
                         kill_tags = ["script"]
 
                     # Remove the script blocks
-                    cleaner = Cleaner(page_structure=False, kill_tags=kill_tags, javascript=False, links=False, style=clean_styles, safe_attrs_only=False)
+                    cleaner = Cleaner(page_structure=False, kill_tags=kill_tags, javascript=False,
+                                      links=False, style=clean_styles, safe_attrs_only=False)
 
                     # Get the content
                     content = lxml.html.tostring(cleaner.clean_html(html))
@@ -350,7 +361,10 @@ class WebInputController(controllers.BaseController):
             # --------------------------------------
             # 6: Clear Javascript files
             # --------------------------------------
-            if response.get('content-type', "") == "application/javascript" or response.get('content-type', "") == "application/x-javascript" or response.get('content-type', "") == "text/javascript":
+            if response.get('content-type', "") == "application/javascript" \
+               or response.get('content-type', "") == "application/x-javascript" \
+               or response.get('content-type', "") == "text/javascript":
+
                 return ""
 
             return content
@@ -371,7 +385,8 @@ class WebInputController(controllers.BaseController):
         web_scraper = WebScraper(3)
 
         try:
-            result = web_scraper.scrape_page(selector="a", url=WebInputController.TEST_BROWSER_URL, browser=browser, include_raw_content=True)
+            result = web_scraper.scrape_page(selector="a", url=WebInputController.TEST_BROWSER_URL,
+                                             browser=browser, include_raw_content=True)
 
             if not result:
                 success = False
@@ -388,10 +403,11 @@ class WebInputController(controllers.BaseController):
             'success' : success
         })
 
-    @expose_page(must_login=True, methods=['GET', 'POST']) 
+    @expose_page(must_login=True, methods=['GET', 'POST'])
     def scrape_page(self, **kwargs):
         """
-        Perform a page scrape and return the results (useful for previewing a web_input modular input configuration)
+        Perform a page scrape and return the results (useful for previewing a web_input modular
+        input configuration)
         """
 
         result = [{}]
@@ -437,15 +453,18 @@ class WebInputController(controllers.BaseController):
             if 'text_separator' in kwargs:
                 kw['text_separator'] = kwargs['text_separator']
 
-            # Get the output_as_mv parameter. This parameter is different from the name of the argument that the class accepts and will be renamed accrdingly.
+            # Get the output_as_mv parameter. This parameter is different from the name of the
+            # argument that the class accepts and will be renamed accrdingly.
             if 'output_as_mv' in kwargs:
                 kw['output_matches_as_mv'] = util.normalizeBoolean(kwargs['output_as_mv'], True)
 
-                # If we are outputting as multi-valued parameters, then don't include the separate fields
+                # If we are outputting as multi-valued parameters, then don't include the separate
+                # fields
                 if kw['output_matches_as_mv']:
                     kw['output_matches_as_separate_fields'] = False
                 else:
-                    kw['output_matches_as_separate_fields'] = True # http://lukemurphey.net/issues/1643
+                    # http://lukemurphey.net/issues/1643
+                    kw['output_matches_as_separate_fields'] = True
 
             # Get the field match prefix
             if 'match_prefix' in kwargs:
@@ -492,7 +511,9 @@ class WebInputController(controllers.BaseController):
                 try:
                     timeout = int(kwargs['timeout'])
                 except:
-                    pass # timeout is invalid. Ignore this for now, it will get picked up when the user attempts to save the input
+                     # The timeout is invalid. Ignore this for now, it will get picked up when
+                     # the user attempts to save the input
+                    pass
             
             # Make the web scraper instance
             web_scraper = WebScraper(timeout)
