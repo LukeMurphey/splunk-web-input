@@ -112,11 +112,18 @@
 	    <label class="control-label" for="inputBrowser">Browser</label>
 	    <div class="controls">
 		  <select class="input-xlarge" id="inputBrowser">
-			<option value="integrated_client">Built-in client</option>
-			<option value="firefox">Firefox</option>
+				<option value="integrated_client">Built-in client</option>
+				<option value="firefox">Firefox</option>
 		  </select>
-	      <span class="help-block">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</span>
-	    </div>
+	    <span>
+				<a href="#" id="browserConnectionTest">Test browser</a>
+				<span id="browserTestResults"></span>
+			</span>
+
+
+	    <span class="help-block">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</span>
+
+			</div>
 	  </div>
 
 	  <div class="control-group">

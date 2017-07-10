@@ -83,6 +83,29 @@
 	margin-left: 12px;
 }
 
+/* Styling for whether the browser works or not. */
+#browserConnectionTest{
+    margin-left: 4px;
+}
+
+.browserWorks, .browserDoesntWork, .browserChecking{
+    margin-left: 12px;
+}
+
+.browserWorks{
+    color: green;
+}
+
+.browserDoesntWork{
+    color: red;
+}
+
+.browserChecking{
+    background-image: url(/static/app/website_input/img/spiffygif_14x14.gif);
+    background-repeat: no-repeat;
+    padding-left: 16px;
+}
+
 /* Make the Splunk JS combo box line-up with the other plain Bootstrap elements */
 #inputOutputResults > .splunk-choice-input{
 	margin-left: 0px;

@@ -55,6 +55,8 @@ class WebInputController(controllers.BaseController):
     Controller for previewing output of a web-input
     '''
 
+    TEST_BROWSER_URL = "https://google.com"
+
     def render_error_json(self, msg):
         """
         Render an error such that it can be returned to the client as JSON.
@@ -356,8 +358,35 @@ class WebInputController(controllers.BaseController):
         except:
             logger.exception("Error when attempting to proxy an HTTP request")
             cherrypy.response.status = 500
-            #return self.render_error_json(_("Unable to proxy the request"))
             return self.render_error_html("Page preview could not be created")
+
+    @expose_page(must_login=True, methods=['GET']) 
+    def test_browser(self, browser, **kwargs):
+        """
+        Determine if the given browser is configured and able to be used.
+        """
+
+        success = None
+
+        web_scraper = WebScraper(3)
+
+        try:
+            result = web_scraper.scrape_page(selector="a", url=WebInputController.TEST_BROWSER_URL, browser=browser, include_raw_content=True)
+
+            if not result:
+                success = False
+            elif len(result) < 1:
+                success = False
+            else:
+                success = (result[0]['browser'] == browser)
+        
+        except Exception as exception:
+            logger.exception("Exception generated when attempting to test the browser")
+            success = False
+
+        return self.render_json({
+            'success' : success
+        })
 
     @expose_page(must_login=True, methods=['GET', 'POST']) 
     def scrape_page(self, **kwargs):

@@ -69,7 +69,9 @@ define([
         	"click .show-selector-help-dialog": "showSelectorHelp",
         	"click .switch-styles": "switchStyles",
         	"click .show-results-preview-dialog" : "showResultsPreview",
-        	"click .show-results-in-search" : "openPreviewInSearch"
+        	"click .show-results-in-search" : "openPreviewInSearch",
+			"click #browserConnectionTest" : "clickTestBrowser",
+			"change #inputBrowser" : "clearTestBrowserLink"
         },
         
         initialize: function() {
@@ -144,6 +146,50 @@ define([
         	}
         	
         },
+
+		/**
+		 * Clear the browser test connection.
+		 */
+		clearTestBrowserLink: function(event){
+			$('#browserTestResults', this.$el).removeClass("browserChecking").removeClass("browserDoesntWork").removeClass("browserWorks").html("");
+		},
+
+		/**
+		 * Test the browser connection.
+		 */
+		clickTestBrowser: function(event){
+
+			var args = {
+				browser : $('#inputBrowser', this.$el).val()
+			};
+
+			// Update the icon accordingly
+			this.clearTestBrowserLink();
+			$('#browserTestResults', this.$el).addClass("browserChecking").html("testing...");
+
+        	// Get the results
+        	$.ajax({
+    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/test_browser"),
+    			data: args,
+    			type: 'GET',
+                success: function(result) {
+                	
+					if(result.success){
+						$('#browserTestResults', this.$el).removeClass("browserChecking").addClass("browserWorks").html('<i class="icon-check"></i> Browser works!');
+					}
+					else{
+						$('#browserTestResults', this.$el).removeClass("browserChecking").addClass("browserDoesntWork").html('<i class="icon-alert"></i> Browser didn\'t work :(');
+					}
+
+                	console.info("Successfully tested the browser");
+                }.bind(this),
+                error: function() {
+
+                }.bind(this)
+        	});
+
+			return false;
+		},
         
         /**
          * Show the results preview.
@@ -272,8 +318,6 @@ define([
     			data: args,
     			type: 'POST',
                 success: function(results) {
-                	
-                	
                 	
                 	// Get a list of the URLs
                 	var urls = [];
