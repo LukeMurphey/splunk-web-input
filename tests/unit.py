@@ -528,6 +528,30 @@ class TestWebInputCrawling(unittest.TestCase):
         self.assertEqual(links[0], "http://textcritical.net")
         self.assertEqual(links[1], "http://textcritical.net/read/link_3")
 
+    def test_extract_links_https_only(self):
+        # https://lukemurphey.net/issues/1882
+
+        tree = lxml.html.fromstring("""
+        <!DOCTYPE html>
+        <html>
+        <body>
+        
+        <h1>Test</h1>
+        
+        <a>Test link[1]</a>
+        <a href="https://textcritical.net">Test link[2]</a>
+        <a href="link_3">Test link[3]</a>
+        <a href="http://textcritical.com">Test link[3]</a>
+        </body>
+        </html>
+        """)
+
+        links = WebScraper.extract_links(tree, "https://textcritical.net/read/", url_filter="*", https_only=True)
+        
+        self.assertEqual(len(links), 2)
+        self.assertEqual(links[0], "https://textcritical.net")
+        self.assertEqual(links[1], "https://textcritical.net/read/link_3")
+
     def test_scape_page_spider(self):
         # http://lukemurphey.net/issues/762
 
@@ -541,6 +565,18 @@ class TestWebInputCrawling(unittest.TestCase):
         self.assertEqual(len(results), 5)
         self.assertEqual(len(result['match']), 3)
         self.assertEqual(result['match'][0], "Source code")
+
+    def test_scape_page_spider_https_only(self):
+        # http://lukemurphey.net/issues/1882
+
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_web_input_css", "title", "this is a test")
+
+        web_scraper = WebScraper(timeout=3)
+
+        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), https_only=True)
+
+        self.assertEqual(len(results), 1)
 
     def test_is_url_in_url_filter(self):
         self.assertTrue(WebScraper.is_url_in_url_filter("http://textcritical.net/tree", "http://textcritical.net*"))
