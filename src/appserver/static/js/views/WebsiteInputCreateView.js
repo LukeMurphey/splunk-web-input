@@ -121,6 +121,7 @@ define([
          */
         showSelectorHelp: function(){
         	$("#selector-help-dialog", this.$el).modal();
+			return false;
         },
         
         /**
@@ -153,6 +154,7 @@ define([
 		 */
 		showBrowserHelp: function(){
 			$("#browser-help-dialog", this.$el).modal();
+			return false;
 		},
 		
 		/**
