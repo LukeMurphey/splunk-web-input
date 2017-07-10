@@ -94,16 +94,56 @@
 
 .browserWorks{
     color: green;
+	-moz-animation: highlighted-ok 0.5s;
+ 	-webkit-animation: highlighted-ok 0.5s;
+  	-o-animation: highlighted-ok 0.5s;
+  	animation: highlighted-ok 0.5s;
 }
 
 .browserDoesntWork{
     color: red;
+	-moz-animation: highlighted-not-ok 0.5s;
+ 	-webkit-animation: highlighted-not-ok 0.5s;
+  	-o-animation: highlighted-not-ok 0.5s;
+  	animation: highlighted-not-ok 0.5s;
 }
 
 .browserChecking{
     background-image: url(/static/app/website_input/img/spiffygif_14x14.gif);
     background-repeat: no-repeat;
     padding-left: 16px;
+}
+
+@keyframes highlighted-ok {
+  0% {
+    background: #58c126;
+	box-shadow: 0 0 0 0 #58c126;
+  }
+
+  70% {
+	box-shadow: 0 0 0 10px rgba(204,169,44, 0);
+  }
+
+  100% {
+    background: inherit;
+	box-shadow: 0 0 0 0 rgba(204,169,44, 0);
+  }
+}
+
+@keyframes highlighted-not-ok {
+  0% {
+    background: red;
+	box-shadow: 0 0 0 0 red;
+  }
+
+  70% {
+	box-shadow: 0 0 0 10px rgba(204,169,44, 0);
+  }
+
+  100% {
+    background: inherit;
+	box-shadow: 0 0 0 0 rgba(204,169,44, 0);
+  }
 }
 
 /* Make the Splunk JS combo box line-up with the other plain Bootstrap elements */
