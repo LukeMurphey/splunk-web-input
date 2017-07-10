@@ -34,6 +34,27 @@
   </div>
 </div>
 
+<div id="browser-help-dialog" class="modal hide fade">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Help</h3>
+  </div>
+  <div class="modal-body">
+		The use of a web-browser allows you to get the content of pages after Javascript has been executed.
+		To use Firefox, you will need to do some things to make sure Firefox is ready to be executed by Website Inputs:
+  	<p>
+  	<br />
+
+    <ol>
+    	<li><strong>Install Firefox.</strong> Download and install Firefox from <a target="_blank" href="https://www.mozilla.org/firefox/new/?scene=2">Mozilla.org <i class="icon-external"></i></a>.</li>
+    	<li><strong>Install the Geckodriver.</strong> Download the Geckodriver from <a target="_blank" href="https://github.com/mozilla/geckodriver/releases">Github <i class="icon-external"></i></a> and place it somewhere in the path where your hosts looks for binaries.</li>
+    </ol>
+  </div>
+  <div class="modal-footer">
+    <a href="#" class="btn" data-dismiss="modal">Close</a>
+  </div>
+</div>
+
 <div id="preview-results-modal-holder"></div>
 
 <div id="input-not-loaded" style="display:none">
@@ -120,8 +141,7 @@
 				<span id="browserTestResults"></span>
 			</span>
 
-
-	    <span class="help-block">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client</span>
+	    <span class="help-block">The browser to use when performing the HTTP request; make sure to have the necessary browser installed if you do not use the built-in client; <a class="browserHelp" href="#">learn more</a></span>
 
 			</div>
 	  </div>

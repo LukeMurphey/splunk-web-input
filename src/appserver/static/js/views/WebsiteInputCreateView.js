@@ -71,7 +71,8 @@ define([
         	"click .show-results-preview-dialog" : "showResultsPreview",
         	"click .show-results-in-search" : "openPreviewInSearch",
 			"click #browserConnectionTest" : "clickTestBrowser",
-			"change #inputBrowser" : "clearTestBrowserLink"
+			"change #inputBrowser" : "clearTestBrowserLink",
+			"click .browserHelp" : "showBrowserHelp"
         },
         
         initialize: function() {
@@ -150,14 +151,21 @@ define([
 		/**
 		 * Clear the browser test connection.
 		 */
-		clearTestBrowserLink: function(event){
+		showBrowserHelp: function(){
+			$("#browser-help-dialog", this.$el).modal();
+		},
+		
+		/**
+		 * Clear the browser test connection.
+		 */
+		clearTestBrowserLink: function(){
 			$('#browserTestResults', this.$el).removeClass("browserChecking").removeClass("browserDoesntWork").removeClass("browserWorks").html("");
 		},
 
 		/**
 		 * Test the browser connection.
 		 */
-		clickTestBrowser: function(event){
+		clickTestBrowser: function(){
 
 			var args = {
 				browser : $('#inputBrowser', this.$el).val()
