@@ -844,7 +844,7 @@ class WebScraper(object):
                 link = cls.cleanup_link(attributes['href'], source_url)
 
                 # Make sure the link wasn't already in the list
-                if https_only and not link.startswith("http://"):
+                if https_only and not link.startswith("https://"):
                     # Ignore this link since it isn't using HTTPS
                     pass 
                 elif link not in links and cls.is_url_in_url_filter(link, url_filter):
