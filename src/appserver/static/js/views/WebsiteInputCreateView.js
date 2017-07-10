@@ -175,7 +175,7 @@ define([
 
 			// Update the icon accordingly
 			this.clearTestBrowserLink();
-			$('#browserTestResults', this.$el).addClass("browserChecking").html("testing...");
+			$('#browserTestResults', this.$el).addClass("browserChecking").html("Testing...");
 
         	// Get the results
         	$.ajax({
