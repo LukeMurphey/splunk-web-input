@@ -107,7 +107,7 @@ class WebElement(object):
             return self._execute(Command.GET_ELEMENT_PROPERTY, {"name": name})["value"]
         except WebDriverException:
             # if we hit an end point that doesnt understand getElementProperty lets fake it
-            self.parent.execute_script('return arguments[0][arguments[1]]', self, name)
+            return self.parent.execute_script('return arguments[0][arguments[1]]', self, name)
 
     def get_attribute(self, name):
         """Gets the given attribute or property of the element.
@@ -160,7 +160,7 @@ class WebElement(object):
         """Finds element within this element's children by ID.
 
         :Args:
-            - id_ - ID of child element to locate.
+            - id\_ - ID of child element to locate.
         """
         return self.find_element(by=By.ID, value=id_)
 
@@ -168,7 +168,7 @@ class WebElement(object):
         """Finds a list of elements within this element's children by ID.
 
         :Args:
-            - id_ - Id of child element to find.
+            - id\_ - Id of child element to find.
         """
         return self.find_elements(by=By.ID, value=id_)
 
@@ -319,7 +319,7 @@ class WebElement(object):
 
         :Args:
             - value - A string for typing, or setting form fields.  For setting
-            file inputs, this could be a local file path.
+              file inputs, this could be a local file path.
 
         Use this to send simple key events or to fill out form fields::
 
@@ -344,7 +344,9 @@ class WebElement(object):
             if local_file is not None:
                 value = self._upload(local_file)
 
-        self._execute(Command.SEND_KEYS_TO_ELEMENT, {'value': keys_to_typing(value)})
+        self._execute(Command.SEND_KEYS_TO_ELEMENT,
+                      {'text': "".join(keys_to_typing(value)),
+                       'value': keys_to_typing(value)})
 
     # RenderedWebElement Items
     def is_displayed(self):
@@ -368,7 +370,7 @@ class WebElement(object):
 
         """
         if self._w3c:
-            old_loc = self._execute(Command.EXECUTE_SCRIPT, {
+            old_loc = self._execute(Command.W3C_EXECUTE_SCRIPT, {
                 'script': "arguments[0].scrollIntoView(true); return arguments[0].getBoundingClientRect()",
                 'args': [self]})['value']
             return {"x": round(old_loc['x']),
@@ -381,7 +383,7 @@ class WebElement(object):
         """The size of the element."""
         size = {}
         if self._w3c:
-            size = self._execute(Command.GET_ELEMENT_RECT)
+            size = self._execute(Command.GET_ELEMENT_RECT)['value']
         else:
             size = self._execute(Command.GET_ELEMENT_SIZE)['value']
         new_size = {"height": size["height"],
@@ -397,7 +399,7 @@ class WebElement(object):
     def location(self):
         """The location of the element in the renderable canvas."""
         if self._w3c:
-            old_loc = self._execute(Command.GET_ELEMENT_RECT)
+            old_loc = self._execute(Command.GET_ELEMENT_RECT)['value']
         else:
             old_loc = self._execute(Command.GET_ELEMENT_LOCATION)['value']
         new_loc = {"x": round(old_loc['x']),
@@ -407,10 +409,7 @@ class WebElement(object):
     @property
     def rect(self):
         """A dictionary with the size and location of the element."""
-        if self._w3c:
-            return self._execute(Command.GET_ELEMENT_RECT)
-        else:
-            return self._execute(Command.GET_ELEMENT_RECT)['value']
+        return self._execute(Command.GET_ELEMENT_RECT)['value']
 
     @property
     def screenshot_as_base64(self):

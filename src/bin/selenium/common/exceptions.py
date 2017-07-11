@@ -86,8 +86,8 @@ class NoSuchElementException(WebDriverException):
     If you encounter this exception, you may want to check the following:
         * Check your selector used in your find_by...
         * Element may not yet be on the screen at the time of the find operation,
-        (webpage is still loading) see selenium.webdriver.support.wait.WebDriverWait()
-        for how to write a wait wrapper to wait for an element to appear.
+          (webpage is still loading) see selenium.webdriver.support.wait.WebDriverWait()
+          for how to write a wait wrapper to wait for an element to appear.
     """
     pass
 
@@ -112,11 +112,11 @@ class StaleElementReferenceException(WebDriverException):
 
     Possible causes of StaleElementReferenceException include, but not limited to:
         * You are no longer on the same page, or the page may have refreshed since the element
-        was located.
+          was located.
         * The element may have been removed and re-added to the screen, since it was located.
-        Such as an element being relocated.
-        This can happen typically with a javascript framework when values are updated and the
-        node is rebuilt.
+          Such as an element being relocated.
+          This can happen typically with a javascript framework when values are updated and the
+          node is rebuilt.
         * Element may have been inside an iframe or another context which was refreshed.
     """
     pass
@@ -160,6 +160,14 @@ class ElementNotVisibleException(InvalidElementStateException):
 
     Most commonly encountered when trying to click or read text
     of an element that is hidden from view.
+    """
+    pass
+
+
+class ElementNotInteractableException(InvalidElementStateException):
+    """
+    Thrown when an element is present in the DOM but interactions
+    with that element will hit another element do to paint order
     """
     pass
 
@@ -238,5 +246,12 @@ class ImeNotAvailableException(WebDriverException):
 class ImeActivationFailedException(WebDriverException):
     """
     Thrown when activating an IME engine has failed.
+    """
+    pass
+
+
+class InvalidArgumentException(WebDriverException):
+    """
+    The arguments passed to a command are either invalid or malformed.
     """
     pass

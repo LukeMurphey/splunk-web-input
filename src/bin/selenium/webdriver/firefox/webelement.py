@@ -17,7 +17,9 @@
 
 from selenium.webdriver.remote.webelement import WebElement as RemoteWebElement
 
+
 class FirefoxWebElement(RemoteWebElement):
+
     @property
     def anonymous_children(self):
         """Retrieve the anonymous children of this element in an XBL
@@ -28,7 +30,8 @@ class FirefoxWebElement(RemoteWebElement):
         on MDN for more information.
 
         """
-        return self._execute("ELEMENT_GET_ANONYMOUS_CHILDREN",
+        return self._execute(
+            "ELEMENT_GET_ANONYMOUS_CHILDREN",
             {"value": None})
 
     def find_anonymous_element_by_attribute(self, name, value):
@@ -41,5 +44,6 @@ class FirefoxWebElement(RemoteWebElement):
         on MDN for more information.
 
         """
-        return self._execute("ELEMENT_FIND_ANONYMOUS_ELEMENTS_BY_ATTRIBUTE",
+        return self._execute(
+            "ELEMENT_FIND_ANONYMOUS_ELEMENTS_BY_ATTRIBUTE",
             {"name": name, "value": value})["value"]

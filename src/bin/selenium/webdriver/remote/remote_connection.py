@@ -47,8 +47,8 @@ class Request(url_request.Request):
         Initialise a new HTTP request.
 
         :Args:
-        - url - String for the URL to send the request to.
-        - data - Data to send with the request.
+            - url - String for the URL to send the request to.
+            - data - Data to send with the request.
         """
         if method is None:
             method = data is not None and 'POST' or 'GET'
@@ -74,10 +74,10 @@ class Response(object):
         Initialise a new Response.
 
         :Args:
-        - fp - The response body file object.
-        - code - The HTTP status code returned by the server.
-        - headers - A dictionary of headers returned by the server.
-        - url - URL of the retrieved resource represented by this Response.
+            - fp - The response body file object.
+            - code - The HTTP status code returned by the server.
+            - headers - A dictionary of headers returned by the server.
+            - url - URL of the retrieved resource represented by this Response.
         """
         self.fp = fp
         self.read = fp.read
@@ -117,14 +117,14 @@ class HttpErrorHandler(url_request.HTTPDefaultErrorHandler):
         Default HTTP error handler.
 
         :Args:
-        - req - The original Request object.
-        - fp - The response body file object.
-        - code - The HTTP status code returned by the server.
-        - msg - The HTTP status message returned by the server.
-        - headers - The response headers.
+            - req - The original Request object.
+            - fp - The response body file object.
+            - code - The HTTP status code returned by the server.
+            - msg - The HTTP status message returned by the server.
+            - headers - The response headers.
 
         :Returns:
-        A new Response object.
+            A new Response object.
         """
         return Response(fp, code, headers, req.get_full_url())
 
@@ -141,7 +141,7 @@ class RemoteConnection(object):
     def get_timeout(cls):
         """
         :Returns:
-        Timeout value in seconds for all http requests made to the Remote Connection
+            Timeout value in seconds for all http requests made to the Remote Connection
         """
         return None if cls._timeout == socket._GLOBAL_DEFAULT_TIMEOUT else cls._timeout
 
@@ -151,7 +151,7 @@ class RemoteConnection(object):
         Override the default timeout
 
         :Args:
-        - timeout - timeout value for http requests in seconds
+            - timeout - timeout value for http requests in seconds
         """
         cls._timeout = timeout
 
@@ -162,6 +162,35 @@ class RemoteConnection(object):
         """
         cls._timeout = socket._GLOBAL_DEFAULT_TIMEOUT
 
+    @classmethod
+    def get_remote_connection_headers(cls, parsed_url, keep_alive=False):
+        """
+        Get headers for remote request.
+
+        :Args:
+         - parsed_url - The parsed url
+         - keep_alive (Boolean) - Is this a keep-alive connection (default: False)
+        """
+
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'User-Agent': 'Python http auth'
+        }
+
+        if parsed_url.username:
+            base64string = base64.b64encode('{0.username}:{0.password}'.format(parsed_url).encode())
+            headers.update({
+                'Authorization': 'Basic {}'.format(base64string.decode())
+            })
+
+        if keep_alive:
+            headers.update({
+                'Connection': 'keep-alive'
+            })
+
+        return headers
+
     def __init__(self, remote_server_addr, keep_alive=False, resolve_ip=True):
         # Attempt to resolve the hostname and get an IP address.
         self.keep_alive = keep_alive
@@ -169,8 +198,11 @@ class RemoteConnection(object):
         addr = parsed_url.hostname
         if parsed_url.hostname and resolve_ip:
             port = parsed_url.port or None
-            ip = common_utils.find_connectable_ip(parsed_url.hostname,
-                                                  port=port)
+            if parsed_url.scheme == "https":
+                ip = parsed_url.hostname
+            else:
+                ip = common_utils.find_connectable_ip(parsed_url.hostname,
+                                                      port=port)
             if ip:
                 netloc = ip
                 addr = netloc
@@ -201,20 +233,29 @@ class RemoteConnection(object):
             Command.QUIT: ('DELETE', '/session/$sessionId'),
             Command.GET_CURRENT_WINDOW_HANDLE:
                 ('GET', '/session/$sessionId/window_handle'),
+            Command.W3C_GET_CURRENT_WINDOW_HANDLE:
+                ('GET', '/session/$sessionId/window'),
             Command.GET_WINDOW_HANDLES:
                 ('GET', '/session/$sessionId/window_handles'),
+            Command.W3C_GET_WINDOW_HANDLES:
+                ('GET', '/session/$sessionId/window/handles'),
             Command.GET: ('POST', '/session/$sessionId/url'),
             Command.GO_FORWARD: ('POST', '/session/$sessionId/forward'),
             Command.GO_BACK: ('POST', '/session/$sessionId/back'),
             Command.REFRESH: ('POST', '/session/$sessionId/refresh'),
             Command.EXECUTE_SCRIPT: ('POST', '/session/$sessionId/execute'),
+            Command.W3C_EXECUTE_SCRIPT:
+                ('POST', '/session/$sessionId/execute/sync'),
+            Command.W3C_EXECUTE_SCRIPT_ASYNC:
+                ('POST', '/session/$sessionId/execute/async'),
             Command.GET_CURRENT_URL: ('GET', '/session/$sessionId/url'),
             Command.GET_TITLE: ('GET', '/session/$sessionId/title'),
             Command.GET_PAGE_SOURCE: ('GET', '/session/$sessionId/source'),
             Command.SCREENSHOT: ('GET', '/session/$sessionId/screenshot'),
-            Command.ELEMENT_SCREENSHOT: ('GET', '/session/$sessionId/screenshot/$id'),
+            Command.ELEMENT_SCREENSHOT: ('GET', '/session/$sessionId/element/$id/screenshot'),
             Command.FIND_ELEMENT: ('POST', '/session/$sessionId/element'),
             Command.FIND_ELEMENTS: ('POST', '/session/$sessionId/elements'),
+            Command.W3C_GET_ACTIVE_ELEMENT: ('GET', '/session/$sessionId/element/active'),
             Command.GET_ACTIVE_ELEMENT:
                 ('POST', '/session/$sessionId/element/active'),
             Command.FIND_CHILD_ELEMENT:
@@ -277,16 +318,28 @@ class RemoteConnection(object):
                 ('POST', '/session/$sessionId/timeouts'),
             Command.DISMISS_ALERT:
                 ('POST', '/session/$sessionId/dismiss_alert'),
+            Command.W3C_DISMISS_ALERT:
+                ('POST', '/session/$sessionId/alert/dismiss'),
             Command.ACCEPT_ALERT:
                 ('POST', '/session/$sessionId/accept_alert'),
+            Command.W3C_ACCEPT_ALERT:
+                ('POST', '/session/$sessionId/alert/accept'),
             Command.SET_ALERT_VALUE:
                 ('POST', '/session/$sessionId/alert_text'),
+            Command.W3C_SET_ALERT_VALUE:
+                ('POST', '/session/$sessionId/alert/text'),
             Command.GET_ALERT_TEXT:
                 ('GET', '/session/$sessionId/alert_text'),
+            Command.W3C_GET_ALERT_TEXT:
+                ('GET', '/session/$sessionId/alert/text'),
             Command.SET_ALERT_CREDENTIALS:
                 ('POST', '/session/$sessionId/alert/credentials'),
             Command.CLICK:
                 ('POST', '/session/$sessionId/click'),
+            Command.W3C_ACTIONS:
+                ('POST', '/session/$sessionId/actions'),
+            Command.W3C_CLEAR_ACTIONS:
+                ('DELETE', '/session/$sessionId/actions'),
             Command.DOUBLE_CLICK:
                 ('POST', '/session/$sessionId/doubleclick'),
             Command.MOUSE_DOWN:
@@ -311,6 +364,10 @@ class RemoteConnection(object):
                 ('GET', '/session/$sessionId/window/position'),
             Command.W3C_SET_WINDOW_POSITION:
                 ('POST', '/session/$sessionId/window/position'),
+            Command.SET_WINDOW_RECT:
+                ('POST', '/session/$sessionId/window/rect'),
+            Command.GET_WINDOW_RECT:
+                ('GET', '/session/$sessionId/window/rect'),
             Command.MAXIMIZE_WINDOW:
                 ('POST', '/session/$sessionId/window/$windowHandle/maximize'),
             Command.W3C_MAXIMIZE_WINDOW:
@@ -421,17 +478,9 @@ class RemoteConnection(object):
         LOGGER.debug('%s %s %s' % (method, url, body))
 
         parsed_url = parse.urlparse(url)
+        headers = self.get_remote_connection_headers(parsed_url, self.keep_alive)
 
         if self.keep_alive:
-            headers = {"Connection": 'keep-alive', method: parsed_url.path,
-                       "User-Agent": "Python http auth",
-                       "Content-type": "application/json;charset=\"UTF-8\"",
-                       "Accept": "application/json"}
-            if parsed_url.username:
-                auth = base64.standard_b64encode(('%s:%s' % (
-                    parsed_url.username,
-                    parsed_url.password)).encode('ascii')).decode('ascii').replace('\n', '')
-                headers["Authorization"] = "Basic %s" % auth
             if body and method != 'POST' and method != 'PUT':
                 body = None
             try:
@@ -464,8 +513,8 @@ class RemoteConnection(object):
             else:
                 request = Request(url, data=body.encode('utf-8'), method=method)
 
-            request.add_header('Accept', 'application/json')
-            request.add_header('Content-Type', 'application/json;charset=UTF-8')
+            for key, val in headers.items():
+                request.add_header(key, val)
 
             if password_manager:
                 opener = url_request.build_opener(url_request.HTTPRedirectHandler(),
