@@ -115,12 +115,12 @@
 }
 
 @keyframes highlighted-ok {
-  0% {
+  0.01% {
     background: #58c126;
 	box-shadow: 0 0 0 0 #58c126;
   }
 
-  70% {
+  70.1% {
 	box-shadow: 0 0 0 10px rgba(204,169,44, 0);
   }
 
@@ -131,7 +131,7 @@
 }
 
 @keyframes highlighted-not-ok {
-  0% {
+  0.01% {
     background: red;
 	box-shadow: 0 0 0 0 red;
   }
