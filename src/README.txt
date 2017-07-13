@@ -53,6 +53,14 @@ You can access the source-code and get technical details about the app at:
 
 
 ================================================
+Third Party Dependencies
+================================================
+
+See the following for a list of the third-party dependencies included in this app: https://lukemurphey.net/projects/splunk-web-input/wiki/Dependencies/9
+
+
+
+================================================
 FAQ
 ================================================
 
