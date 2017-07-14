@@ -272,6 +272,8 @@ class WebInputController(controllers.BaseController):
                     if browser is not None and browser != WebScraper.INTEGRATED_CLIENT:
                         
                         web_scraper = WebScraper(timeout=timeout)
+                        web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+
                         content = web_scraper.get_result_browser(urlparse.urlparse(url), browser,
                                                                  username, password)
                 except:
