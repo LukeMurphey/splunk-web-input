@@ -984,12 +984,13 @@ class WebScraper(object):
         finally:
 
             # Stop the driver so that the web-browser closes. Otherwise, the process would be left open.
-            if driver is not None:
-                driver.quit()
-
-            # Stop the display that is used to run a headless browser.
-            if display is not None:
-                display.stop()
+            try:
+                if driver is not None:    
+                    driver.quit()
+            finally:
+                # Stop the display that is used to run a headless browser.
+                if display is not None:
+                    display.stop()
 
     def get_result_single(self, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, username=None, password=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """
