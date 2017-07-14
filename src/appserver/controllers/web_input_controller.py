@@ -257,12 +257,9 @@ class WebInputController(controllers.BaseController):
             response, content = http.request(url, 'GET', headers=headers)
 
             # --------------------------------------
-            # 4: Rewrite the links so that they also use the internal proxy
+            # 4: Render the content with the browser if necessary
             # --------------------------------------
             if 'text/html' in response['content-type']:
-
-                # Discover the encoding
-                encoding = WebScraper.detect_encoding(content, response)
 
                 # Get the information on the browser to use
                 browser = None
@@ -277,13 +274,15 @@ class WebInputController(controllers.BaseController):
                         web_scraper = WebScraper(timeout=timeout)
                         content = web_scraper.get_result_browser(urlparse.urlparse(url), browser,
                                                                  username, password)
-
-                    content_decoded = content.decode(encoding=encoding, errors='replace')
                 except:
                     logger.exception("Exception generated while attempting to get browser rendering or url=%s", url)
 
                     cherrypy.response.status = 500
                     return self.render_error_html("Page preview could not be created using a web-browser")
+
+            # --------------------------------------
+            # 5: Rewrite the links in HTML files so that they also point to the internal proxy
+            # --------------------------------------
 
                 # Parse the content
                 html = lxml.html.document_fromstring(content)
@@ -350,7 +349,7 @@ class WebInputController(controllers.BaseController):
                     content = lxml.html.tostring(html)
 
             # --------------------------------------
-            # 5: Respond with the results
+            # 6: Respond with the results
             # --------------------------------------
             if 'content-type' in response:
                 cherrypy.response.headers['Content-Type'] = response['content-type']
@@ -358,7 +357,7 @@ class WebInputController(controllers.BaseController):
                 cherrypy.response.headers['Content-Type'] = 'text/html'
 
             # --------------------------------------
-            # 6: Clear Javascript files
+            # 7: Clear Javascript files
             # --------------------------------------
             if response.get('content-type', "") == "application/javascript" \
                or response.get('content-type', "") == "application/x-javascript" \
