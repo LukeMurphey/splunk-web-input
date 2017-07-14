@@ -28,6 +28,7 @@ import splunk
 import chardet
 import platform
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 import re
 from collections import OrderedDict
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
@@ -981,11 +982,18 @@ class WebScraper(object):
             content = driver.execute_script("return document.documentElement.outerHTML")
 
             return content
+
+        # Make sure to log this here in case closing the Webdriver connection causes another
+        # exception to be thrown. Failing to log it here may cause the exception to be covered up.
+        except WebDriverException as exception:
+            self.logger.exception("Web-driver failed while attempting to execute")
+            raise exception
+
         finally:
 
             # Stop the driver so that the web-browser closes. Otherwise, the process would be left open.
             try:
-                if driver is not None:    
+                if driver is not None:
                     driver.quit()
             finally:
                 # Stop the display that is used to run a headless browser.
