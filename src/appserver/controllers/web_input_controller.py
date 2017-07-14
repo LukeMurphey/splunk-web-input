@@ -273,11 +273,10 @@ class WebInputController(controllers.BaseController):
                 # Try rendering the content using a web-browser
                 try:
                     if browser is not None and browser != WebScraper.INTEGRATED_CLIENT:
-
-                        content = WebScraper.get_result_browser(urlparse.urlparse(url), browser,
-                                                                timeout, username, password,
-                                                                proxy_type, proxy_server, proxy_port,
-                                                                proxy_user, proxy_password)
+                        
+                        web_scraper = WebScraper(timeout=timeout)
+                        content = web_scraper.get_result_browser(urlparse.urlparse(url), browser,
+                                                                 username, password)
 
                     content_decoded = content.decode(encoding=encoding, errors='replace')
                 except:
