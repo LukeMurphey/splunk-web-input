@@ -496,7 +496,7 @@ class WebScraper(object):
     INTERNET_EXPLORER = "internet_explorer"
     CHROME = "chrome"
 
-    SUPPORTED_BROWSERS = [INTEGRATED_CLIENT, FIREFOX]
+    SUPPORTED_BROWSERS = [INTEGRATED_CLIENT, FIREFOX, CHROME]
 
     GENERATED_FIELDS = ['browser', 'response_size', 'response_code', 'request_time', 'url',
                         'content_md5', 'content_sha224', 'encoding', 'raw_match_count', 'content',
@@ -969,6 +969,23 @@ class WebScraper(object):
                     driver = webdriver.Firefox(profile, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
                 else:
                     driver = webdriver.Firefox(log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
+
+            elif browser == WebScraper.CHROME:
+                
+                chrome_options = None
+
+                # Get the proxy configuration if necessary
+                if self.proxy_type is not None and self.proxy_server is not None and self.proxy_port is not None:
+                    proxy = self.proxy_server + ":" + str(self.proxy_port)
+
+                    chrome_options = webdriver.ChromeOptions()
+                    chrome_options.add_argument('--proxy-server=http://%s' % proxy)
+
+                if chrome_options:
+                    driver = webdriver.Chrome(chrome_options=chrome_options)
+                else:
+                    driver = webdriver.Chrome()
+
             else:
                 raise Exception("Browser '%s' not recognized" % (browser))
 

@@ -40,14 +40,14 @@
     <h3>Help</h3>
   </div>
   <div class="modal-body">
-		The use of a web-browser allows you to get the content of pages after Javascript has been executed.
-		To use Firefox, you will need to do some things to make sure Firefox is ready to be executed by Website Inputs:
+		The use of a desktop web-browser allows you to get the content of pages after Javascript has been executed.
+		To use a browser, you will need to do some things to make sure the browser is ready to be executed by Website Inputs:
   	<p>
   	<br />
 
     <ol>
-    	<li><strong>Install Firefox.</strong> Download and install Firefox from <a target="_blank" href="https://www.mozilla.org/firefox/new/?scene=2">Mozilla.org <i class="icon-external"></i></a>.</li>
-    	<li><strong>Install the Geckodriver.</strong> Download the Geckodriver from <a target="_blank" href="https://github.com/mozilla/geckodriver/releases">Github <i class="icon-external"></i></a> and place it somewhere in your path.</li>
+    	<li><strong>Install the Browser.</strong> Download and install <a target="_blank" href="https://www.mozilla.org/firefox/new/?scene=2">Mozilla Firefox<i class="icon-external"></i></a> or <a target="_blank" href="https://www.google.com/chrome/browser/desktop/index.html">Google Chrome<i class="icon-external"></i></a>.</li>
+    	<li><strong>Install the browser driver (optional).</strong> The Website Input includes browser drivers for Chrome and Firefox. If you need a newer version of the driver then download either the <a target="_blank" href="https://github.com/mozilla/geckodriver/releases">Geckodriver<i class="icon-external"></i></a> (if you are using Firefox) from Github or download the <a target="_blank" href="https://sites.google.com/a/chromium.org/chromedriver/downloads">Chromedriver<i class="icon-external"></i></a> (for Chrome) and place it somewhere in your path.</li>
     </ol>
   </div>
   <div class="modal-footer">
@@ -135,6 +135,7 @@
 		  <select class="input-xlarge" id="inputBrowser">
 				<option value="integrated_client">Built-in client</option>
 				<option value="firefox">Firefox</option>
+				<option value="chrome">Chrome</option>
 		  </select>
 	    <span>
 				<a href="#" id="browserConnectionTest">Test browser</a>
