@@ -100,7 +100,7 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'splunkjs/mvc/tableview'], funct
         },
         
         getHostname: function(href){
-        	var url_parsed = this.parseURL(cellData['url']);
+        	var url_parsed = this.parseURL(href);
         	
         	if(url_parsed){
         		return url_parsed.hostname;
@@ -128,11 +128,11 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'splunkjs/mvc/tableview'], funct
         	
             // Display some of the rowData in the expanded row
             $container.append(_.template(html, {
-        		'source' : cellData['source'],
-        		'unique_urls_count' : cellData['unique_urls'],
-        		'response_code' : cellData['response_code'] + " " + this.getResponseCodeDescription(cellData['response_code']),
-        		'url' : cellData['url'],
-        		'domain' : this.parseURL(cellData['url']).hostname
+        		'source' : cellData.source,
+        		'unique_urls_count' : cellData.unique_urls,
+        		'response_code' : cellData.response_code + " " + this.getResponseCodeDescription(cellData.response_code),
+        		'url' : cellData.url,
+        		'domain' : this.getHostname(cellData.url)
         	}));
             
             // Wire up a click handler so that the URL can be opened. A normal a tag won't work due to the way Splunk wires up the drill-down handlers on the rows.
