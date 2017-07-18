@@ -13,7 +13,7 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'views/shared/results_table/rend
 			 var icon = null;
 			 
 			 // Handle the response_code
-			 if( cell.field == "response_code" ){
+			 if(cell.field == "response_code"){
 				 
 				 var int_value = parseInt(cell.value, 10);
 				 
@@ -74,7 +74,7 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'views/shared/results_table/rend
 			 }
 			 
 			 // Render the cell
-			 if( icon != null ){
+			 if(icon != null){
 				 $td.html(_.template('<i class="icon-<%- icon %>"> </i><%- value %>', {
 		            	value: cell.value,
 		                icon: icon

@@ -53,7 +53,7 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'splunkjs/mvc/tableview'], funct
         		503: "(service not available)",
         		504: "(gateway timeout)",
         		505: "(HTTP version not supported)",
-        	}
+        	};
         	
         	if(isNaN(intValue)){
         		return "";
