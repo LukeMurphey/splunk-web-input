@@ -198,4 +198,11 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.2.1   | Improved compatibility with Splunk 6.6                                                                           |
 |         | Fixed issue where you cannot enable inputs sometimes                                                             |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.3.0   | The app restricts input creation to sites that use encryption for Cloud customers                                |
+|         | Passwords are now stored using Splunk secure storage                                                             |
+|         | Setup page has been updated to make it easier to use                                                             |
+|         | Pages can now be rendered using Google Chrome                                                                    |
+|         | Added help page to guide users on how to use a web browser for rendering; added browser test to input page       |
+|         | Fixed a couple small bugs on the Overview dashboard                                                              |
 +---------+------------------------------------------------------------------------------------------------------------------+
