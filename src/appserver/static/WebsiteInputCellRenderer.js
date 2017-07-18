@@ -29,6 +29,11 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'views/shared/results_table/rend
 					 $td.addClass("failure");
 					 icon = 'alert';
 				 }
+
+				 // If the value is blank, then treat it as a connection failure
+				 if($.trim(cell.value).length === 0){
+					cell.value = "Connection failure";
+				 }
 				
 			 }
 			 
