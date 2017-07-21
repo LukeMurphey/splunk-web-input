@@ -102,7 +102,7 @@ define([
                         this.showInfoMessage("Configuration successfully saved");
 
                         this.showFormInProgress(false);
-                        this.redirectIfNecessary("status_overview");
+                        this.redirectIfNecessary("web_input_monitoring");
                         
                     }.bind(this)
                 )
