@@ -56,7 +56,7 @@ You can access the source-code and get technical details about the app at:
 Third Party Dependencies
 ================================================
 
-See the following for a list of the third-party dependencies included in this app: https://lukemurphey.net/projects/splunk-web-input/wiki/Dependencies/10
+See the following for a list of the third-party dependencies included in this app: https://lukemurphey.net/projects/splunk-web-input/wiki/Dependencies/11
 
 
 
@@ -80,9 +80,8 @@ A: Yes, just assign users the "edit_modinput_web_input" capability. You will lik
 Known Issues
 ================================================
 
-* FireFox does not recognize username and password authentication for proxy configurations. You will need to setup the browser directly with a custom proxy setting before running the input.
+* Chrome does not recognize username and password authentication for proxy configurations. You will need to setup the browser directly with a custom proxy setting before running the input.
 
-     
 
 ================================================
 Change History

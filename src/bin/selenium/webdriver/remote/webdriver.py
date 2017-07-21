@@ -181,7 +181,7 @@ class WebDriver(object):
             if "moz:firefoxOptions" in capabilities:
                 capabilities["moz:firefoxOptions"]["profile"] = browser_profile.encoded
             else:
-                capabilities.update({'firefox_profile': browser_profile.encoded})
+                capabilities['desiredCapabilities'].update({'firefox_profile': browser_profile.encoded})
         w3c_caps["alwaysMatch"].update(capabilities)
         parameters = {"capabilities": w3c_caps,
                       "desiredCapabilities": capabilities}
@@ -217,17 +217,13 @@ class WebDriver(object):
         return self._web_element_cls(self, element_id, w3c=self.w3c)
 
     def _unwrap_value(self, value):
-        if isinstance(value, dict):
-            if 'ELEMENT' in value or 'element-6066-11e4-a52e-4f735466cecf' in value:
-                wrapped_id = value.get('ELEMENT', None)
-                if wrapped_id:
-                    return self.create_web_element(value['ELEMENT'])
-                else:
-                    return self.create_web_element(value['element-6066-11e4-a52e-4f735466cecf'])
+        if isinstance(value, dict) and ('ELEMENT' in value or 'element-6066-11e4-a52e-4f735466cecf' in value):
+            wrapped_id = value.get('ELEMENT', None)
+            if wrapped_id:
+                return self.create_web_element(value['ELEMENT'])
             else:
-                for key, val in value.items():
-                    value[key] = self._unwrap_value(val)
-                return value
+                return self.create_web_element(value['element-6066-11e4-a52e-4f735466cecf'])
+
         elif isinstance(value, list):
             return list(self._unwrap_value(item) for item in value)
         else:

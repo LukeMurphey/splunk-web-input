@@ -195,12 +195,15 @@ class EventFiringWebDriver(object):
                 self._listener.on_exception(e, self._driver)
                 raise
 
-        try:
-            attrib = getattr(self._driver, name)
-            return _wrap if callable(attrib) else attrib
-        except Exception as e:
-            self._listener.on_exception(e, self._driver)
-            raise
+        if hasattr(self._driver, name):
+            try:
+                attrib = getattr(self._driver, name)
+                return _wrap if callable(attrib) else attrib
+            except Exception as e:
+                self._listener.on_exception(e, self._driver)
+                raise
+            else:
+                raise AttributeError(name)
 
 
 class EventFiringWebElement(object):
@@ -314,9 +317,12 @@ class EventFiringWebElement(object):
                 self._listener.on_exception(e, self._driver)
                 raise
 
-        try:
-            attrib = getattr(self._webelement, name)
-            return _wrap if callable(attrib) else attrib
-        except Exception as e:
-            self._listener.on_exception(e, self._driver)
-            raise
+        if hasattr(self._webelement, name):
+            try:
+                attrib = getattr(self._webelement, name)
+                return _wrap if callable(attrib) else attrib
+            except Exception as e:
+                self._listener.on_exception(e, self._driver)
+                raise
+            else:
+                raise AttributeError(name)
