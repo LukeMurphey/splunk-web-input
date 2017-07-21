@@ -969,7 +969,11 @@ define([
         		if($("#inputURL").val().length === 0){
         			this.addValidationError($("#inputURL"), "Enter a valid URL");
         			issues += 1;
-        		}
+				}
+				else if(!$("#inputURL").val().startsWith("https://") && !$("#inputURL").val().startsWith("http://")){
+					this.addValidationError($("#inputURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
+        			issues += 1;
+				}
 				else if(this.is_on_cloud && !$("#inputURL").val().startsWith("https://")){
 					this.addValidationError($("#inputURL"), "Enter a URL that uses HTTPS (only HTTPS is allowed on cloud)");
         			issues += 1;
