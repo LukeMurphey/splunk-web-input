@@ -13,6 +13,9 @@ The classes included are:
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
+from website_input_app.web_client import Http2LibClient
+from website_input_app.event_writer import StashNewWriter
+
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
 from splunk.models.field import IntField as ModelIntField
@@ -20,6 +23,7 @@ from splunk.models.field import IntField as ModelIntField
 import logging
 from logging import handlers
 import hashlib
+import httplib2
 import socket
 import sys
 import time
@@ -32,9 +36,6 @@ from selenium.common.exceptions import WebDriverException
 import re
 from collections import OrderedDict
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
-from website_input_app.event_writer import StashNewWriter
-import httplib2
-from httplib2 import socks
 import lxml.html
 from lxml.etree import XMLSyntaxError
 
@@ -665,28 +666,6 @@ class WebScraper(object):
         return name
 
     @classmethod
-    def resolve_proxy_type(cls, proxy_type):
-
-        # Make sure the proxy string is not none
-        if proxy_type is None:
-            return None
-
-        # Prepare the string so that the proxy type can be matched more reliably
-        t = proxy_type.strip().lower()
-
-        if t == "socks4":
-            return socks.PROXY_TYPE_SOCKS4
-        elif t == "socks5":
-            return socks.PROXY_TYPE_SOCKS5
-        elif t == "http":
-            return socks.PROXY_TYPE_HTTP
-        elif t == "":
-            return None
-        else:
-            logger.warn("Proxy type is not recognized: %s", proxy_type)
-            return None
-
-    @classmethod
     def detect_encoding(cls, content, response, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
         """
         Detect the encoding that is used in the given website/webpage.
@@ -853,23 +832,21 @@ class WebScraper(object):
 
         return links
 
-    def get_result_built_in_client(self, http, url, headers):
+    def get_result_built_in_client(self, web_client, url):
         """
         Get the results using the built-in client.
 
         Arguments:
-        http -- The HTTP object to perform the request with
+        web_client -- The web-client to use (an instance of WebClient)
         url -- The url to connect to. This object ought to be an instance derived from using
                urlparse
-        headers -- The HTTP headers
-        name_attributes -- Attributes to use the values for assigning the names
         """
 
-        response, content = http.request(url.geturl(), 'GET', headers=headers)
+        content = web_client.get_url(url.geturl())
 
-        encoding = self.detect_encoding(content, response,)
+        encoding = self.detect_encoding(content, web_client.get_response_headers())
 
-        return response.status, content, encoding
+        return web_client.response_code, content, encoding
 
     @classmethod
     def get_firefox_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
@@ -1017,15 +994,14 @@ class WebScraper(object):
                 if display is not None:
                     display.stop()
 
-    def get_result_single(self, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, username=None, password=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
+    def get_result_single(self, web_client, url, selector, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, username=None, password=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """
         Get the results from performing a HTTP request and parsing the output.
 
         Arguments:
-        http -- The HTTP object to perform the request with
+        web_client -- An instance of a WebClient
         url -- The url to connect to. This object ought to be an instance derived from using urlparse
         selector -- A CSS selector that matches the data to retrieve
-        headers -- The HTTP headers
         name_attributes -- Attributes to use the values for assigning the names
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
@@ -1060,7 +1036,7 @@ class WebScraper(object):
             # Perform the request
             with Timer() as timer:
 
-                response_code, content, encoding = self.get_result_built_in_client(http, url, headers)
+                response_code, content, encoding = self.get_result_built_in_client(web_client, url)
                 result['browser'] = WebScraper.INTEGRATED_CLIENT
                 
             # Get the content via the browser too if requested
@@ -1310,48 +1286,21 @@ class WebScraper(object):
 
         if isinstance(url, basestring):
             url = URLField.parse_url(url, "url")
-            
+
         if isinstance(selector, basestring):
             selector = SelectorField.parse_selector(selector, "selector")
-        
+
         logger.info('Running web input, url="%s"', url.geturl())
-        
+
         results = []
-        
+
         try:
-            # Determine which type of proxy is to be used (if any)
-            resolved_proxy_type = self.resolve_proxy_type(self.proxy_type)
-            
-            # Setup the proxy info if so configured
-            if resolved_proxy_type is not None and self.proxy_server is not None and len(self.proxy_server.strip()) > 0:
-                proxy_info = httplib2.ProxyInfo(resolved_proxy_type, self.proxy_server, self.proxy_port, proxy_user=self.proxy_user, proxy_pass=self.proxy_password)
-                logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, self.proxy_server)
-            else:
-                # No proxy is being used
-                proxy_info = None
-                logger.debug("Not using a proxy server")
-                        
-            # Make the HTTP object
-            http = httplib2.Http(proxy_info=proxy_info, timeout=self.timeout, disable_ssl_certificate_validation=True)
-            
-            # Setup the credentials if necessary
-            if username is not None or password is not None:
-                
-                if username is None:
-                    username = ""
-                    
-                if password is None:
-                    password = ""
-                    
-                http.add_credentials(username, password)
-            
-            # Setup the headers as necessary
-            headers = {}
-            
-            if self.user_agent is not None:
-                logger.debug("Setting user-agent=%s", self.user_agent)
-                headers['User-Agent'] = self.user_agent
-                        
+
+            # Make the client
+            client = Http2LibClient(self.timeout, user_agent=self.user_agent, logger=logger)
+            client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
+            client.setCredentials(username, password)
+
             # Run the scraper and get the results
             extracted_links = OrderedDict()
             extracted_links[url.geturl()] = DiscoveredURL(0)
@@ -1395,7 +1344,7 @@ class WebScraper(object):
                     kw['extracted_links'] = None
                 
                 # Perform the scrape
-                result = self.get_result_single(http, urlparse(url), selector, headers,
+                result = self.get_result_single(client, urlparse(url), selector,
                                                 name_attributes, output_matches_as_mv,
                                                 output_matches_as_separate_fields,
                                                 include_empty_matches, use_element_name,
