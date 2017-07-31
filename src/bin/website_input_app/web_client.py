@@ -1,8 +1,20 @@
 """
 This class wraps various web-clients so that different ones can be used.
 """
+import urllib2
 import httplib2
 from httplib2 import socks
+import socket
+import mechanize
+
+class FormAuthenticationNotSupported(Exception):
+    pass
+
+class RequestTimeout(Exception):
+    pass
+
+class ConnectionFailure(Exception):
+    pass
 
 class WebClient(object):
     """
@@ -136,7 +148,15 @@ class Http2LibClient(WebClient):
 
             self.headers['User-Agent'] = self.user_agent
 
-        self.response, self.content = http.request(url, 'GET', headers=self.headers)
+        try:
+            self.response, self.content = http.request(url, 'GET', headers=self.headers)
+        except socket.timeout:
+            raise RequestTimeout()
+
+        except socket.error as e:
+            if e.errno in [60, 61]:
+                raise RequestTimeout()
+            raise ConnectionFailure()
 
         self.response_code = self.response.status
 
@@ -144,3 +164,70 @@ class Http2LibClient(WebClient):
 
     def get_response_headers(self):
         return self.response
+
+class MechanizeClient(WebClient):
+    """
+    A web-client based on the mechanize browser.
+    """
+
+    def __init__(self, timeout=30, user_agent=None, logger=None):
+        super(MechanizeClient, self).__init__(timeout, user_agent, logger)
+
+        # This is a reference to the HTTP client
+        self.http = None
+        self.response = None
+        self.response_headers = None
+
+    def get_url(self, url, operation='GET'):
+
+        browser = mechanize.Browser()
+
+        # Ignore robots.txt
+        browser.set_handle_robots(False)
+
+        # Setup the credentials if necessary
+        if self.username is not None or self.password is not None:
+            username, password = self.username, self.password
+
+            if self.username is None:
+                username = ""
+
+            if self.password is None:
+                password = ""
+
+            browser.add_password(url, self.username, self.password)
+
+        # Set the user-agent
+        if self.logger is not None:
+            self.logger.debug("Setting user-agent=%s", self.user_agent)
+
+        browser.addheaders = [('User-agent', self.user_agent)]
+
+        try:
+            self.response = browser.open(url, timeout=self.timeout)
+            content = self.response.read()
+        except mechanize.HTTPError as e:
+            print dir(e)
+            print e
+            pass
+        except urllib2.URLError as e:
+            # Make sure the exception is a timeout
+            if e.reason is not None and str(e.reason) == "timed out":
+                raise RequestTimeout()
+            else:
+                raise e
+
+        # Get the response code
+        self.response_code = self.response.code
+
+        # Get the headers
+        self.response_headers = {}
+        res_info = self.response.info()
+
+        for k in res_info.keys():
+            self.response_headers[k] = res_info[k]
+
+        return content
+
+    def get_response_headers(self):
+        return self.response_headers

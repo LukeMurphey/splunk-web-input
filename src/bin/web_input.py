@@ -13,7 +13,7 @@ The classes included are:
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
-from website_input_app.web_client import Http2LibClient
+from website_input_app.web_client import Http2LibClient, MechanizeClient, RequestTimeout, ConnectionFailure
 from website_input_app.event_writer import StashNewWriter
 
 from splunk.models.base import SplunkAppObjModel
@@ -1185,15 +1185,13 @@ class WebScraper(object):
                     logger.debug("Not extracting links since extracted_links is None")
 
         # Handle time outs    
-        except socket.timeout:
+        except RequestTimeout:
 
             # Note that the connection timed out    
             result['timed_out'] = True
 
-        except socket.error as e:
-
-            if e.errno in [60, 61]:
-                result['timed_out'] = True
+        except ConnectionFailure:
+            result['timed_out'] = True
 
         except httplib2.SSLHandshakeError as e:
             logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
@@ -1296,7 +1294,7 @@ class WebScraper(object):
 
         try:
 
-            # Make the client
+            # Make the client (e.g. Http2LibClient, MechanizeClient)
             client = Http2LibClient(self.timeout, user_agent=self.user_agent, logger=logger)
             client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
             client.setCredentials(username, password)
