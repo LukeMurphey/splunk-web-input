@@ -7,13 +7,19 @@ from httplib2 import socks
 import socket
 import mechanize
 
+class WebClientException(Exception):
+    def __init__(self, message=None, cause=None):
+        if message is not None and cause is not None:
+            super(WebClientException, self).__init__(message + u', caused by ' + repr(cause))
+        self.cause = cause
+
 class FormAuthenticationNotSupported(Exception):
     pass
 
-class RequestTimeout(Exception):
+class RequestTimeout(WebClientException):
     pass
 
-class ConnectionFailure(Exception):
+class ConnectionFailure(WebClientException):
     pass
 
 class WebClient(object):
@@ -185,6 +191,9 @@ class MechanizeClient(WebClient):
         # Ignore robots.txt
         browser.set_handle_robots(False)
 
+        # Ignore meta-refresh handlers
+        browser.set_handle_refresh(False)
+
         # Setup the credentials if necessary
         if self.username is not None or self.password is not None:
             username, password = self.username, self.password
@@ -206,16 +215,16 @@ class MechanizeClient(WebClient):
         try:
             self.response = browser.open(url, timeout=self.timeout)
             content = self.response.read()
+            """
         except mechanize.HTTPError as e:
-            print dir(e)
-            print e
-            pass
+            raise ConnectionFailure(e)
+            """
         except urllib2.URLError as e:
             # Make sure the exception is a timeout
             if e.reason is not None and str(e.reason) == "timed out":
                 raise RequestTimeout()
             else:
-                raise e
+                raise ConnectionFailure(e)
 
         # Get the response code
         self.response_code = self.response.code
