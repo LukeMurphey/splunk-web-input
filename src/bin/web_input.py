@@ -172,7 +172,10 @@ class WebInput(ModularInput):
             Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
             IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
             BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS)
+            StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS),
+            Field("username_field", "Username field", "The name of the username field on the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("password_field", "Password field", "The name of the password field on the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            URLField("authentication_url", "Authentication URL", "The URL of the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, require_https_on_cloud=True)
         ]
 
         ModularInput.__init__(self, scheme_args, args)
@@ -292,29 +295,32 @@ class WebInput(ModularInput):
     def run(self, stanza, cleaned_params, input_config):
 
         # Make the parameters
-        interval         = cleaned_params["interval"]
-        title            = cleaned_params["title"]
-        url              = cleaned_params["url"]
-        selector         = cleaned_params.get("selector", None)
-        username         = cleaned_params.get("username", None)
-        password         = cleaned_params.get("password", None)
-        name_attributes  = cleaned_params.get("name_attributes", [])
-        user_agent       = cleaned_params.get("user_agent", None)
-        timeout          = cleaned_params.get("timeout", self.timeout)
-        sourcetype       = cleaned_params.get("sourcetype", "web_input")
-        host             = cleaned_params.get("host", None)
-        index            = cleaned_params.get("index", "default")
-        conf_stanza      = cleaned_params.get("configuration", None)
-        use_element_name = cleaned_params.get("use_element_name", False)
-        page_limit       = cleaned_params.get("page_limit", 1)
-        url_filter       = cleaned_params.get("url_filter", None)
-        depth_limit      = cleaned_params.get("depth_limit", 25)
-        raw_content      = cleaned_params.get("raw_content", False)
-        text_separator   = cleaned_params.get("text_separator", " ")
-        browser          = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
-        output_as_mv     = cleaned_params.get("output_as_mv", True)
-        output_results   = cleaned_params.get("output_results", None)
-        source           = stanza
+        interval           = cleaned_params["interval"]
+        title              = cleaned_params["title"]
+        url                = cleaned_params["url"]
+        selector           = cleaned_params.get("selector", None)
+        username           = cleaned_params.get("username", None)
+        password           = cleaned_params.get("password", None)
+        name_attributes    = cleaned_params.get("name_attributes", [])
+        user_agent         = cleaned_params.get("user_agent", None)
+        timeout            = cleaned_params.get("timeout", self.timeout)
+        sourcetype         = cleaned_params.get("sourcetype", "web_input")
+        host               = cleaned_params.get("host", None)
+        index              = cleaned_params.get("index", "default")
+        conf_stanza        = cleaned_params.get("configuration", None)
+        use_element_name   = cleaned_params.get("use_element_name", False)
+        page_limit         = cleaned_params.get("page_limit", 1)
+        url_filter         = cleaned_params.get("url_filter", None)
+        depth_limit        = cleaned_params.get("depth_limit", 25)
+        raw_content        = cleaned_params.get("raw_content", False)
+        text_separator     = cleaned_params.get("text_separator", " ")
+        browser            = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
+        output_as_mv       = cleaned_params.get("output_as_mv", True)
+        output_results     = cleaned_params.get("output_results", None)
+        username_field     = cleaned_params.get("username_field", None)
+        password_field     = cleaned_params.get("password_field", None)
+        authentication_url = cleaned_params.get("authentication_url", None)
+        source             = stanza
         
         if self.needs_another_run(input_config.checkpoint_dir, stanza, interval):
             
