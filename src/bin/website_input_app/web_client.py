@@ -173,7 +173,8 @@ class Http2LibClient(WebClient):
 
 class MechanizeClient(WebClient):
     """
-    A web-client based on the mechanize browser.
+    A web-client based on the mechanize browser. This client supports things such as form
+    submission and authentication.
     """
 
     def __init__(self, timeout=30, user_agent=None, logger=None):
@@ -240,3 +241,9 @@ class MechanizeClient(WebClient):
 
     def get_response_headers(self):
         return self.response_headers
+
+class DefaultWebClient(MechanizeClient):
+    """
+    This class represents the default web-client that is recommended.
+    """
+    pass

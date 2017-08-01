@@ -13,7 +13,7 @@ The classes included are:
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
-from website_input_app.web_client import Http2LibClient, MechanizeClient, RequestTimeout, ConnectionFailure
+from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure
 from website_input_app.event_writer import StashNewWriter
 
 from splunk.models.base import SplunkAppObjModel
@@ -1203,52 +1203,7 @@ class WebScraper(object):
             logger.exception("A general exception was thrown when executing a web request")
             raise
 
-        return result  
-
-    @classmethod
-    def get_http_client(cls, username=None, password=None, timeout=30, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
-        """
-        Retrieve data from a website.
-
-        Arguments:
-        username -- The username to use for authentication
-        password -- The username to use for authentication
-        proxy_type -- The type of proxy server (defaults to "http")
-        proxy_server -- The IP or domain name of the proxy server
-        proxy_port -- The port that the proxy server runs on
-        proxy_user -- The user name of the proxy server account
-        proxy_password -- The password of the proxy server account
-        user_agent -- The string to use for the user-agent
-        """
-
-        # Determine which type of proxy is to be used (if any)
-        resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
-
-        # Setup the proxy info if so configured
-        if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
-            proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
-            logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
-        else:
-            # No proxy is being used
-            proxy_info = None
-            logger.debug("Not using a proxy server")
-
-        # Make the HTTP object
-        http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
-
-        # Setup the credentials if necessary
-        if username is not None or password is not None:
-
-            if username is None:
-                username = ""
- 
-            if password is None:
-                password = ""
- 
-            http.add_credentials(username, password)
-
-        # Return the client
-        return http
+        return result
 
     def scrape_page(self, url, selector, username=None, password=None, name_attributes=[],
                     output_matches_as_mv=True, output_matches_as_separate_fields=False,
@@ -1294,7 +1249,7 @@ class WebScraper(object):
         try:
 
             # Make the client (e.g. Http2LibClient, MechanizeClient)
-            client = MechanizeClient(self.timeout, user_agent=self.user_agent, logger=logger)
+            client = DefaultWebClient(self.timeout, user_agent=self.user_agent, logger=logger)
             client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
             client.setCredentials(username, password)
 

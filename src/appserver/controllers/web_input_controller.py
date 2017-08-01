@@ -32,6 +32,7 @@ sys.path.append(os.path.join("..", "..", "..", "bin"))
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import WebInput, WebScraper
+from website_input_app.web_client import DefaultWebClient
 from website_input_app.modular_input import FieldValidationException, ModularInput
 from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 
@@ -231,17 +232,6 @@ class WebInputController(controllers.BaseController):
                 username = kwargs['username']
                 password = kwargs['password']
 
-            http = WebScraper.get_http_client(username, password, 30, proxy_type, proxy_server,
-                                              proxy_port, proxy_user, proxy_password)
-
-            # Setup the headers as necessary
-            user_agent = None
-            headers = {}
-
-            if user_agent is not None:
-                logger.debug("Setting user-agent=%s", user_agent)
-                headers['User-Agent'] = user_agent
-
             # Get the timeout to use
             timeout = None
 
@@ -253,8 +243,13 @@ class WebInputController(controllers.BaseController):
             else:
                 timeout = 15
 
+            # Make the client
+            web_client = DefaultWebClient(timeout)
+            web_client.setProxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+
             # Get the page
-            response, content = http.request(url, 'GET', headers=headers)
+            content = web_client.get_url(url, 'GET')
+            response = web_client.get_response_headers()
 
             # --------------------------------------
             # 4: Render the content with the browser if necessary
