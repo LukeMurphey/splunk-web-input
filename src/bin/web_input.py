@@ -841,7 +841,6 @@ class WebScraper(object):
         url -- The url to connect to. This object ought to be an instance derived from using
                urlparse
         """
-
         content = web_client.get_url(url.geturl())
 
         encoding = self.detect_encoding(content, web_client.get_response_headers())
@@ -1295,7 +1294,7 @@ class WebScraper(object):
         try:
 
             # Make the client (e.g. Http2LibClient, MechanizeClient)
-            client = Http2LibClient(self.timeout, user_agent=self.user_agent, logger=logger)
+            client = MechanizeClient(self.timeout, user_agent=self.user_agent, logger=logger)
             client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
             client.setCredentials(username, password)
 
@@ -1353,7 +1352,7 @@ class WebScraper(object):
                     results.append(result)
                 
         except Exception:
-            # TODO: remove this one or the one in get_result_single() 
+            # TODO: remove this one or the one in get_result_single()
             logger.exception("A general exception was thrown when executing a web request")
             raise
         
