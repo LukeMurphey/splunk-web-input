@@ -165,7 +165,9 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)        
+        #results = web_scraper.scrape_page(url_field.to_python("http://httpbin.org/basic-auth/admin/changeme"), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)
+
         result = results[0]
         #print result['match']
         self.assertEqual(len(result['match']), 30)
