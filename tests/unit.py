@@ -978,7 +978,7 @@ class TestFormAuthentication(UnitTestWithWebServer):
         result = results[0]
 
         self.assertEqual(len(results), 4)
-        #self.assertEqual(result['match'][0], "Auth success")
+        self.assertEqual(result['match'][0], "Auth success")
 
 if __name__ == "__main__":
     try:
