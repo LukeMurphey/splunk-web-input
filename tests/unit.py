@@ -938,6 +938,27 @@ class TestResultHashing(unittest.TestCase):
 class TestBrowserRenderingFirefox(TestBrowserRendering):
     BROWSER = WebScraper.FIREFOX
 
+class TestFormAuthentication(UnitTestWithWebServer):
+    """
+    http://lukemurphey.net/issues/758
+    """
+
+    def test_form_auth(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_custom_separator", "title", "this is a test")
+
+        data_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
+        authentication_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+
+        web_scraper = WebScraper(timeout=3)
+        web_scraper.set_authentication("admin", "changeme", "username", "password", authentication_url)
+
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"))
+        result = results[0]
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['match'][0], "Auth success")
+
 if __name__ == "__main__":
     try:
         unittest.main(exit=True)

@@ -22,6 +22,9 @@ class RequestTimeout(WebClientException):
 class ConnectionFailure(WebClientException):
     pass
 
+class LoginFormNotFound(WebClientException):
+    pass
+
 class WebClient(object):
     """
     This is the base-class.
@@ -62,6 +65,9 @@ class WebClient(object):
     def setCredentials(self, username, password):
         self.username = username
         self.password = password
+
+    def doFormLogin(self, username_field, password_field, login_url):
+        raise FormAuthenticationNotSupported()
 
     # The following need to be implemented by the inheriting classes
     def get_url(self, url, operation='GET'):
@@ -185,36 +191,46 @@ class MechanizeClient(WebClient):
         self.response = None
         self.response_headers = None
 
-    def get_url(self, url, operation='GET'):
+        self.browser = None
+        self.is_logged_in = False
 
-        browser = mechanize.Browser()
+    def get_browser(self):
+        self.browser = mechanize.Browser()
 
         # Ignore robots.txt
-        browser.set_handle_robots(False)
+        self.browser.set_handle_robots(False)
 
         # Ignore meta-refresh handlers
-        browser.set_handle_refresh(False)
+        self.browser.set_handle_refresh(False)
+
+        return self.browser
+
+    def get_url(self, url, operation='GET'):
+
+        # Get the browser
+        if self.browser is None:
+            self.browser = self.get_browser()
 
         # Setup the credentials if necessary
-        if self.username is not None or self.password is not None:
+        if self.username is not None or self.password is not None and not self.is_logged_in:
             username, password = self.username, self.password
 
-            if self.username is None:
+            if username is None:
                 username = ""
 
-            if self.password is None:
+            if password is None:
                 password = ""
 
-            browser.add_password(url, self.username, self.password)
+            self.browser.add_password(url, self.username, self.password)
 
         # Set the user-agent
         if self.logger is not None:
             self.logger.debug("Setting user-agent=%s", self.user_agent)
 
-        browser.addheaders = [('User-agent', self.user_agent)]
+        self.browser.addheaders = [('User-agent', self.user_agent)]
 
         try:
-            self.response = browser.open(url, timeout=self.timeout)
+            self.response = self.browser.open(url, timeout=self.timeout)
             content = self.response.read()
             """
         except mechanize.HTTPError as e:
@@ -241,6 +257,41 @@ class MechanizeClient(WebClient):
 
     def get_response_headers(self):
         return self.response_headers
+
+    def doFormLogin(self, username_field, password_field, login_url):
+
+        self.browser = self.get_browser()
+        self.browser.open(login_url)
+
+        # Find the form with the username and password fields
+        login_form = None
+
+        for form in self.browser.forms():
+            try:
+                form.find_control(username_field)
+                form.find_control(password_field)
+
+                login_form = form
+
+                break
+            except mechanize._form_controls.ControlNotFoundError:
+                # This form didn't have the field, it doesn't appear to be the correct one
+                pass
+
+        # Stop if we couldn't find the form
+        if login_form is None:
+            raise LoginFormNotFound()
+
+        # Set the form
+        self.browser.form = login_form
+        self.browser.form[username_field] = self.username
+        self.browser.form[password_field] = self.password
+
+        # Authenticate
+        res = self.browser.submit()
+        content = res.read()
+
+        self.is_logged_in = True
 
 class DefaultWebClient(MechanizeClient):
     """

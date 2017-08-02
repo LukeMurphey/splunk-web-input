@@ -379,10 +379,10 @@ class WebInput(ModularInput):
 
                 web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 web_scraper.user_agent = user_agent
+                web_scraper.set_authentication(username, password, username_field, password_field, authentication_url)
 
                 # Perform the scrape
-                result = web_scraper.scrape_page(url, selector, username, password,
-                                                 name_attributes,
+                result = web_scraper.scrape_page(url, selector, name_attributes,
                                                  use_element_name=use_element_name,
                                                  page_limit=page_limit,
                                                  depth_limit=depth_limit, url_filter=url_filter,
@@ -523,6 +523,13 @@ class WebScraper(object):
     proxy_user = None
     proxy_password = None
 
+    # Authentication settings
+    username = None
+    password = None
+    username_field = None
+    password_field = None
+    authentication_url = None
+
     # Miscellaneous settings
     timeout = 30
     user_agent = None
@@ -547,6 +554,13 @@ class WebScraper(object):
         self.proxy_port = proxy_port
         self.proxy_user = proxy_user
         self.proxy_password = proxy_password
+
+    def set_authentication(self, username, password, username_field, password_field, authentication_url):
+        self.username = username
+        self.password = password
+        self.username_field = username_field
+        self.password_field = password_field
+        self.authentication_url = authentication_url
 
     def set_charset_detection(self, charset_detect_meta_enabled,
             charset_detect_content_type_header_enabled,
@@ -1211,20 +1225,18 @@ class WebScraper(object):
 
         return result
 
-    def scrape_page(self, url, selector, username=None, password=None, name_attributes=[],
-                    output_matches_as_mv=True, output_matches_as_separate_fields=False,
-                    include_empty_matches=False, use_element_name=False, page_limit=1,
-                    depth_limit=50, url_filter=None, include_raw_content=False,
-                    text_separator=None, browser=None, additional_fields=None, match_prefix=None,
-                    empty_value='NULL', https_only=False):
+    def scrape_page(self, url, selector, name_attributes=[], output_matches_as_mv=True,
+                    output_matches_as_separate_fields=False, include_empty_matches=False,
+                    use_element_name=False, page_limit=1, depth_limit=50, url_filter=None,
+                    include_raw_content=False, text_separator=None, browser=None,
+                    additional_fields=None, match_prefix=None, empty_value='NULL',
+                    https_only=False):
         """
         Retrieve data from a website.
         
         Arguments:
         url -- The url to connect to. This object ought to be an instance derived from using urlparse
         selector -- A CSS selector that matches the data to retrieve
-        username -- The username to use for authentication
-        password -- The username to use for authentication
         name_attributes -- Attributes to use the values for assigning the names
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
@@ -1257,12 +1269,17 @@ class WebScraper(object):
             # Make the client (e.g. Http2LibClient, MechanizeClient)
             client = DefaultWebClient(self.timeout, user_agent=self.user_agent, logger=logger)
             client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
-            client.setCredentials(username, password)
+            client.setCredentials(self.username, self.password)
+
+            # Do form login if necessary
+            if self.username_field is not None and self.password_field is not None and self.authentication_url is not None:
+                client.doFormLogin(self.username_field, self.password_field, self.authentication_url.geturl())
 
             # Run the scraper and get the results
             extracted_links = OrderedDict()
             extracted_links[url.geturl()] = DiscoveredURL(0)
 
+            # Process each result
             while len(results) < page_limit:
                 
                 source_url_depth = 0
@@ -1300,7 +1317,7 @@ class WebScraper(object):
                 # Don't have the function extract URLs if the depth limit has been reached
                 if source_url_depth >= depth_limit:
                     kw['extracted_links'] = None
-                
+
                 # Perform the scrape
                 result = self.get_result_single(client, urlparse(url), selector,
                                                 name_attributes, output_matches_as_mv,
