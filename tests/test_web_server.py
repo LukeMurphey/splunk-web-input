@@ -3,7 +3,7 @@ import os
 import base64
 import cgi
 
-DEBUG_LOG = True
+DEBUG_LOG = False
 
 class TestWebServerHandler(BaseHTTPRequestHandler):
     """

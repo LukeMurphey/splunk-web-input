@@ -555,7 +555,7 @@ class WebScraper(object):
         self.proxy_user = proxy_user
         self.proxy_password = proxy_password
 
-    def set_authentication(self, username, password, username_field, password_field, authentication_url):
+    def set_authentication(self, username, password, username_field=None, password_field=None, authentication_url=None):
         self.username = username
         self.password = password
         self.username_field = username_field
@@ -937,7 +937,7 @@ class WebScraper(object):
             except Exception:
                 logger.exception("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
 
-    def get_result_browser(self, url, browser="firefox", username=None, password=None):
+    def get_result_browser(self, url, browser="firefox"):
 
         # Update the path if necessary so that the drivers can be found
         WebScraper.add_browser_driver_to_path()
@@ -986,7 +986,7 @@ class WebScraper(object):
                 raise Exception("Browser '%s' not recognized" % (browser))
 
             # Load the page
-            driver.get(self.add_auth_to_url(url.geturl(), username, password))
+            driver.get(self.add_auth_to_url(url.geturl(), self.username, self.password))
 
             # Wait for the content to load
             time.sleep(self.timeout)
@@ -1013,7 +1013,7 @@ class WebScraper(object):
                 if display is not None:
                     display.stop()
 
-    def get_result_single(self, web_client, url, selector, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, username=None, password=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
+    def get_result_single(self, web_client, url, selector, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """
         Get the results from performing a HTTP request and parsing the output.
 
@@ -1032,8 +1032,6 @@ class WebScraper(object):
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
         browser -- The browser to use
-        username -- The username to use for authentication
-        password -- The username to use for authentication
         additional_fields -- Additional fields to put into the result set
         match_prefix -- A prefix to attach to prepend to the front of the match fields
         empty_value -- The value to use for empty matches
@@ -1054,15 +1052,14 @@ class WebScraper(object):
 
             # Perform the request
             with Timer() as timer:
-
                 response_code, content, encoding = self.get_result_built_in_client(web_client, url)
                 result['browser'] = WebScraper.INTEGRATED_CLIENT
-                
+
             # Get the content via the browser too if requested
             # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
             if browser is not None and browser.strip() != WebScraper.INTEGRATED_CLIENT:
                 try:
-                    content = self.get_result_browser(url, browser, username, password)
+                    content = self.get_result_browser(url, browser)
                     result['browser'] = browser
                 except:
                     logger.exception("Unable to get the content using the browser=%s", browser)
