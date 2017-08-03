@@ -200,7 +200,7 @@ class MechanizeClient(WebClient):
         self.is_logged_in = False
 
     @classmethod
-    def get_browser(cls):
+    def get_browser(cls, proxy_type=None, proxy_server=None, proxy_port=None, proxy_user=None, proxy_pass=None):
         browser = mechanize.Browser()
 
         # Ignore robots.txt
@@ -209,13 +209,30 @@ class MechanizeClient(WebClient):
         # Ignore meta-refresh handlers
         browser.set_handle_refresh(False)
 
+        # Setup the proxy
+        if proxy_server is not None:
+            proxy_str = ""
+
+            # Add the user info
+            if proxy_user is not None and proxy_pass is not None:
+                proxy_str += proxy_user + ":" + proxy_pass + "@"
+
+            # Add the proxy server
+            proxy_str += proxy_server
+
+            # Add the proxy server
+            if proxy_port is not None:
+                proxy_str += ":" + str(proxy_port)
+
+            browser.set_proxies({"http": proxy_str, "https": proxy_str}) # e.g. joe:password@myproxy.example.com:3128
+
         return browser
 
     def get_url(self, url, operation='GET'):
 
         # Get the browser
         if self.browser is None:
-            self.browser = self.get_browser()
+            self.browser = self.get_browser(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
 
         # Setup the credentials if necessary
         if self.username is not None or self.password is not None and not self.is_logged_in:
@@ -265,9 +282,9 @@ class MechanizeClient(WebClient):
         return self.response_headers
 
     @classmethod
-    def detectFormFields(cls, login_url):
+    def detectFormFields(cls, login_url, proxy_type=None, proxy_server=None, proxy_port=None, proxy_user=None, proxy_pass=None):
 
-        browser = cls.get_browser()
+        browser = cls.get_browser(proxy_type, proxy_server, proxy_port, proxy_user, proxy_pass)
         browser.open(login_url)
 
         # Check each form
@@ -292,19 +309,19 @@ class MechanizeClient(WebClient):
 
     def doFormLogin(self, login_url, username_field=None, password_field=None):
 
-        self.browser = self.get_browser()
+        self.browser = self.get_browser(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
         self.browser.open(login_url)
 
         # Detect the login form and fields if necessary
         if username_field is None or password_field is None:
-            _, username_field_name, password_field_name = self.detectFormFields(login_url)
+            _, username_field_name, password_field_name = self.detectFormFields(login_url, self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
 
             if username_field is None:
                 username_field = username_field_name
-            
+
             if password_field is None:
                 password_field = password_field_name
-        
+
         # Stop if some fields are missing
         if username_field is None:
             raise FormAuthenticationFailed("Username field is missing")

@@ -416,8 +416,17 @@ class WebInputController(controllers.BaseController):
 
     @expose_page(must_login=True, methods=['GET'])
     def get_login_fields(self, url=None, **kwargs):
+
+        web_input = WebInput(timeout=10)
+
+        proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = \
+        web_input.get_proxy_config(cherrypy.session.get('sessionKey'), "default")
+
         client = MechanizeClient(5)
-        _, username_field, password_field = client.detectFormFields(url)
+
+        logger.debug("Using proxy %s to detect form fields", proxy_server)
+
+        _, username_field, password_field = client.detectFormFields(url, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
 
         return self.render_json({
             'username_field' : username_field or "",
@@ -550,7 +559,7 @@ class WebInputController(controllers.BaseController):
                 if authentication_url is not None:
                     authentication_url = urlparse.urlparse(authentication_url)
 
-                logger.debug("Using credentials for scrape_page: ")
+                logger.debug("Using credentials for scrape_page")
                 web_scraper.set_authentication(username, password, authentication_url, username_field, password_field)
 
             # Get the user-agent string
