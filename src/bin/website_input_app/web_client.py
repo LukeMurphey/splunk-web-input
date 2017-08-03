@@ -215,7 +215,7 @@ class MechanizeClient(WebClient):
 
             # Add the user info
             if proxy_user is not None and proxy_pass is not None:
-                proxy_str += proxy_user + ":" + proxy_pass + "@"
+                proxy_str += proxy_user + ":" + proxy_pass.replace("@", "\@") + "@"
 
             # Add the proxy server
             proxy_str += proxy_server
