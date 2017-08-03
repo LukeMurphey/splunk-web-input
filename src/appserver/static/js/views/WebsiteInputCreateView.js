@@ -216,10 +216,17 @@ define([
 		 */
 		determineFormFields: function(override_existing){
 
+			// Stop if we don't have a URL
+			if($('#inputLoginURL', this.$el).val().length === 0){
+				return;
+			}
+
+			// Assign a default to the override_existing argument
 			if(typeof override_existing === 'undefined'){
 				override_existing = false;
 			}
 
+			// Make the arguments
 			var args = {
 				url : $('#inputLoginURL', this.$el).val()
 			};
