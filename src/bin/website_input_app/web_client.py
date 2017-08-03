@@ -25,12 +25,14 @@ class ConnectionFailure(WebClientException):
 class LoginFormNotFound(WebClientException):
     pass
 
+DEFAULT_USER_AGENT = 'Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)'
+
 class WebClient(object):
     """
     This is the base-class.
     """
 
-    def __init__(self, timeout=30, user_agent=None, logger=None):
+    def __init__(self, timeout=30, user_agent=DEFAULT_USER_AGENT, logger=None):
 
         # These are for storing the options for performing the request
         self.timeout = timeout
@@ -81,7 +83,7 @@ class Http2LibClient(WebClient):
     A web-client based on http2lib.
     """
 
-    def __init__(self, timeout=30, user_agent=None, logger=None):
+    def __init__(self, timeout=30, user_agent=DEFAULT_USER_AGENT, logger=None):
         super(Http2LibClient, self).__init__(timeout, user_agent, logger)
 
         # This is a reference to the HTTP client
@@ -183,7 +185,7 @@ class MechanizeClient(WebClient):
     submission and authentication.
     """
 
-    def __init__(self, timeout=30, user_agent=None, logger=None):
+    def __init__(self, timeout=30, user_agent=DEFAULT_USER_AGENT, logger=None):
         super(MechanizeClient, self).__init__(timeout, user_agent, logger)
 
         # This is a reference to the HTTP client
@@ -194,16 +196,19 @@ class MechanizeClient(WebClient):
         self.browser = None
         self.is_logged_in = False
 
-    def get_browser(self):
-        self.browser = mechanize.Browser()
+    def get_browser(self, cache=True):
+        browser = mechanize.Browser()
 
         # Ignore robots.txt
-        self.browser.set_handle_robots(False)
+        browser.set_handle_robots(False)
 
         # Ignore meta-refresh handlers
-        self.browser.set_handle_refresh(False)
+        browser.set_handle_refresh(False)
 
-        return self.browser
+        if cache:
+            self.browser = browser
+
+        return browser
 
     def get_url(self, url, operation='GET'):
 
@@ -257,6 +262,31 @@ class MechanizeClient(WebClient):
 
     def get_response_headers(self):
         return self.response_headers
+
+    def detectFormFields(self, login_url):
+
+        browser = self.get_browser(cache=False)
+        self.browser.open(login_url)
+
+        # Check each form
+        for form in self.browser.forms():
+            password_control = None
+            user_control = None
+
+            # Try to find the controls
+            for control in form.controls:
+                # See if this is the password field
+                if control.name == "password":
+                    password_control = control
+
+                # See if this is the username field
+                if control.name in ['username', 'uname', 'login', 'email', 'email_address']:
+                    user_control = control
+
+            if password_control is not None and user_control is not None:
+                return form, user_control.name, password_control.name
+
+        return None, None, None
 
     def doFormLogin(self, username_field, password_field, login_url):
 

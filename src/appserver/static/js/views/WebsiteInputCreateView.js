@@ -72,7 +72,8 @@ define([
         	"click .show-results-in-search" : "openPreviewInSearch",
 			"click #browserConnectionTest" : "clickTestBrowser",
 			"change #inputBrowser" : "clearTestBrowserLink",
-			"click .browserHelp" : "showBrowserHelp"
+			"click .browserHelp" : "showBrowserHelp",
+			"change #inputLoginURL" : "determineFormFields"
         },
         
         initialize: function() {
@@ -200,6 +201,43 @@ define([
 
 			return false;
 		},
+
+		/**
+		 * Determine the form fields.
+		 */
+		determineFormFields: function(){
+
+			var args = {
+				url : $('#inputLoginURL', this.$el).val()
+			};
+
+        	// Get the results
+        	$.ajax({
+    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/get_login_fields"),
+    			data: args,
+    			type: 'GET',
+                success: function(result) {
+
+					if(result.username_field && result.password_field){
+
+						if($('#inputUsernameField', this.$el).val() === ''){
+							$('#inputUsernameField', this.$el).val(result.username_field);
+						}
+						
+						if($('#inputPasswordField', this.$el).val() === ''){
+							$('#inputPasswordField', this.$el).val(result.password_field);
+						}
+						
+						console.info("Successfully loaded the login form information");
+					}
+                }.bind(this),
+                error: function() {
+
+                }.bind(this)
+        	});
+
+			return false;
+		},
         
         /**
          * Show the results preview.
@@ -311,11 +349,15 @@ define([
         	this.addIfInputIsNonEmpty(args, 'depth_limit', '#inputDepthLimit');
         	this.addIfInputIsNonEmpty(args, 'url_filter', '#inputURLFilter');
         	this.addIfInputIsNonEmpty(args, 'uri', '#inputURL');
-        	this.addIfInputIsNonEmpty(args, 'username', '#inputUsername');
-        	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
         	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
         	this.addIfInputIsNonEmpty(args, 'browser', '#inputBrowser');
-        	this.addIfInputIsNonEmpty(args, 'timeout', '#inputTimeout');
+			this.addIfInputIsNonEmpty(args, 'timeout', '#inputTimeout');
+
+        	this.addIfInputIsNonEmpty(args, 'username', '#inputUsername');
+        	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
+        	this.addIfInputIsNonEmpty(args, 'authentication_url', '#inputLoginURL');
+			this.addIfInputIsNonEmpty(args, 'username_field', '#inputUsernameField');
+			this.addIfInputIsNonEmpty(args, 'password_field', '#inputPasswordField');
         	
         	// Place a limit on the page count of 10
         	if(parseInt(args['page_limit'], 10) > 10){
@@ -427,6 +469,9 @@ define([
         	// Credentials
         	this.setIfValueIsNonEmpty('#inputUsername', input.content.username);
 			this.setIfValueIsNonEmpty('#inputPassword', input.content.password);
+        	this.setIfValueIsNonEmpty('#inputLoginURL', input.content.authentication_url);
+			this.setIfValueIsNonEmpty('#inputUsernameField', input.content.username_field);
+        	this.setIfValueIsNonEmpty('#inputPasswordField', input.content.password_field);
         	
         	// Output options
         	this.setIfValueIsNonEmpty('#inputNameAttributes', input.content.name_attributes);
@@ -1312,6 +1357,9 @@ define([
         	// Credentials
         	this.addIfInputIsNonEmpty(data, "username", '#inputUsername');
 			data.password = ""; // Clear the password, it should be stored in secure storage
+			this.addIfInputIsNonEmpty(data, "authentication_url", '#inputLoginURL');
+			this.addIfInputIsNonEmpty(data, "username_field", '#inputUsernameField');
+			this.addIfInputIsNonEmpty(data, "password_field", '#inputPasswordField');
         	
         	// Output options
         	this.addIfInputIsNonEmpty(data, "name_attributes", '#inputNameAttributes');

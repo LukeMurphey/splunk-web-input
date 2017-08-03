@@ -157,22 +157,30 @@ class WebInput(ModularInput):
             Field("title", "Title", "A short description (typically just the domain name)", empty_allowed=False),
             URLField("url", "URL", "The URL to connect to (must be be either HTTP or HTTPS protocol)", empty_allowed=False, require_https_on_cloud=True),
             DurationField("interval", "Interval", "The interval defining how often to perform the check; can include time units (e.g. 15m for 15 minutes, 8h for 8 hours)", empty_allowed=False),
+            IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
             SelectorField("selector", "Selector", "A selector that will match the data you want to retrieve", none_allowed=True, empty_allowed=True),
-            Field("username", "Username", "The username to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            Field("password", "Password", "The password to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+
+            # HTTP client options
             Field("user_agent", "User Agent", "The user-agent to use when communicating with the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
+
+            # Output options
+            ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             BooleanField("use_element_name", "Use Element Name as Field Name", "Use the element's tag name as the field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            IntegerField("page_limit", "Discovered page limit", "A limit on the number of pages that will be auto-discovered", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS),
             BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             BooleanField("empty_matches", "Empty matches", "Include empty rows (otherwise, they are excluded)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
-            Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
-            IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
-            BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS),
+
+            # Spidering options
+            IntegerField("page_limit", "Discovered page limit", "A limit on the number of pages that will be auto-discovered", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+
+            # Authentication options
+            Field("username", "Username", "The username to use for authenticating", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("password", "Password", "The password to use for authenticating", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             Field("username_field", "Username field", "The name of the username field on the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             Field("password_field", "Password field", "The name of the password field on the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             URLField("authentication_url", "Authentication URL", "The URL of the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, require_https_on_cloud=True)
@@ -379,7 +387,7 @@ class WebInput(ModularInput):
 
                 web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 web_scraper.user_agent = user_agent
-                web_scraper.set_authentication(username, password, username_field, password_field, authentication_url)
+                web_scraper.set_authentication(username, password, authentication_url, username_field, password_field)
 
                 # Perform the scrape
                 result = web_scraper.scrape_page(url, selector, name_attributes,
@@ -548,14 +556,14 @@ class WebScraper(object):
         proxy_user -- The username
         proxy_password -- The password
         """
-    
+
         self.proxy_type = proxy_type
         self.proxy_server = proxy_server
         self.proxy_port = proxy_port
         self.proxy_user = proxy_user
         self.proxy_password = proxy_password
 
-    def set_authentication(self, username, password, username_field=None, password_field=None, authentication_url=None):
+    def set_authentication(self, username, password, authentication_url=None, username_field=None, password_field=None):
         self.username = username
         self.password = password
         self.username_field = username_field
@@ -573,7 +581,7 @@ class WebScraper(object):
         charset_detect_content_type_header_enabled -- The server
         charset_detect_sniff_enabled -- The port of the proxy server (an integer)
         """
-    
+
         self.charset_detect_meta_enabled = charset_detect_meta_enabled
         self.charset_detect_content_type_header_enabled = charset_detect_content_type_header_enabled
         self.charset_detect_sniff_enabled = charset_detect_sniff_enabled
@@ -1269,7 +1277,9 @@ class WebScraper(object):
             client.setCredentials(self.username, self.password)
 
             # Do form login if necessary
-            if self.username_field is not None and self.password_field is not None and self.authentication_url is not None:
+            if self.username is not None and self.password is not None and \
+               self.username_field is not None and self.password_field is not None and \
+               self.authentication_url is not None:
                 client.doFormLogin(self.username_field, self.password_field, self.authentication_url.geturl())
 
             # Run the scraper and get the results
