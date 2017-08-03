@@ -571,7 +571,7 @@ class WebScraper(object):
         self.authentication_url = authentication_url
 
         # Detect the form fields if necessary
-        if autodiscover_fields and username_field is None or password_field is None and authentication_url is not None and username is not None and password is not None:
+        if autodiscover_fields and (username_field is None or password_field is None) and authentication_url is not None and username is not None and password is not None:
             _, detected_username_field, detected_password_field = DefaultWebClient.detectFormFields(authentication_url.geturl())
 
             if self.username_field is None:
