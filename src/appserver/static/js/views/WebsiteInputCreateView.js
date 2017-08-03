@@ -1009,13 +1009,13 @@ define([
         	var data = this.makeConfig();
         	
         	var issues = 0;
-        	
+			
+        	// Clear existing validation errors
+        	this.clearValidationErrors();
+			
         	// Validate step 1
         	// Update the preview URLs if moving from the URL step
         	if(selectedModel.get("value") === 'url-edit' && isSteppingNext){
-        		
-        		// Clear existing validation errors
-        		this.clearValidationErrors();
         		
         		// Validate the interval
         		if(!this.isValidInterval($("#inputInterval").val())){
@@ -1028,14 +1028,15 @@ define([
         			this.addValidationError($("#inputURL"), "Enter a valid URL");
         			issues += 1;
 				}
-				else if(!$("#inputURL").val().startsWith("https://") && !$("#inputURL").val().startsWith("http://")){
-					this.addValidationError($("#inputURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
-        			issues += 1;
-				}
 				else if(this.is_on_cloud && !$("#inputURL").val().startsWith("https://")){
 					this.addValidationError($("#inputURL"), "Enter a URL that uses HTTPS (only HTTPS is allowed on cloud)");
         			issues += 1;
 				}
+				else if(!this.is_on_cloud && !$("#inputURL").val().startsWith("https://") && !$("#inputURL").val().startsWith("http://")){
+					this.addValidationError($("#inputURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
+        			issues += 1;
+				}
+				
         		
         		// Validate the depth limit
         		if($("#inputDepthLimit").val().length !== 0 && $("#inputDepthLimit").val().match(/^[0-9]+$/gi) === null){
@@ -1061,23 +1062,32 @@ define([
         	
         	// Validate step 2
         	if(selectedModel.get("value") === 'auth-edit' && isSteppingNext){
-        		this.updatePreview($("#inputURL", this.$el).val());
-    			this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
-    			this.updatePreviewURLs();
+
+				// Validate the login form URL
+
+				// Make sure it looks like a URL (has a protocol)
+				if(this.is_on_cloud && $("#inputLoginURL").val().length !== 0 && !$("#inputLoginURL").val().startsWith("https://")){
+					this.addValidationError($("#inputLoginURL"), "Enter a URL that uses HTTPS (only HTTPS is allowed on cloud)");
+        			issues += 1;
+				}
+				else if(!this.is_on_cloud && $("#inputLoginURL").val().length !== 0 && !$("#inputLoginURL").val().startsWith("https://") && !$("#inputLoginURL").val().startsWith("http://")){
+					this.addValidationError($("#inputLoginURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
+        			issues += 1;
+				}
+				// Make sure it only uses 
+				else if(($("#inputLoginURL").val().length !== 0 || $("#inputPasswordField").val().length !== 0) && $("#inputLoginURL").val().length === 0){
+					this.addValidationError($("#inputLoginURL"), "Enter a URL of the login page");
+        			issues += 1;
+				}
+				else{
+					this.updatePreview($("#inputURL", this.$el).val());
+					this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
+					this.updatePreviewURLs();
+				}
+
         	}
         	
         	// Validate step 3
-        	if(selectedModel.get("value") === 'selector-edit' && isSteppingNext){
-        		
-        		// Validate the selector
-        		// This isn't currently required since people may want to output raw content
-        		/*
-        		if($("#inputSelector").val().length === 0){
-        			$("#inputSelector").parent().parent().addClass("error");
-        			issues += 1;
-        		}
-        		*/
-        	}
         	
         	// Validate step 4
         	
