@@ -41,7 +41,7 @@ You can also use the new wizard form to make creating the selector easier:
 You can usually ignore the "Output" section. This is only necessary if you want to name the fields that the input will get based on content within the page [(see "Can I use attributes to set the field names?" for details).](http://lukemurphey.net/projects/splunk-web-input/wiki/FAQ#Can-I-use-attributes-to-set-the-field-names)
 
 #### Authentication
-The "Authentication" can be left blank unless the web-page requires authentication. Only HTTP authentication is supported at the current time.
+The "Authentication" can be left blank unless the web-page requires authentication.
 
 ### FAQs
 

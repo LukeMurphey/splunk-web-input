@@ -18,10 +18,10 @@ selector = <value>
 ##################
 
 username = <value>
-* Defines the username to use for authenticating (only HTTP authentication supported)
+* Defines the username to use for authenticating
 
 password = <value>
-* Defines the password to use for authenticating (only HTTP authentication supported)
+* Defines the password to use for authenticating
 
 ##################
 # Forms authentication
