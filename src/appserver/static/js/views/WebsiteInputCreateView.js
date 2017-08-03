@@ -160,7 +160,7 @@ define([
 		},
 		
 		/**
-		 * Clear the browser test connection.
+		 * Clear the browser test connection link.
 		 */
 		clearTestBrowserLink: function(){
 			$('#browserTestResults', this.$el).removeClass("browserChecking").removeClass("browserDoesntWork").removeClass("browserWorks").html("");
@@ -204,27 +204,43 @@ define([
 		},
 
 		/**
+		 * Clear the browser test connection.
+		 */
+		clearDetectFieldsLink: function(){
+			$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").removeClass("detectFieldsFailed").removeClass("detectFieldsWorked").html("");
+		},
+
+		/**
 		 * Process the request to determine the form-fields.
 		 */
-		clickDetermineFormFields: function(){
-			this.determineFormFields(true);
+		clickDetermineFormFields: function(e){
+			this.determineFormFields(e, true);
 			return false;
 		},
 
 		/**
 		 * Determine the form fields.
 		 */
-		determineFormFields: function(override_existing){
+		determineFormFields: function(e, force){
+
+			// Assign a default to the force argument
+			if(typeof force === 'undefined'){
+				force = false;
+			}
 
 			// Stop if we don't have a URL
 			if($('#inputLoginURL', this.$el).val().length === 0){
 				return;
 			}
 
-			// Assign a default to the override_existing argument
-			if(typeof override_existing === 'undefined'){
-				override_existing = false;
+			// Stop if we already have form fields and this isn't being forced
+			if(!force && $('#inputUsernameField', this.$el).val().length > 0 && $('#inputPasswordField', this.$el).val().length > 0){
+				return;
 			}
+
+			// Update the icon accordingly
+			this.clearDetectFieldsLink();
+			$('#detectFieldResults', this.$el).addClass("detectFieldsChecking").html("Detecting...");
 
 			// Make the arguments
 			var args = {
@@ -240,19 +256,24 @@ define([
 
 					if(result.username_field && result.password_field){
 
-						if(override_existing || $('#inputUsernameField', this.$el).val() === ''){
+						if(force || $('#inputUsernameField', this.$el).val() === ''){
 							$('#inputUsernameField', this.$el).val(result.username_field);
 						}
 						
-						if(override_existing || $('#inputPasswordField', this.$el).val() === ''){
+						if(force || $('#inputPasswordField', this.$el).val() === ''){
 							$('#inputPasswordField', this.$el).val(result.password_field);
 						}
 						
 						console.info("Successfully loaded the login form information");
+
+						$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").addClass("detectFieldsWorked").html('<i class="icon-check"></i> Login fields detected');
+					}
+					else{
+						$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").addClass("detectFieldsFailed").html('<i class="icon-alert"></i> Login fields could not be detected');
 					}
                 }.bind(this),
                 error: function() {
-
+					$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").addClass("detectFieldsFailed").html('<i class="icon-alert"></i> Login fields could not be detected');
                 }.bind(this)
         	});
 
@@ -1049,8 +1070,7 @@ define([
 					this.addValidationError($("#inputURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
         			issues += 1;
 				}
-				
-        		
+
         		// Validate the depth limit
         		if($("#inputDepthLimit").val().length !== 0 && $("#inputDepthLimit").val().match(/^[0-9]+$/gi) === null){
         			this.addValidationError($("#inputDepthLimit"), "Enter a valid integer");
@@ -1096,6 +1116,7 @@ define([
 					this.updatePreview($("#inputURL", this.$el).val());
 					this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
 					this.updatePreviewURLs();
+					this.clearDetectFieldsLink();
 				}
 
         	}
