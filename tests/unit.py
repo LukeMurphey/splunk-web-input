@@ -985,7 +985,7 @@ class TestFormAuthentication(UnitTestWithWebServer):
         client = MechanizeClient(5)
         _, username_field, password_field = client.detectFormFields("http://127.0.0.1:" + str(self.web_server_port) + "/login")
 
-        self.assertEqual(username_field, 'login')
+        self.assertEqual(username_field, 'username')
         self.assertEqual(password_field, 'password')
 
     def test_form_auth_auto_discover_form_fields(self):

@@ -563,18 +563,28 @@ class WebScraper(object):
         self.proxy_user = proxy_user
         self.proxy_password = proxy_password
 
-    def set_authentication(self, username, password, authentication_url=None, username_field=None, password_field=None):
+    def set_authentication(self, username, password, authentication_url=None, username_field=None, password_field=None, autodiscover_fields=True):
         self.username = username
         self.password = password
         self.username_field = username_field
         self.password_field = password_field
         self.authentication_url = authentication_url
 
+        # Detect the form fields if necessary
+        if autodiscover_fields and username_field is None or password_field is None and authentication_url is not None and username is not None and password is not None:
+            _, detected_username_field, detected_password_field = DefaultWebClient.detectFormFields(authentication_url.geturl())
+
+            if self.username_field is None:
+                self.username_field = detected_username_field
+
+            if self.password_field is None:
+                self.password_field = detected_password_field
+
     def set_charset_detection(self, charset_detect_meta_enabled,
             charset_detect_content_type_header_enabled,
             charset_detect_sniff_enabled):
         """
-        Set the strategy to use for detecting the contentty-e
+        Set the strategy to use for detecting the contenttype
 
         Arguments:
         charset_detect_meta_enabled -- The type of the proxy server

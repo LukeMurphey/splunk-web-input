@@ -196,7 +196,8 @@ class MechanizeClient(WebClient):
         self.browser = None
         self.is_logged_in = False
 
-    def get_browser(self, cache=True):
+    @classmethod
+    def get_browser(cls):
         browser = mechanize.Browser()
 
         # Ignore robots.txt
@@ -204,9 +205,6 @@ class MechanizeClient(WebClient):
 
         # Ignore meta-refresh handlers
         browser.set_handle_refresh(False)
-
-        if cache:
-            self.browser = browser
 
         return browser
 
@@ -263,24 +261,25 @@ class MechanizeClient(WebClient):
     def get_response_headers(self):
         return self.response_headers
 
-    def detectFormFields(self, login_url):
+    @classmethod
+    def detectFormFields(cls, login_url):
 
-        browser = self.get_browser(cache=False)
-        self.browser.open(login_url)
+        browser = cls.get_browser()
+        browser.open(login_url)
 
         # Check each form
-        for form in self.browser.forms():
+        for form in browser.forms():
             password_control = None
             user_control = None
 
             # Try to find the controls
             for control in form.controls:
                 # See if this is the password field
-                if control.name == "password":
+                if control.name == "password" and control.type in ["password", "text"]:
                     password_control = control
 
                 # See if this is the username field
-                if control.name in ['username', 'uname', 'login', 'email', 'email_address']:
+                if control.name in ['username', 'uname', 'login', 'email', 'email_address'] and control.type in ["password", "text"]:
                     user_control = control
 
             if password_control is not None and user_control is not None:
