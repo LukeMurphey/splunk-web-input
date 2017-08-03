@@ -83,6 +83,10 @@
 	margin-left: 12px;
 }
 
+#detect-field-names{
+    margin-left: 4px;
+}
+
 /* Styling for whether the browser works or not. */
 #browserConnectionTest{
     margin-left: 4px;

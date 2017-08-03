@@ -73,7 +73,8 @@ define([
 			"click #browserConnectionTest" : "clickTestBrowser",
 			"change #inputBrowser" : "clearTestBrowserLink",
 			"click .browserHelp" : "showBrowserHelp",
-			"change #inputLoginURL" : "determineFormFields"
+			"change #inputLoginURL" : "determineFormFields",
+			"click #detect-field-names" : "clickDetermineFormFields",
         },
         
         initialize: function() {
@@ -203,9 +204,21 @@ define([
 		},
 
 		/**
+		 * Process the request to determine the form-fields.
+		 */
+		clickDetermineFormFields: function(){
+			this.determineFormFields(true);
+			return false;
+		},
+
+		/**
 		 * Determine the form fields.
 		 */
-		determineFormFields: function(){
+		determineFormFields: function(override_existing){
+
+			if(typeof override_existing === 'undefined'){
+				override_existing = false;
+			}
 
 			var args = {
 				url : $('#inputLoginURL', this.$el).val()
@@ -220,11 +233,11 @@ define([
 
 					if(result.username_field && result.password_field){
 
-						if($('#inputUsernameField', this.$el).val() === ''){
+						if(override_existing || $('#inputUsernameField', this.$el).val() === ''){
 							$('#inputUsernameField', this.$el).val(result.username_field);
 						}
 						
-						if($('#inputPasswordField', this.$el).val() === ''){
+						if(override_existing || $('#inputPasswordField', this.$el).val() === ''){
 							$('#inputPasswordField', this.$el).val(result.password_field);
 						}
 						
