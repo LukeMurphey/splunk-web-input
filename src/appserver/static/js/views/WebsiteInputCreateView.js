@@ -263,7 +263,7 @@ define([
          * Show the results preview.
          */
         showResultsPreview: function(){
-        	this.previewResultsView.updatePreview(this.makeConfig());
+        	this.previewResultsView.updatePreview(this.makeConfig(true));
         },
         
         /**
@@ -797,8 +797,14 @@ define([
             
             if( $('.styles-off.active', this.$el).length > 0 ){
             	params.clean_styles = '1';
-            }
-        	
+			}
+			
+			//this.addIfInputIsNonEmpty(params, 'username', '#inputUsername');
+        	//this.addIfInputIsNonEmpty(params, 'password', '#inputPassword');
+        	this.addIfInputIsNonEmpty(params, 'authentication_url', '#inputLoginURL');
+			this.addIfInputIsNonEmpty(params, 'username_field', '#inputUsernameField');
+			this.addIfInputIsNonEmpty(params, 'password_field', '#inputPasswordField');
+
             var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page");
             uri += '?' + Splunk.util.propToQueryString(params);
             
@@ -1343,7 +1349,11 @@ define([
         /**
          * Make an associative array representing the configuration that is being requested to persist.
          */
-        makeConfig: function(){
+        makeConfig: function(include_password){
+
+			if(typeof include_password === 'undefined'){
+				include_password = false;
+			}
         	
         	// Make the data that will be posted to the server
         	var data = {};
@@ -1385,8 +1395,13 @@ define([
         	this.addIfInputIsNonEmpty(data, "depth_limit", '#inputDepthLimit');
         	
         	// Credentials
-        	this.addIfInputIsNonEmpty(data, "username", '#inputUsername');
-			data.password = ""; // Clear the password, it should be stored in secure storage
+			this.addIfInputIsNonEmpty(data, "username", '#inputUsername');
+			if(include_password){
+				this.addIfInputIsNonEmpty(data, "password", '#inputPassword');
+			}
+			else{
+				data.password = ""; // Clear the password, it should be stored in secure storage
+			}
 			this.addIfInputIsNonEmpty(data, "authentication_url", '#inputLoginURL');
 			this.addIfInputIsNonEmpty(data, "username_field", '#inputUsernameField');
 			this.addIfInputIsNonEmpty(data, "password_field", '#inputPasswordField');

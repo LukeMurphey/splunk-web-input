@@ -1290,7 +1290,7 @@ class WebScraper(object):
             if self.username is not None and self.password is not None and \
                self.username_field is not None and self.password_field is not None and \
                self.authentication_url is not None:
-                client.doFormLogin(self.username_field, self.password_field, self.authentication_url.geturl())
+                client.doFormLogin(self.authentication_url.geturl(), self.username_field, self.password_field)
 
             # Run the scraper and get the results
             extracted_links = OrderedDict()

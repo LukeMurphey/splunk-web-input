@@ -224,14 +224,6 @@ class WebInputController(controllers.BaseController):
                 cherrypy.response.status = 202
                 return self.render_error_html("Proxy server information could not be obtained")
 
-            # Get the username and password
-            username = None
-            password = None
-
-            if 'username' in kwargs and 'password' in kwargs:
-                username = kwargs['username']
-                password = kwargs['password']
-
             # Get the timeout to use
             timeout = None
 
@@ -246,6 +238,30 @@ class WebInputController(controllers.BaseController):
             # Make the client
             web_client = DefaultWebClient(timeout)
             web_client.setProxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+
+            # Get the username and password
+            username = kwargs.get('username', None)
+            password = kwargs.get('password', None)
+
+            username_field = kwargs.get('username_field', None)
+            password_field = kwargs.get('password_field', None)
+            authentication_url = kwargs.get('authentication_url', None)
+
+            if username is not None and password is not None:
+                username = kwargs['username']
+                password = kwargs['password']
+
+                username_field = kwargs.get('username_field', None)
+                password_field = kwargs.get('password_field', None)
+                authentication_url = kwargs.get('authentication_url', None)
+
+                web_client.setCredentials(username, password)
+
+                if authentication_url is not None:
+                    logger.debug("Authenticating using form login in scrape_page")
+                    web_client.doFormLogin(authentication_url, username_field, password_field)
+                    
+                    parsed_authentication_url = urlparse.urlparse(authentication_url)
 
             # Get the page
             content = web_client.get_url(url, 'GET')
@@ -534,6 +550,7 @@ class WebInputController(controllers.BaseController):
                 if authentication_url is not None:
                     authentication_url = urlparse.urlparse(authentication_url)
 
+                logger.debug("Using credentials for scrape_page: ")
                 web_scraper.set_authentication(username, password, authentication_url, username_field, password_field)
 
             # Get the user-agent string

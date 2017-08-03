@@ -13,7 +13,10 @@ class WebClientException(Exception):
             super(WebClientException, self).__init__(message + u', caused by ' + repr(cause))
         self.cause = cause
 
-class FormAuthenticationNotSupported(Exception):
+class FormAuthenticationNotSupported(WebClientException):
+    pass
+
+class FormAuthenticationFailed(WebClientException):
     pass
 
 class RequestTimeout(WebClientException):
@@ -22,7 +25,7 @@ class RequestTimeout(WebClientException):
 class ConnectionFailure(WebClientException):
     pass
 
-class LoginFormNotFound(WebClientException):
+class LoginFormNotFound(FormAuthenticationFailed):
     pass
 
 DEFAULT_USER_AGENT = 'Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)'
@@ -68,7 +71,7 @@ class WebClient(object):
         self.username = username
         self.password = password
 
-    def doFormLogin(self, username_field, password_field, login_url):
+    def doFormLogin(self, login_url, username_field=None, password_field=None):
         raise FormAuthenticationNotSupported()
 
     # The following need to be implemented by the inheriting classes
@@ -287,10 +290,27 @@ class MechanizeClient(WebClient):
 
         return None, None, None
 
-    def doFormLogin(self, username_field, password_field, login_url):
+    def doFormLogin(self, login_url, username_field=None, password_field=None):
 
         self.browser = self.get_browser()
         self.browser.open(login_url)
+
+        # Detect the login form and fields if necessary
+        if username_field is None or password_field is None:
+            _, username_field_name, password_field_name = self.detectFormFields(login_url)
+
+            if username_field is None:
+                username_field = username_field_name
+            
+            if password_field is None:
+                password_field = password_field_name
+        
+        # Stop if some fields are missing
+        if username_field is None:
+            raise FormAuthenticationFailed("Username field is missing")
+
+        if password_field is None:
+            raise FormAuthenticationFailed("Password field is missing")
 
         # Find the form with the username and password fields
         login_form = None
@@ -309,7 +329,7 @@ class MechanizeClient(WebClient):
 
         # Stop if we couldn't find the form
         if login_form is None:
-            raise LoginFormNotFound()
+            raise LoginFormNotFound("Login form was not found")
 
         # Set the form
         self.browser.form = login_form
