@@ -13,7 +13,7 @@ The classes included are:
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
-from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure
+from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure, LoginFormNotFound, FormAuthenticationFailed, WebClientException
 from website_input_app.event_writer import StashNewWriter
 
 from splunk.models.base import SplunkAppObjModel
@@ -415,6 +415,16 @@ class WebInput(ModularInput):
                     logger.debug("No match returned in the result")
 
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
+
+            except LoginFormNotFound as e:
+                logger.warn('Form authentication failed since the form could not be found, stanza=%s', stanza)
+
+            except FormAuthenticationFailed as e:
+                logger.warn('Form authentication failed, stanza=%s, error="%s"', stanza, str(e))
+
+            except WebClientException as e:
+                logger.warn('Client connection failed, stanza=%s, error="%s"', stanza, str(e))
+
             except Exception:
                 logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
             
@@ -1341,11 +1351,8 @@ class WebScraper(object):
                 if result is not None:
                     results.append(result)
                 
-        except LoginFormNotFound as e:
-            logger.warn('Form authentication failed since the form could not be found, stanza=%s, error="%s"', stanza, str(e))
-
-        except FormAuthenticationFailed as e:
-            logger.warn('Form authentication failed, stanza=%s, error="%s"', stanza, str(e))
+        except (LoginFormNotFound, FormAuthenticationFailed, WebClientException) as e:
+            raise e
 
         except Exception:
             # TODO: remove this one or the one in get_result_single()

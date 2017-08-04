@@ -308,56 +308,60 @@ class MechanizeClient(WebClient):
         return None, None, None
 
     def doFormLogin(self, login_url, username_field=None, password_field=None):
+        try:
 
-        self.browser = self.get_browser(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
-        self.browser.open(login_url)
+            self.browser = self.get_browser(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
+            self.browser.open(login_url)
 
-        # Detect the login form and fields if necessary
-        if username_field is None or password_field is None:
-            _, username_field_name, password_field_name = self.detectFormFields(login_url, self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
+            # Detect the login form and fields if necessary
+            if username_field is None or password_field is None:
+                _, username_field_name, password_field_name = self.detectFormFields(login_url, self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
 
+                if username_field is None:
+                    username_field = username_field_name
+
+                if password_field is None:
+                    password_field = password_field_name
+
+            # Stop if some fields are missing
             if username_field is None:
-                username_field = username_field_name
+                raise FormAuthenticationFailed("Username field is missing")
 
             if password_field is None:
-                password_field = password_field_name
+                raise FormAuthenticationFailed("Password field is missing")
 
-        # Stop if some fields are missing
-        if username_field is None:
-            raise FormAuthenticationFailed("Username field is missing")
+            # Find the form with the username and password fields
+            login_form = None
 
-        if password_field is None:
-            raise FormAuthenticationFailed("Password field is missing")
+            for form in self.browser.forms():
+                try:
+                    form.find_control(username_field)
+                    form.find_control(password_field)
 
-        # Find the form with the username and password fields
-        login_form = None
+                    login_form = form
 
-        for form in self.browser.forms():
-            try:
-                form.find_control(username_field)
-                form.find_control(password_field)
+                    break
+                except mechanize._form_controls.ControlNotFoundError:
+                    # This form didn't have the field, it doesn't appear to be the correct one
+                    pass
 
-                login_form = form
+            # Stop if we couldn't find the form
+            if login_form is None:
+                raise LoginFormNotFound("Login form was not found")
 
-                break
-            except mechanize._form_controls.ControlNotFoundError:
-                # This form didn't have the field, it doesn't appear to be the correct one
-                pass
+            # Set the form
+            self.browser.form = login_form
+            self.browser.form[username_field] = self.username
+            self.browser.form[password_field] = self.password
 
-        # Stop if we couldn't find the form
-        if login_form is None:
-            raise LoginFormNotFound("Login form was not found")
+            # Authenticate
+            res = self.browser.submit()
+            content = res.read()
 
-        # Set the form
-        self.browser.form = login_form
-        self.browser.form[username_field] = self.username
-        self.browser.form[password_field] = self.password
+            self.is_logged_in = True
 
-        # Authenticate
-        res = self.browser.submit()
-        content = res.read()
-
-        self.is_logged_in = True
+        except Exception as e:
+            raise FormAuthenticationFailed(e)
 
 class DefaultWebClient(MechanizeClient):
     """
