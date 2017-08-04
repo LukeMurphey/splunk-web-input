@@ -361,7 +361,7 @@ class MechanizeClient(WebClient):
             self.is_logged_in = True
 
         except Exception as e:
-            raise FormAuthenticationFailed(e)
+            raise FormAuthenticationFailed("Connection failed when loading the authentication form", e)
 
 class DefaultWebClient(MechanizeClient):
     """
