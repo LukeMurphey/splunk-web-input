@@ -337,6 +337,11 @@ class WebInput(ModularInput):
                 self.logger.warn("The URL will not be processed because the host is running on Splunk Cloud and the URL isn't using encryption, url=%s", url.geturl())
                 return
 
+            # Don't scan the URL if the login URL is unencrypted and the host is on Cloud
+            if self.is_on_cloud(input_config.session_key) and authentication_url is not None and authentication_url.scheme != "https":
+                self.logger.warn("The URL will not be processed because the host is running on Splunk Cloud and the login URL isn't using encryption, authentication_url=%s", authentication_url.geturl())
+                return
+
             # Get the proxy configuration
             try:
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = self.get_proxy_config(input_config.session_key, conf_stanza)
