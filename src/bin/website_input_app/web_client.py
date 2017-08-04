@@ -35,6 +35,9 @@ class WebClient(object):
     This is the base-class.
     """
 
+    USERNAMES_LIST = ['username', 'email', 'email_address', 'user', 'username']
+    PASSWORDS_LIST = ['password', 'pword', 'pass']
+
     def __init__(self, timeout=30, user_agent=DEFAULT_USER_AGENT, logger=None):
 
         # These are for storing the options for performing the request
@@ -80,6 +83,31 @@ class WebClient(object):
 
     def get_response_headers(self):
         pass
+
+    @classmethod
+    def is_field_match(cls, field_name, in_list, not_in_list=None):
+        if field_name is None:
+            return False
+
+        if in_list is None:
+            return False
+
+        field_name = field_name.lower()
+
+        for name in in_list:
+            if name in field_name and not cls.is_field_match(field_name, not_in_list):
+                return True
+
+        return False
+
+    @classmethod
+    def is_field_for_username(cls, field_name):
+        return cls.is_field_match(field_name, cls.USERNAMES_LIST, cls.PASSWORDS_LIST)
+
+    @classmethod
+    def is_field_for_password(cls, field_name):
+        return cls.is_field_match(field_name, cls.PASSWORDS_LIST)
+
 
 class Http2LibClient(WebClient):
     """
@@ -294,12 +322,13 @@ class MechanizeClient(WebClient):
 
             # Try to find the controls
             for control in form.controls:
+
                 # See if this is the password field
-                if control.name == "password" and control.type in ["password", "text"]:
+                if cls.is_field_for_password(control.name) and control.type in ["password", "text"]:
                     password_control = control
 
                 # See if this is the username field
-                if control.name in ['username', 'uname', 'login', 'email', 'email_address'] and control.type in ["password", "text"]:
+                if cls.is_field_for_username(control.name) and control.type in ["password", "text"]:
                     user_control = control
 
             if password_control is not None and user_control is not None:

@@ -124,6 +124,12 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
 
+        # Present HTML file for login with overlapping field names
+        elif self.path == "/login_overlapping_names":
+            self.do_HEAD()
+            with open(os.path.join("web_files", "login_form_overlapping_names.html"), "r") as webfile:
+                self.wfile.write(webfile.read())
+
         # Present the authenticated form
         elif self.path == "/authenticated":
             if self.is_authenticated():

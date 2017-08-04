@@ -988,6 +988,13 @@ class TestFormAuthentication(UnitTestWithWebServer):
         self.assertEqual(username_field, 'username')
         self.assertEqual(password_field, 'password')
 
+    def test_detect_form_fields_overlapping_names(self):
+        client = MechanizeClient(5)
+        _, username_field, password_field = client.detectFormFields("http://127.0.0.1:" + str(self.web_server_port) + "/login_overlapping_names")
+
+        self.assertEqual(username_field, 'form_userName')
+        self.assertEqual(password_field, 'form_userPassword')
+
     def test_form_auto_discover_form_fields(self):
         client = MechanizeClient(5)
         client.setCredentials("admin", "changeme")
