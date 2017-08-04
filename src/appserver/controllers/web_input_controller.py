@@ -32,7 +32,7 @@ sys.path.append(os.path.join("..", "..", "..", "bin"))
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import WebInput, WebScraper
-from website_input_app.web_client import DefaultWebClient, MechanizeClient
+from website_input_app.web_client import DefaultWebClient, MechanizeClient, LoginFormNotFound, FormAuthenticationFailed
 from website_input_app.modular_input import FieldValidationException, ModularInput
 from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 
@@ -287,6 +287,7 @@ class WebInputController(controllers.BaseController):
 
                         content = web_scraper.get_result_browser(urlparse.urlparse(url), browser,
                                                                  username, password)
+
                 except:
                     logger.exception("Exception generated while attempting to get browser rendering or url=%s", url)
 
@@ -379,6 +380,12 @@ class WebInputController(controllers.BaseController):
                 return ""
 
             return content
+
+        except LoginFormNotFound:
+            return self.render_error_html("Login form was not found")
+
+        except FormAuthenticationFailed:
+            return self.render_error_html("Form authentication failed")
 
         except:
             logger.exception("Error when attempting to proxy an HTTP request")
@@ -589,7 +596,15 @@ class WebInputController(controllers.BaseController):
 
         except (SelectorError, SelectorSyntaxError, ExpressionError):
             cherrypy.response.status = 220
-            return self.render_error_json(_("Selector is invalid. " + str(e)))
+            return self.render_error_json(_("Selector is invalid. "))
+
+        except LoginFormNotFound:
+            cherrypy.response.status = 220
+            return self.render_error_json("Login form was not found")
+
+        except FormAuthenticationFailed:
+            cherrypy.response.status = 220
+            return self.render_error_json("Form authentication failed")
 
         except Exception as e:
             cherrypy.response.status = 500
