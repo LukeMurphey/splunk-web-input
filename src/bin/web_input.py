@@ -1336,6 +1336,12 @@ class WebScraper(object):
                 if result is not None:
                     results.append(result)
                 
+        except LoginFormNotFound as e:
+            logger.warn('Form authentication failed since the form could not be found, stanza=%s, error="%s"', stanza, str(e))
+
+        except FormAuthenticationFailed as e:
+            logger.warn('Form authentication failed, stanza=%s, error="%s"', stanza, str(e))
+
         except Exception:
             # TODO: remove this one or the one in get_result_single()
             logger.exception("A general exception was thrown when executing a web request")
