@@ -1090,7 +1090,15 @@ define([
         		if($("#inputTimeout").val().length !== 0 && $("#inputTimeout").val().match(/^[0-9]+$/gi) === null){
         			this.addValidationError($("#inputTimeout"), "Enter a valid integer");
         			issues += 1;
-        		}
+				}
+				
+				// Hide the browser options if necessary
+				if($('#inputBrowser').val() === 'integrated_client'){
+					$('.hide-when-using-browser', this.$el).show();
+				}
+				else{
+					$('.hide-when-using-browser', this.$el).hide();
+				}
         	}
         	
         	// Validate step 2
