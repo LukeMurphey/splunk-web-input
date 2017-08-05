@@ -83,6 +83,37 @@
 	margin-left: 12px;
 }
 
+/* Styling for detecting login fields. */
+#detect-field-names{
+    margin-left: 4px;
+}
+
+.detectFieldsWorked, .detectFieldsFailed, .detectFieldsChecking{
+    margin-left: 12px;
+}
+
+.detectFieldsWorked{
+    color: green;
+	-moz-animation: highlighted-ok 0.5s;
+ 	-webkit-animation: highlighted-ok 0.5s;
+  	-o-animation: highlighted-ok 0.5s;
+  	animation: highlighted-ok 0.5s;
+}
+
+.detectFieldsFailed{
+    color: red;
+	-moz-animation: highlighted-not-ok 0.5s;
+ 	-webkit-animation: highlighted-not-ok 0.5s;
+  	-o-animation: highlighted-not-ok 0.5s;
+  	animation: highlighted-not-ok 0.5s;
+}
+
+.detectFieldsChecking{
+    background-image: url(/static/app/website_input/img/spiffygif_14x14.gif);
+    background-repeat: no-repeat;
+    padding-left: 16px;
+}
+
 /* Styling for whether the browser works or not. */
 #browserConnectionTest{
     margin-left: 4px;

@@ -171,7 +171,7 @@
 <div class="wizard-content" id="auth-edit">
 	<h2>Enter Credentials</h2>
 	<div class="help-text">
-		Enter credentials for authenticating to the website. Only HTTP credentials are currently supported.
+		Enter credentials for authenticating to the website.
 	</div>
 	
 	<form class="form-horizontal">
@@ -187,7 +187,44 @@
 	    <div class="controls">
 	      <input type="password" class="input-xlarge" id="inputPassword" autocomplete="new-password">
 	    </div>
+		</div>
+
+		<div class="control-group hide-when-using-browser">
+	    <label class="control-label"><span class="control-section">Form Authentication</span></label>
+	    <div class="controls"></div>
 	  </div>
+		
+		<div class="control-group hide-when-using-browser">
+	    <label class="control-label" for="inputLoginURL">Login form URL</label>
+	    <div class="controls">
+				<input type="text" class="input-xlarge" id="inputLoginURL">
+				<span class="help-block">The URL of the login page if the input needs to use form authentication</span>
+	    </div>
+		</div>
+
+		<div class="control-group hide-when-using-browser">
+	    <label class="control-label" for="inputUsernameField">Username field name</label>
+	    <div class="controls">
+				<input type="text" class="input-xlarge" id="inputUsernameField">
+				<span class="help-block">The name of the login form control that will contain the username</span>
+	    </div>
+		</div>
+
+		<div class="control-group hide-when-using-browser">
+	    <label class="control-label" for="inputPasswordField">Password field name</label>
+	    <div class="controls">
+				<input type="text" class="input-xlarge" id="inputPasswordField">
+				<span class="help-block">The name of the login form control that will contain the password</span>
+	    </div>
+		</div>
+			
+		<div class="control-group hide-when-using-browser">
+	    <div class="controls">
+				<a id="detect-field-names" href="#">Auto-detect username and password field names</a>
+				<span id="detectFieldResults"></span>
+	    </div>
+		</div>
+		
 	</form>
 
 </div>

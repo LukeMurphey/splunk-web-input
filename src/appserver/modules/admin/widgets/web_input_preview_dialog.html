@@ -255,36 +255,51 @@
 		data.selector= $('#selector_id').val();
 		
 		// Set up the user-agent if customized
-		if( $('#user_agent_id').val().length > 0 ){
+		if($('#user_agent_id').val().length > 0){
 			data.user_agent= $('#user_agent_id').val();
 		}
 		
 		// Get the authentication
-		if( $('#username_id').val().length > 0 && $('#password_id').val().length > 0 ){
+		if($('#username_id').val().length > 0 && $('#password_id').val().length > 0){
 			data.username = $('#username_id').val();
 			data.password = $('#password_id').val();
 		}
 		
 		// Determine if we are using the use_element_name parameter
-		if( $('#use_element_name_id:checked') ){
+		if($('#use_element_name_id:checked')){
 			//data.use_element_name = '1';
 		}
 		
 		// Get the text separator
-		if(  $('#text_separator_id').val().length > 0 ){
+		if($('#text_separator_id').val().length > 0){
 			data.text_separator = $('#text_separator_id').val();
 		}
 		
 		// Get the browser
-		if(  $('#browser_id').val().length > 0 ){
+		if($('#browser_id').val().length > 0){
 			data.browser = $('#browser_id').val();
 		}
 		
 		// Get the timeout
-		if(  $('#timeout_id').val().length > 0 ){
+		if($('#timeout_id').val().length > 0){
 			data.timeout = $('#timeout_id').val();
 		}
+
+		// Get the authentication URL
+		if($('#authentication_url_id').val().length > 0){
+			data.authentication_url = $('#authentication_url_id').val();
+		}
 		
+		// Get the username field
+		if($('#username_field_id').val().length > 0){
+			data.username_field = $('#username_field_id').val();
+		}
+
+		// Get the password field
+		if($('#password_field_id').val().length > 0){
+			data.password_field = $('#password_field_id').val();
+		}
+
 		$.ajax(
 				{
 					url:  Splunk.util.make_url('/custom/website_input/web_input_controller/scrape_page'),

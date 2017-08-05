@@ -21,6 +21,7 @@ sys.path.append(os.path.join("..", "src", "bin"))
 sys.path.append(os.path.join("..", "src", "bin", "website_input_app"))
 
 from web_input import URLField, DurationField, SelectorField, WebInput, WebScraper
+from web_client import MechanizeClient
 from website_input_app.modular_input import Field, FieldValidationException
 from unit_test_web_server import UnitTestWithWebServer, skipIfNoServer
 
@@ -165,7 +166,10 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)
+        web_scraper.set_authentication(username="admin", password="changeme")
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), output_matches_as_mv=True)        
+        #results = web_scraper.scrape_page(url_field.to_python("http://httpbin.org/basic-auth/admin/changeme"), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)
+
         result = results[0]
         #print result['match']
         self.assertEqual(len(result['match']), 30)
@@ -179,7 +183,7 @@ class TestWebInput(UnitTestWithWebServer):
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), output_matches_as_mv=True)
         result = results[0]
         #print result['match']
-        self.assertEqual(len(result['match']), 0)
+        self.assertEqual(len(result.get('match', '')), 0)
 
     @skipIfNoServer
     def test_scrape_page_with_case_insensitive_selector(self):
@@ -274,7 +278,8 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), username="admin", password="changeme", name_attributes=["class"])
+        web_scraper.set_authentication("admin", "changeme")
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), name_attributes=["class"])
         result = results[0]
 
         self.assertEqual(len(result['hd']), 31)
@@ -285,7 +290,8 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), username="admin", password="changeme", name_attributes=["class"], output_matches_as_separate_fields=True, output_matches_as_mv=False)
+        web_scraper.set_authentication(username="admin", password="changeme")
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), name_attributes=["class"], output_matches_as_separate_fields=True, output_matches_as_mv=False)
         result = results[0]
 
         self.assertEqual(result['match_hd_1'], 'Mode:')
@@ -296,7 +302,8 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("input"), username="admin", password="changeme", name_attributes=["onclick"], include_empty_matches=True)
+        web_scraper.set_authentication("admin", "changeme")
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("input"), name_attributes=["onclick"], include_empty_matches=True)
         result = results[0]
 
         self.assertTrue('btnBerTest__' in result)
@@ -722,7 +729,8 @@ class TestBrowserRendering(UnitTestWithWebServer):
         url_field = URLField("test_web_input", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=2)
-        content = web_scraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER, username="admin", password="changeme")
+        web_scraper.set_authentication("admin", "changeme")
+        content = web_scraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER)
 
         self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
 
@@ -935,6 +943,97 @@ class TestResultHashing(unittest.TestCase):
 
 class TestBrowserRenderingFirefox(TestBrowserRendering):
     BROWSER = WebScraper.FIREFOX
+
+class TestFormAuthentication(UnitTestWithWebServer):
+    """
+    http://lukemurphey.net/issues/758
+    """
+
+    def test_form_auth(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_custom_separator", "title", "this is a test")
+
+        data_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
+        authentication_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+
+        web_scraper = WebScraper(timeout=3)
+        web_scraper.set_authentication("admin", "changeme", authentication_url, "username", "password")
+
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"))
+        result = results[0]
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['match'][0], "Auth success")
+
+    def test_form_auth_spider(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_custom_separator", "title", "this is a test")
+
+        data_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
+        authentication_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+
+        web_scraper = WebScraper(timeout=3)
+        web_scraper.set_authentication("admin", "changeme", authentication_url, "username", "password")
+
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"), page_limit=5)
+        result = results[0]
+
+        self.assertEqual(len(results), 4)
+        self.assertEqual(result['match'][0], "Auth success")
+
+    def test_detect_form_fields(self):
+        client = MechanizeClient(5)
+        _, username_field, password_field = client.detectFormFields("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+
+        self.assertEqual(username_field, 'username')
+        self.assertEqual(password_field, 'password')
+
+    def test_detect_form_fields_overlapping_names(self):
+        client = MechanizeClient(5)
+        _, username_field, password_field = client.detectFormFields("http://127.0.0.1:" + str(self.web_server_port) + "/login_overlapping_names")
+
+        self.assertEqual(username_field, 'form_userName')
+        self.assertEqual(password_field, 'form_userPassword')
+
+    def test_form_auto_discover_form_fields(self):
+        client = MechanizeClient(5)
+        client.setCredentials("admin", "changeme")
+        client.doFormLogin("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+
+        self.assertEqual(client.is_logged_in, True)
+
+    def test_form_auth_auto_discover_form_fields(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_custom_separator", "title", "this is a test")
+
+        data_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
+        authentication_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+
+        web_scraper = WebScraper(timeout=3)
+        web_scraper.set_authentication("admin", "changeme", authentication_url)
+
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"))
+        result = results[0]
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['match'][0], "Auth success")
+
+    def test_form_auth_auto_discover_form_fields(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_custom_separator", "title", "this is a test")
+
+        data_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
+        authentication_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+
+        web_scraper = WebScraper(timeout=3)
+        web_scraper.set_authentication("admin", "changeme", authentication_url)
+
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"))
+        result = results[0]
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(result['match'][0], "Auth success")
+
 
 if __name__ == "__main__":
     try:

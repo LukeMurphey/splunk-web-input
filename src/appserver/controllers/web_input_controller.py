@@ -32,6 +32,7 @@ sys.path.append(os.path.join("..", "..", "..", "bin"))
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import WebInput, WebScraper
+from website_input_app.web_client import DefaultWebClient, MechanizeClient, LoginFormNotFound, FormAuthenticationFailed
 from website_input_app.modular_input import FieldValidationException, ModularInput
 from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 
@@ -223,25 +224,6 @@ class WebInputController(controllers.BaseController):
                 cherrypy.response.status = 202
                 return self.render_error_html("Proxy server information could not be obtained")
 
-            # Get the username and password
-            username = None
-            password = None
-
-            if 'username' in kwargs and 'password' in kwargs:
-                username = kwargs['username']
-                password = kwargs['password']
-
-            http = WebScraper.get_http_client(username, password, 30, proxy_type, proxy_server,
-                                              proxy_port, proxy_user, proxy_password)
-
-            # Setup the headers as necessary
-            user_agent = None
-            headers = {}
-
-            if user_agent is not None:
-                logger.debug("Setting user-agent=%s", user_agent)
-                headers['User-Agent'] = user_agent
-
             # Get the timeout to use
             timeout = None
 
@@ -253,8 +235,40 @@ class WebInputController(controllers.BaseController):
             else:
                 timeout = 15
 
+            # Get the user-agent
+            user_agent = kwargs.get('user_agent', None)
+
+            # Make the client
+            web_client = DefaultWebClient(timeout, user_agent, logger)
+            web_client.setProxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+
+            # Get the username and password
+            username = kwargs.get('username', None)
+            password = kwargs.get('password', None)
+
+            username_field = kwargs.get('username_field', None)
+            password_field = kwargs.get('password_field', None)
+            authentication_url = kwargs.get('authentication_url', None)
+
+            if username is not None and password is not None:
+                username = kwargs['username']
+                password = kwargs['password']
+
+                username_field = kwargs.get('username_field', None)
+                password_field = kwargs.get('password_field', None)
+                authentication_url = kwargs.get('authentication_url', None)
+
+                web_client.setCredentials(username, password)
+
+                if authentication_url is not None:
+                    logger.debug("Authenticating using form login in scrape_page")
+                    web_client.doFormLogin(authentication_url, username_field, password_field)
+                    
+                    parsed_authentication_url = urlparse.urlparse(authentication_url)
+
             # Get the page
-            response, content = http.request(url, 'GET', headers=headers)
+            content = web_client.get_url(url, 'GET')
+            response = web_client.get_response_headers()
 
             # --------------------------------------
             # 4: Render the content with the browser if necessary
@@ -276,6 +290,7 @@ class WebInputController(controllers.BaseController):
 
                         content = web_scraper.get_result_browser(urlparse.urlparse(url), browser,
                                                                  username, password)
+
                 except:
                     logger.exception("Exception generated while attempting to get browser rendering or url=%s", url)
 
@@ -369,6 +384,12 @@ class WebInputController(controllers.BaseController):
 
             return content
 
+        except LoginFormNotFound:
+            return self.render_error_html("Login form was not found")
+
+        except FormAuthenticationFailed as e:
+            return self.render_error_html("Form authentication failed: " + str(e))
+
         except:
             logger.exception("Error when attempting to proxy an HTTP request")
             cherrypy.response.status = 500
@@ -403,6 +424,27 @@ class WebInputController(controllers.BaseController):
             'success' : success
         })
 
+    @expose_page(must_login=True, methods=['GET'])
+    def get_login_fields(self, url=None, **kwargs):
+
+        web_input = WebInput(timeout=10)
+
+        proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = \
+        web_input.get_proxy_config(cherrypy.session.get('sessionKey'), "default")
+
+        client = MechanizeClient(5)
+
+        logger.debug("Using proxy %s to detect form fields", proxy_server)
+
+        user_agent = kwargs.get('user_agent')
+
+        _, username_field, password_field = client.detectFormFields(url, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password, user_agent)
+
+        return self.render_json({
+            'username_field' : username_field or "",
+            'password_field' : password_field or ""
+        })
+
     @expose_page(must_login=True, methods=['GET', 'POST'])
     def scrape_page(self, **kwargs):
         """
@@ -435,11 +477,6 @@ class WebInputController(controllers.BaseController):
 
             if 'selector' in kwargs:
                 selector = kwargs['selector']
-
-            # Get the authentication information, if available
-            if 'password' in kwargs and 'username' in kwargs:
-                kw['username'] = kwargs['username']
-                kw['password'] = kwargs['password']
 
             # Determine if we should include empty matches
             if 'empty_matches' in kwargs:
@@ -497,6 +534,7 @@ class WebInputController(controllers.BaseController):
             # Only extract links using HTTPS if on Splunk Cloud
             if ModularInput.is_on_cloud(cherrypy.session.get('sessionKey')):
                 kw['https_only'] = True
+
             # Otherwise, allow callers to specify which links to extract
             elif 'https_only' in kwargs:
                 kw['https_only'] = util.normalizeBoolean(kwargs['https_only'])
@@ -514,14 +552,33 @@ class WebInputController(controllers.BaseController):
                      # The timeout is invalid. Ignore this for now, it will get picked up when
                      # the user attempts to save the input
                     pass
-            
+
             # Make the web scraper instance
             web_scraper = WebScraper(timeout)
+
+            # Get the authentication information, if available
+            username = None
+            password = None
+
+            if 'password' in kwargs and 'username' in kwargs:
+                username = kwargs['username']
+                password = kwargs['password']
+
+                username_field = kwargs.get('username_field', None)
+                password_field = kwargs.get('password_field', None)
+                authentication_url = kwargs.get('authentication_url', None)
+
+                if authentication_url is not None:
+                    authentication_url = urlparse.urlparse(authentication_url)
+
+                logger.debug("Using credentials for scrape_page")
+                web_scraper.set_authentication(username, password, authentication_url, username_field, password_field)
 
             # Get the user-agent string
             if 'user_agent' in kwargs:
                 web_scraper.user_agent = kwargs['user_agent']
 
+            # Set the proxy authentication
             try:
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), conf_stanza)
 
@@ -544,7 +601,15 @@ class WebInputController(controllers.BaseController):
 
         except (SelectorError, SelectorSyntaxError, ExpressionError):
             cherrypy.response.status = 220
-            return self.render_error_json(_("Selector is invalid. " + str(e)))
+            return self.render_error_json(_("Selector is invalid. "))
+
+        except LoginFormNotFound:
+            cherrypy.response.status = 220
+            return self.render_error_json("Login form was not found")
+
+        except FormAuthenticationFailed:
+            cherrypy.response.status = 220
+            return self.render_error_json("Form authentication failed")
 
         except Exception as e:
             cherrypy.response.status = 500

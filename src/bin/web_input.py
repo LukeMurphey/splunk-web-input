@@ -13,6 +13,9 @@ The classes included are:
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
+from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure, LoginFormNotFound, FormAuthenticationFailed, WebClientException
+from website_input_app.event_writer import StashNewWriter
+
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
 from splunk.models.field import IntField as ModelIntField
@@ -20,6 +23,7 @@ from splunk.models.field import IntField as ModelIntField
 import logging
 from logging import handlers
 import hashlib
+import httplib2
 import socket
 import sys
 import time
@@ -32,9 +36,6 @@ from selenium.common.exceptions import WebDriverException
 import re
 from collections import OrderedDict
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
-from website_input_app.event_writer import StashNewWriter
-import httplib2
-from httplib2 import socks
 import lxml.html
 from lxml.etree import XMLSyntaxError
 
@@ -156,22 +157,33 @@ class WebInput(ModularInput):
             Field("title", "Title", "A short description (typically just the domain name)", empty_allowed=False),
             URLField("url", "URL", "The URL to connect to (must be be either HTTP or HTTPS protocol)", empty_allowed=False, require_https_on_cloud=True),
             DurationField("interval", "Interval", "The interval defining how often to perform the check; can include time units (e.g. 15m for 15 minutes, 8h for 8 hours)", empty_allowed=False),
+            IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
             SelectorField("selector", "Selector", "A selector that will match the data you want to retrieve", none_allowed=True, empty_allowed=True),
-            Field("username", "Username", "The username to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            Field("password", "Password", "The password to use for authenticating (only HTTP authentication supported)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+
+            # HTTP client options
             Field("user_agent", "User Agent", "The user-agent to use when communicating with the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
+
+            # Output options
+            ListField("name_attributes", "Field Name Attributes", "A list of attributes to use for assigning a field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             BooleanField("use_element_name", "Use Element Name as Field Name", "Use the element's tag name as the field name", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            IntegerField("page_limit", "Discovered page limit", "A limit on the number of pages that will be auto-discovered", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS),
             BooleanField("raw_content", "Raw content", "Return the raw content returned by the server", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             BooleanField("empty_matches", "Empty matches", "Include empty rows (otherwise, they are excluded)", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
             Field("text_separator", "Text Separator", 'A string that will be placed between the extracted values (e.g. a separator of ":" for a match against "<a>tree</a><a>frog</a>" would return "tree:frog")', none_allowed=True, empty_allowed=True),
-            Field("browser", "Browser", 'The browser to use', none_allowed=True, empty_allowed=True),
-            IntegerField("timeout", "Timeout", 'The timeout (in number of seconds)', none_allowed=True, empty_allowed=True),
-            BooleanField("output_as_mv", "Output as Multi-value Field", "Output the matches as multi-value field", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
-            StaticListField("output_results", "Indicates when results output should be created", "Output the matches only when results changed", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, valid_values=WebInput.OUTPUT_RESULTS_OPTIONS)
+
+            # Spidering options
+            IntegerField("page_limit", "Discovered page limit", "A limit on the number of pages that will be auto-discovered", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            IntegerField("depth_limit", "Depth limit", "A limit on how many levels deep the search for pages will go", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("url_filter", "URL Filter", "A wild-card that will indicate which pages it should search for matches in", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+
+            # Authentication options
+            Field("username", "Username", "The username to use for authenticating", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("password", "Password", "The password to use for authenticating", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("username_field", "Username field", "The name of the username field on the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            Field("password_field", "Password field", "The name of the password field on the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False),
+            URLField("authentication_url", "Authentication URL", "The URL of the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, require_https_on_cloud=True)
         ]
 
         ModularInput.__init__(self, scheme_args, args)
@@ -204,6 +216,11 @@ class WebInput(ModularInput):
         session_key -- The session key to use when connecting to the REST API
         stanza -- The stanza to get the proxy information from (defaults to "default")
         """
+
+        # Don't allow the use of a proxy server on Splunk Cloud since this could
+        # allow unencrypted communication. Cloud shouldn't need the use of a proxy anyways.
+        if self.is_on_cloud(session_key):
+            return "http", None, None, None, None
 
         # If the stanza is empty, then just use the default
         if stanza is None or stanza.strip() == "":
@@ -291,35 +308,43 @@ class WebInput(ModularInput):
     def run(self, stanza, cleaned_params, input_config):
 
         # Make the parameters
-        interval         = cleaned_params["interval"]
-        title            = cleaned_params["title"]
-        url              = cleaned_params["url"]
-        selector         = cleaned_params.get("selector", None)
-        username         = cleaned_params.get("username", None)
-        password         = cleaned_params.get("password", None)
-        name_attributes  = cleaned_params.get("name_attributes", [])
-        user_agent       = cleaned_params.get("user_agent", None)
-        timeout          = cleaned_params.get("timeout", self.timeout)
-        sourcetype       = cleaned_params.get("sourcetype", "web_input")
-        host             = cleaned_params.get("host", None)
-        index            = cleaned_params.get("index", "default")
-        conf_stanza      = cleaned_params.get("configuration", None)
-        use_element_name = cleaned_params.get("use_element_name", False)
-        page_limit       = cleaned_params.get("page_limit", 1)
-        url_filter       = cleaned_params.get("url_filter", None)
-        depth_limit      = cleaned_params.get("depth_limit", 25)
-        raw_content      = cleaned_params.get("raw_content", False)
-        text_separator   = cleaned_params.get("text_separator", " ")
-        browser          = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
-        output_as_mv     = cleaned_params.get("output_as_mv", True)
-        output_results   = cleaned_params.get("output_results", None)
-        source           = stanza
+        interval           = cleaned_params["interval"]
+        title              = cleaned_params["title"]
+        url                = cleaned_params["url"]
+        selector           = cleaned_params.get("selector", None)
+        username           = cleaned_params.get("username", None)
+        password           = cleaned_params.get("password", None)
+        name_attributes    = cleaned_params.get("name_attributes", [])
+        user_agent         = cleaned_params.get("user_agent", None)
+        timeout            = cleaned_params.get("timeout", self.timeout)
+        sourcetype         = cleaned_params.get("sourcetype", "web_input")
+        host               = cleaned_params.get("host", None)
+        index              = cleaned_params.get("index", "default")
+        conf_stanza        = cleaned_params.get("configuration", None)
+        use_element_name   = cleaned_params.get("use_element_name", False)
+        page_limit         = cleaned_params.get("page_limit", 1)
+        url_filter         = cleaned_params.get("url_filter", None)
+        depth_limit        = cleaned_params.get("depth_limit", 25)
+        raw_content        = cleaned_params.get("raw_content", False)
+        text_separator     = cleaned_params.get("text_separator", " ")
+        browser            = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
+        output_as_mv       = cleaned_params.get("output_as_mv", True)
+        output_results     = cleaned_params.get("output_results", None)
+        username_field     = cleaned_params.get("username_field", None)
+        password_field     = cleaned_params.get("password_field", None)
+        authentication_url = cleaned_params.get("authentication_url", None)
+        source             = stanza
         
         if self.needs_another_run(input_config.checkpoint_dir, stanza, interval):
             
             # Don't scan the URL if the URL is unencrypted and the host is on Cloud
             if self.is_on_cloud(input_config.session_key) and not url.scheme == "https":
                 self.logger.warn("The URL will not be processed because the host is running on Splunk Cloud and the URL isn't using encryption, url=%s", url.geturl())
+                return
+
+            # Don't scan the URL if the login URL is unencrypted and the host is on Cloud
+            if self.is_on_cloud(input_config.session_key) and authentication_url is not None and authentication_url.scheme != "https":
+                self.logger.warn("The URL will not be processed because the host is running on Splunk Cloud and the login URL isn't using encryption, authentication_url=%s", authentication_url.geturl())
                 return
 
             # Get the proxy configuration
@@ -372,10 +397,10 @@ class WebInput(ModularInput):
 
                 web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 web_scraper.user_agent = user_agent
+                web_scraper.set_authentication(username, password, authentication_url, username_field, password_field)
 
                 # Perform the scrape
-                result = web_scraper.scrape_page(url, selector, username, password,
-                                                 name_attributes,
+                result = web_scraper.scrape_page(url, selector, name_attributes,
                                                  use_element_name=use_element_name,
                                                  page_limit=page_limit,
                                                  depth_limit=depth_limit, url_filter=url_filter,
@@ -395,6 +420,16 @@ class WebInput(ModularInput):
                     logger.debug("No match returned in the result")
 
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
+
+            except LoginFormNotFound as e:
+                logger.warn('Form authentication failed since the form could not be found, stanza=%s', stanza)
+
+            except FormAuthenticationFailed as e:
+                logger.warn('Form authentication failed, stanza=%s, error="%s"', stanza, str(e))
+
+            except WebClientException as e:
+                logger.warn('Client connection failed, stanza=%s, error="%s"', stanza, str(e))
+
             except Exception:
                 logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
             
@@ -516,6 +551,13 @@ class WebScraper(object):
     proxy_user = None
     proxy_password = None
 
+    # Authentication settings
+    username = None
+    password = None
+    username_field = None
+    password_field = None
+    authentication_url = None
+
     # Miscellaneous settings
     timeout = 30
     user_agent = None
@@ -534,25 +576,32 @@ class WebScraper(object):
         proxy_user -- The username
         proxy_password -- The password
         """
-    
+
         self.proxy_type = proxy_type
         self.proxy_server = proxy_server
         self.proxy_port = proxy_port
         self.proxy_user = proxy_user
         self.proxy_password = proxy_password
 
+    def set_authentication(self, username, password, authentication_url=None, username_field=None, password_field=None, autodiscover_fields=True):
+        self.username = username
+        self.password = password
+        self.username_field = username_field
+        self.password_field = password_field
+        self.authentication_url = authentication_url
+
     def set_charset_detection(self, charset_detect_meta_enabled,
             charset_detect_content_type_header_enabled,
             charset_detect_sniff_enabled):
         """
-        Set the strategy to use for detecting the contentty-e
+        Set the strategy to use for detecting the contenttype
 
         Arguments:
         charset_detect_meta_enabled -- The type of the proxy server
         charset_detect_content_type_header_enabled -- The server
         charset_detect_sniff_enabled -- The port of the proxy server (an integer)
         """
-    
+
         self.charset_detect_meta_enabled = charset_detect_meta_enabled
         self.charset_detect_content_type_header_enabled = charset_detect_content_type_header_enabled
         self.charset_detect_sniff_enabled = charset_detect_sniff_enabled
@@ -663,28 +712,6 @@ class WebScraper(object):
             return "match_" + name
 
         return name
-
-    @classmethod
-    def resolve_proxy_type(cls, proxy_type):
-
-        # Make sure the proxy string is not none
-        if proxy_type is None:
-            return None
-
-        # Prepare the string so that the proxy type can be matched more reliably
-        t = proxy_type.strip().lower()
-
-        if t == "socks4":
-            return socks.PROXY_TYPE_SOCKS4
-        elif t == "socks5":
-            return socks.PROXY_TYPE_SOCKS5
-        elif t == "http":
-            return socks.PROXY_TYPE_HTTP
-        elif t == "":
-            return None
-        else:
-            logger.warn("Proxy type is not recognized: %s", proxy_type)
-            return None
 
     @classmethod
     def detect_encoding(cls, content, response, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
@@ -853,23 +880,20 @@ class WebScraper(object):
 
         return links
 
-    def get_result_built_in_client(self, http, url, headers):
+    def get_result_built_in_client(self, web_client, url):
         """
         Get the results using the built-in client.
 
         Arguments:
-        http -- The HTTP object to perform the request with
+        web_client -- The web-client to use (an instance of WebClient)
         url -- The url to connect to. This object ought to be an instance derived from using
                urlparse
-        headers -- The HTTP headers
-        name_attributes -- Attributes to use the values for assigning the names
         """
+        content = web_client.get_url(url.geturl())
 
-        response, content = http.request(url.geturl(), 'GET', headers=headers)
+        encoding = self.detect_encoding(content, web_client.get_response_headers())
 
-        encoding = self.detect_encoding(content, response,)
-
-        return response.status, content, encoding
+        return web_client.response_code, content, encoding
 
     @classmethod
     def get_firefox_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
@@ -941,7 +965,7 @@ class WebScraper(object):
             except Exception:
                 logger.exception("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
 
-    def get_result_browser(self, url, browser="firefox", username=None, password=None):
+    def get_result_browser(self, url, browser="firefox"):
 
         # Update the path if necessary so that the drivers can be found
         WebScraper.add_browser_driver_to_path()
@@ -990,7 +1014,7 @@ class WebScraper(object):
                 raise Exception("Browser '%s' not recognized" % (browser))
 
             # Load the page
-            driver.get(self.add_auth_to_url(url.geturl(), username, password))
+            driver.get(self.add_auth_to_url(url.geturl(), self.username, self.password))
 
             # Wait for the content to load
             time.sleep(self.timeout)
@@ -1017,15 +1041,14 @@ class WebScraper(object):
                 if display is not None:
                     display.stop()
 
-    def get_result_single(self, http, url, selector, headers, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, username=None, password=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
+    def get_result_single(self, web_client, url, selector, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """
         Get the results from performing a HTTP request and parsing the output.
 
         Arguments:
-        http -- The HTTP object to perform the request with
+        web_client -- An instance of a WebClient
         url -- The url to connect to. This object ought to be an instance derived from using urlparse
         selector -- A CSS selector that matches the data to retrieve
-        headers -- The HTTP headers
         name_attributes -- Attributes to use the values for assigning the names
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
@@ -1037,8 +1060,6 @@ class WebScraper(object):
         include_raw_content -- Include the raw content (if true, the 'content' field will include the raw content)
         text_separator -- The content to put between each text node that matches within a given selector
         browser -- The browser to use
-        username -- The username to use for authentication
-        password -- The username to use for authentication
         additional_fields -- Additional fields to put into the result set
         match_prefix -- A prefix to attach to prepend to the front of the match fields
         empty_value -- The value to use for empty matches
@@ -1059,15 +1080,14 @@ class WebScraper(object):
 
             # Perform the request
             with Timer() as timer:
-
-                response_code, content, encoding = self.get_result_built_in_client(http, url, headers)
+                response_code, content, encoding = self.get_result_built_in_client(web_client, url)
                 result['browser'] = WebScraper.INTEGRATED_CLIENT
-                
+
             # Get the content via the browser too if requested
             # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
             if browser is not None and browser.strip() != WebScraper.INTEGRATED_CLIENT:
                 try:
-                    content = self.get_result_browser(url, browser, username, password)
+                    content = self.get_result_browser(url, browser)
                     result['browser'] = browser
                 except:
                     logger.exception("Unable to get the content using the browser=%s", browser)
@@ -1209,15 +1229,13 @@ class WebScraper(object):
                     logger.debug("Not extracting links since extracted_links is None")
 
         # Handle time outs    
-        except socket.timeout:
+        except RequestTimeout:
 
             # Note that the connection timed out    
             result['timed_out'] = True
 
-        except socket.error as e:
-
-            if e.errno in [60, 61]:
-                result['timed_out'] = True
+        except ConnectionFailure:
+            result['timed_out'] = True
 
         except httplib2.SSLHandshakeError as e:
             logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
@@ -1230,67 +1248,20 @@ class WebScraper(object):
             logger.exception("A general exception was thrown when executing a web request")
             raise
 
-        return result  
+        return result
 
-    @classmethod
-    def get_http_client(cls, username=None, password=None, timeout=30, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
-        """
-        Retrieve data from a website.
-
-        Arguments:
-        username -- The username to use for authentication
-        password -- The username to use for authentication
-        proxy_type -- The type of proxy server (defaults to "http")
-        proxy_server -- The IP or domain name of the proxy server
-        proxy_port -- The port that the proxy server runs on
-        proxy_user -- The user name of the proxy server account
-        proxy_password -- The password of the proxy server account
-        user_agent -- The string to use for the user-agent
-        """
-
-        # Determine which type of proxy is to be used (if any)
-        resolved_proxy_type = cls.resolve_proxy_type(proxy_type)
-
-        # Setup the proxy info if so configured
-        if resolved_proxy_type is not None and proxy_server is not None and len(proxy_server.strip()) > 0:
-            proxy_info = httplib2.ProxyInfo(resolved_proxy_type, proxy_server, proxy_port, proxy_user=proxy_user, proxy_pass=proxy_password)
-            logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, proxy_server)
-        else:
-            # No proxy is being used
-            proxy_info = None
-            logger.debug("Not using a proxy server")
-
-        # Make the HTTP object
-        http = httplib2.Http(proxy_info=proxy_info, timeout=timeout, disable_ssl_certificate_validation=True)
-
-        # Setup the credentials if necessary
-        if username is not None or password is not None:
-
-            if username is None:
-                username = ""
- 
-            if password is None:
-                password = ""
- 
-            http.add_credentials(username, password)
-
-        # Return the client
-        return http
-
-    def scrape_page(self, url, selector, username=None, password=None, name_attributes=[],
-                    output_matches_as_mv=True, output_matches_as_separate_fields=False,
-                    include_empty_matches=False, use_element_name=False, page_limit=1,
-                    depth_limit=50, url_filter=None, include_raw_content=False,
-                    text_separator=None, browser=None, additional_fields=None, match_prefix=None,
-                    empty_value='NULL', https_only=False):
+    def scrape_page(self, url, selector, name_attributes=[], output_matches_as_mv=True,
+                    output_matches_as_separate_fields=False, include_empty_matches=False,
+                    use_element_name=False, page_limit=1, depth_limit=50, url_filter=None,
+                    include_raw_content=False, text_separator=None, browser=None,
+                    additional_fields=None, match_prefix=None, empty_value='NULL',
+                    https_only=False):
         """
         Retrieve data from a website.
         
         Arguments:
         url -- The url to connect to. This object ought to be an instance derived from using urlparse
         selector -- A CSS selector that matches the data to retrieve
-        username -- The username to use for authentication
-        password -- The username to use for authentication
         name_attributes -- Attributes to use the values for assigning the names
         output_matches_as_mv -- Output all of the matches with the same name ("match")
         output_matches_as_separate_fields -- Output all of the matches as separate fields ("match1", "match2", etc.)
@@ -1310,52 +1281,31 @@ class WebScraper(object):
 
         if isinstance(url, basestring):
             url = URLField.parse_url(url, "url")
-            
+
         if isinstance(selector, basestring):
             selector = SelectorField.parse_selector(selector, "selector")
-        
+
         logger.info('Running web input, url="%s"', url.geturl())
-        
+
         results = []
-        
+
         try:
-            # Determine which type of proxy is to be used (if any)
-            resolved_proxy_type = self.resolve_proxy_type(self.proxy_type)
-            
-            # Setup the proxy info if so configured
-            if resolved_proxy_type is not None and self.proxy_server is not None and len(self.proxy_server.strip()) > 0:
-                proxy_info = httplib2.ProxyInfo(resolved_proxy_type, self.proxy_server, self.proxy_port, proxy_user=self.proxy_user, proxy_pass=self.proxy_password)
-                logger.debug('Using a proxy server, type=%s, proxy_server="%s"', resolved_proxy_type, self.proxy_server)
-            else:
-                # No proxy is being used
-                proxy_info = None
-                logger.debug("Not using a proxy server")
-                        
-            # Make the HTTP object
-            http = httplib2.Http(proxy_info=proxy_info, timeout=self.timeout, disable_ssl_certificate_validation=True)
-            
-            # Setup the credentials if necessary
-            if username is not None or password is not None:
-                
-                if username is None:
-                    username = ""
-                    
-                if password is None:
-                    password = ""
-                    
-                http.add_credentials(username, password)
-            
-            # Setup the headers as necessary
-            headers = {}
-            
-            if self.user_agent is not None:
-                logger.debug("Setting user-agent=%s", self.user_agent)
-                headers['User-Agent'] = self.user_agent
-                        
+
+            # Make the client (e.g. Http2LibClient, MechanizeClient)
+            client = DefaultWebClient(self.timeout, user_agent=self.user_agent, logger=logger)
+            client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
+            client.setCredentials(self.username, self.password)
+
+            # Do form login if necessary
+            if self.username is not None and self.password is not None and \
+               self.authentication_url is not None:
+                client.doFormLogin(self.authentication_url.geturl(), self.username_field, self.password_field)
+
             # Run the scraper and get the results
             extracted_links = OrderedDict()
             extracted_links[url.geturl()] = DiscoveredURL(0)
 
+            # Process each result
             while len(results) < page_limit:
                 
                 source_url_depth = 0
@@ -1393,9 +1343,9 @@ class WebScraper(object):
                 # Don't have the function extract URLs if the depth limit has been reached
                 if source_url_depth >= depth_limit:
                     kw['extracted_links'] = None
-                
+
                 # Perform the scrape
-                result = self.get_result_single(http, urlparse(url), selector, headers,
+                result = self.get_result_single(client, urlparse(url), selector,
                                                 name_attributes, output_matches_as_mv,
                                                 output_matches_as_separate_fields,
                                                 include_empty_matches, use_element_name,
@@ -1405,8 +1355,11 @@ class WebScraper(object):
                 if result is not None:
                     results.append(result)
                 
+        except (LoginFormNotFound, FormAuthenticationFailed, WebClientException) as e:
+            raise e
+
         except Exception:
-            # TODO: remove this one or the one in get_result_single() 
+            # TODO: remove this one or the one in get_result_single()
             logger.exception("A general exception was thrown when executing a web request")
             raise
         

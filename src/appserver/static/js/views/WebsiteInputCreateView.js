@@ -72,7 +72,9 @@ define([
         	"click .show-results-in-search" : "openPreviewInSearch",
 			"click #browserConnectionTest" : "clickTestBrowser",
 			"change #inputBrowser" : "clearTestBrowserLink",
-			"click .browserHelp" : "showBrowserHelp"
+			"click .browserHelp" : "showBrowserHelp",
+			"change #inputLoginURL" : "determineFormFields",
+			"click #detect-field-names" : "clickDetermineFormFields",
         },
         
         initialize: function() {
@@ -158,7 +160,7 @@ define([
 		},
 		
 		/**
-		 * Clear the browser test connection.
+		 * Clear the browser test connection link.
 		 */
 		clearTestBrowserLink: function(){
 			$('#browserTestResults', this.$el).removeClass("browserChecking").removeClass("browserDoesntWork").removeClass("browserWorks").html("");
@@ -200,12 +202,90 @@ define([
 
 			return false;
 		},
+
+		/**
+		 * Clear the browser test connection.
+		 */
+		clearDetectFieldsLink: function(){
+			$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").removeClass("detectFieldsFailed").removeClass("detectFieldsWorked").html("");
+		},
+
+		/**
+		 * Process the request to determine the form-fields.
+		 */
+		clickDetermineFormFields: function(e){
+			this.determineFormFields(e, true);
+			return false;
+		},
+
+		/**
+		 * Determine the form fields.
+		 */
+		determineFormFields: function(e, force){
+
+			// Assign a default to the force argument
+			if(typeof force === 'undefined'){
+				force = false;
+			}
+
+			// Stop if we don't have a URL
+			if($('#inputLoginURL', this.$el).val().length === 0){
+				return;
+			}
+
+			// Stop if we already have form fields and this isn't being forced
+			if(!force && $('#inputUsernameField', this.$el).val().length > 0 && $('#inputPasswordField', this.$el).val().length > 0){
+				return;
+			}
+
+			// Update the icon accordingly
+			this.clearDetectFieldsLink();
+			$('#detectFieldResults', this.$el).addClass("detectFieldsChecking").html("Detecting...");
+
+			// Make the arguments
+			var args = {
+				url : $('#inputLoginURL', this.$el).val(),
+				user_agent : $('#inputUserAgent', this.$el).val()
+			};
+
+        	// Get the results
+        	$.ajax({
+    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/get_login_fields"),
+    			data: args,
+    			type: 'GET',
+                success: function(result) {
+
+					if(result.username_field && result.password_field){
+
+						if(force || $('#inputUsernameField', this.$el).val() === ''){
+							$('#inputUsernameField', this.$el).val(result.username_field);
+						}
+						
+						if(force || $('#inputPasswordField', this.$el).val() === ''){
+							$('#inputPasswordField', this.$el).val(result.password_field);
+						}
+						
+						console.info("Successfully loaded the login form information");
+
+						$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").addClass("detectFieldsWorked").html('<i class="icon-check"></i> Login fields detected');
+					}
+					else{
+						$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").addClass("detectFieldsFailed").html('<i class="icon-alert"></i> Login fields could not be detected');
+					}
+                }.bind(this),
+                error: function() {
+					$('#detectFieldResults', this.$el).removeClass("detectFieldsChecking").addClass("detectFieldsFailed").html('<i class="icon-alert"></i> Login fields could not be detected');
+                }.bind(this)
+        	});
+
+			return false;
+		},
         
         /**
          * Show the results preview.
          */
         showResultsPreview: function(){
-        	this.previewResultsView.updatePreview(this.makeConfig());
+        	this.previewResultsView.updatePreview(this.makeConfig(true));
         },
         
         /**
@@ -311,11 +391,16 @@ define([
         	this.addIfInputIsNonEmpty(args, 'depth_limit', '#inputDepthLimit');
         	this.addIfInputIsNonEmpty(args, 'url_filter', '#inputURLFilter');
         	this.addIfInputIsNonEmpty(args, 'uri', '#inputURL');
-        	this.addIfInputIsNonEmpty(args, 'username', '#inputUsername');
-        	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
         	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
         	this.addIfInputIsNonEmpty(args, 'browser', '#inputBrowser');
-        	this.addIfInputIsNonEmpty(args, 'timeout', '#inputTimeout');
+			this.addIfInputIsNonEmpty(args, 'timeout', '#inputTimeout');
+			this.addIfInputIsNonEmpty(args, 'user_agent', '#inputUserAgent');
+
+        	this.addIfInputIsNonEmpty(args, 'username', '#inputUsername');
+        	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
+        	this.addIfInputIsNonEmpty(args, 'authentication_url', '#inputLoginURL');
+			this.addIfInputIsNonEmpty(args, 'username_field', '#inputUsernameField');
+			this.addIfInputIsNonEmpty(args, 'password_field', '#inputPasswordField');
         	
         	// Place a limit on the page count of 10
         	if(parseInt(args['page_limit'], 10) > 10){
@@ -427,6 +512,9 @@ define([
         	// Credentials
         	this.setIfValueIsNonEmpty('#inputUsername', input.content.username);
 			this.setIfValueIsNonEmpty('#inputPassword', input.content.password);
+        	this.setIfValueIsNonEmpty('#inputLoginURL', input.content.authentication_url);
+			this.setIfValueIsNonEmpty('#inputUsernameField', input.content.username_field);
+        	this.setIfValueIsNonEmpty('#inputPasswordField', input.content.password_field);
         	
         	// Output options
         	this.setIfValueIsNonEmpty('#inputNameAttributes', input.content.name_attributes);
@@ -732,8 +820,14 @@ define([
             
             if( $('.styles-off.active', this.$el).length > 0 ){
             	params.clean_styles = '1';
-            }
-        	
+			}
+			
+        	this.addIfInputIsNonEmpty(params, 'authentication_url', '#inputLoginURL');
+			this.addIfInputIsNonEmpty(params, 'username_field', '#inputUsernameField');
+			this.addIfInputIsNonEmpty(params, 'password_field', '#inputPasswordField');
+
+			this.addIfInputIsNonEmpty(params, 'user_agent', '#inputUserAgent');
+
             var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page");
             uri += '?' + Splunk.util.propToQueryString(params);
             
@@ -951,13 +1045,13 @@ define([
         	var data = this.makeConfig();
         	
         	var issues = 0;
-        	
+			
+        	// Clear existing validation errors
+        	this.clearValidationErrors();
+			
         	// Validate step 1
         	// Update the preview URLs if moving from the URL step
         	if(selectedModel.get("value") === 'url-edit' && isSteppingNext){
-        		
-        		// Clear existing validation errors
-        		this.clearValidationErrors();
         		
         		// Validate the interval
         		if(!this.isValidInterval($("#inputInterval").val())){
@@ -970,15 +1064,15 @@ define([
         			this.addValidationError($("#inputURL"), "Enter a valid URL");
         			issues += 1;
 				}
-				else if(!$("#inputURL").val().startsWith("https://") && !$("#inputURL").val().startsWith("http://")){
-					this.addValidationError($("#inputURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
-        			issues += 1;
-				}
 				else if(this.is_on_cloud && !$("#inputURL").val().startsWith("https://")){
 					this.addValidationError($("#inputURL"), "Enter a URL that uses HTTPS (only HTTPS is allowed on cloud)");
         			issues += 1;
 				}
-        		
+				else if(!this.is_on_cloud && !$("#inputURL").val().startsWith("https://") && !$("#inputURL").val().startsWith("http://")){
+					this.addValidationError($("#inputURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
+        			issues += 1;
+				}
+
         		// Validate the depth limit
         		if($("#inputDepthLimit").val().length !== 0 && $("#inputDepthLimit").val().match(/^[0-9]+$/gi) === null){
         			this.addValidationError($("#inputDepthLimit"), "Enter a valid integer");
@@ -998,28 +1092,46 @@ define([
         		if($("#inputTimeout").val().length !== 0 && $("#inputTimeout").val().match(/^[0-9]+$/gi) === null){
         			this.addValidationError($("#inputTimeout"), "Enter a valid integer");
         			issues += 1;
-        		}
+				}
+				
+				// Hide the browser options if necessary
+				if($('#inputBrowser').val() === 'integrated_client'){
+					$('.hide-when-using-browser', this.$el).show();
+				}
+				else{
+					$('.hide-when-using-browser', this.$el).hide();
+				}
         	}
         	
         	// Validate step 2
         	if(selectedModel.get("value") === 'auth-edit' && isSteppingNext){
-        		this.updatePreview($("#inputURL", this.$el).val());
-    			this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
-    			this.updatePreviewURLs();
+
+				// Validate the login form URL
+
+				// Make sure it looks like a URL (has a protocol)
+				if(this.is_on_cloud && $("#inputLoginURL").val().length !== 0 && !$("#inputLoginURL").val().startsWith("https://")){
+					this.addValidationError($("#inputLoginURL"), "Enter a URL that uses HTTPS (only HTTPS is allowed on cloud)");
+        			issues += 1;
+				}
+				else if(!this.is_on_cloud && $("#inputLoginURL").val().length !== 0 && !$("#inputLoginURL").val().startsWith("https://") && !$("#inputLoginURL").val().startsWith("http://")){
+					this.addValidationError($("#inputLoginURL"), "Enter a valid URL with either the HTTP or HTTPS protocol");
+        			issues += 1;
+				}
+				// Make sure it only uses 
+				else if(($("#inputLoginURL").val().length !== 0 || $("#inputPasswordField").val().length !== 0) && $("#inputLoginURL").val().length === 0){
+					this.addValidationError($("#inputLoginURL"), "Enter a URL of the login page");
+        			issues += 1;
+				}
+				else{
+					this.updatePreview($("#inputURL", this.$el).val());
+					this.renderPreviewURLs([$("#inputURL", this.$el).val()]);
+					this.updatePreviewURLs();
+					this.clearDetectFieldsLink();
+				}
+
         	}
         	
         	// Validate step 3
-        	if(selectedModel.get("value") === 'selector-edit' && isSteppingNext){
-        		
-        		// Validate the selector
-        		// This isn't currently required since people may want to output raw content
-        		/*
-        		if($("#inputSelector").val().length === 0){
-        			$("#inputSelector").parent().parent().addClass("error");
-        			issues += 1;
-        		}
-        		*/
-        	}
         	
         	// Validate step 4
         	
@@ -1268,7 +1380,11 @@ define([
         /**
          * Make an associative array representing the configuration that is being requested to persist.
          */
-        makeConfig: function(){
+        makeConfig: function(include_password){
+
+			if(typeof include_password === 'undefined'){
+				include_password = false;
+			}
         	
         	// Make the data that will be posted to the server
         	var data = {};
@@ -1310,8 +1426,16 @@ define([
         	this.addIfInputIsNonEmpty(data, "depth_limit", '#inputDepthLimit');
         	
         	// Credentials
-        	this.addIfInputIsNonEmpty(data, "username", '#inputUsername');
-			data.password = ""; // Clear the password, it should be stored in secure storage
+			this.addIfInputIsNonEmpty(data, "username", '#inputUsername');
+			if(include_password){
+				this.addIfInputIsNonEmpty(data, "password", '#inputPassword');
+			}
+			else{
+				data.password = ""; // Clear the password, it should be stored in secure storage
+			}
+			this.addIfInputIsNonEmpty(data, "authentication_url", '#inputLoginURL');
+			this.addIfInputIsNonEmpty(data, "username_field", '#inputUsernameField');
+			this.addIfInputIsNonEmpty(data, "password_field", '#inputPasswordField');
         	
         	// Output options
         	this.addIfInputIsNonEmpty(data, "name_attributes", '#inputNameAttributes');
