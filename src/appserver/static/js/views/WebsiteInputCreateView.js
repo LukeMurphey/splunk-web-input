@@ -244,7 +244,8 @@ define([
 
 			// Make the arguments
 			var args = {
-				url : $('#inputLoginURL', this.$el).val()
+				url : $('#inputLoginURL', this.$el).val(),
+				user_agent : $('#inputUserAgent', this.$el).val()
 			};
 
         	// Get the results
@@ -393,6 +394,7 @@ define([
         	this.addIfInputIsNonEmpty(args, 'page_limit', '#inputPageLimit');
         	this.addIfInputIsNonEmpty(args, 'browser', '#inputBrowser');
 			this.addIfInputIsNonEmpty(args, 'timeout', '#inputTimeout');
+			this.addIfInputIsNonEmpty(args, 'user_agent', '#inputUserAgent');
 
         	this.addIfInputIsNonEmpty(args, 'username', '#inputUsername');
         	this.addIfInputIsNonEmpty(args, 'password', '#inputPassword');
@@ -820,11 +822,11 @@ define([
             	params.clean_styles = '1';
 			}
 			
-			//this.addIfInputIsNonEmpty(params, 'username', '#inputUsername');
-        	//this.addIfInputIsNonEmpty(params, 'password', '#inputPassword');
         	this.addIfInputIsNonEmpty(params, 'authentication_url', '#inputLoginURL');
 			this.addIfInputIsNonEmpty(params, 'username_field', '#inputUsernameField');
 			this.addIfInputIsNonEmpty(params, 'password_field', '#inputPasswordField');
+
+			this.addIfInputIsNonEmpty(params, 'user_agent', '#inputUserAgent');
 
             var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page");
             uri += '?' + Splunk.util.propToQueryString(params);

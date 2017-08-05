@@ -235,8 +235,11 @@ class WebInputController(controllers.BaseController):
             else:
                 timeout = 15
 
+            # Get the user-agent
+            user_agent = kwargs.get('user_agent', None)
+
             # Make the client
-            web_client = DefaultWebClient(timeout)
+            web_client = DefaultWebClient(timeout, user_agent, logger)
             web_client.setProxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
 
             # Get the username and password
@@ -384,8 +387,8 @@ class WebInputController(controllers.BaseController):
         except LoginFormNotFound:
             return self.render_error_html("Login form was not found")
 
-        except FormAuthenticationFailed:
-            return self.render_error_html("Form authentication failed")
+        except FormAuthenticationFailed as e:
+            return self.render_error_html("Form authentication failed: " + str(e))
 
         except:
             logger.exception("Error when attempting to proxy an HTTP request")
@@ -433,7 +436,9 @@ class WebInputController(controllers.BaseController):
 
         logger.debug("Using proxy %s to detect form fields", proxy_server)
 
-        _, username_field, password_field = client.detectFormFields(url, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+        user_agent = kwargs.get('user_agent')
+
+        _, username_field, password_field = client.detectFormFields(url, proxy_type, proxy_server, proxy_port, proxy_user, proxy_password, user_agent)
 
         return self.render_json({
             'username_field' : username_field or "",

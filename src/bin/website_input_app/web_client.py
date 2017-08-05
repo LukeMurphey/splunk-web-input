@@ -42,10 +42,14 @@ class WebClient(object):
 
         # These are for storing the options for performing the request
         self.timeout = timeout
-        self.user_agent = user_agent
         self.headers = {}
         self.username = None
         self.password = None
+
+        if user_agent is None:
+            self.user_agent = DEFAULT_USER_AGENT
+        else:
+            self.user_agent = user_agent
 
         self.logger = logger
 
@@ -120,6 +124,11 @@ class Http2LibClient(WebClient):
         # This is a reference to the HTTP client
         self.http = None
         self.response = None
+
+        if user_agent is None:
+            self.user_agent = DEFAULT_USER_AGENT
+        else:
+            self.user_agent = user_agent
 
     def resolve_proxy_type(self, proxy_type):
 
@@ -227,6 +236,11 @@ class MechanizeClient(WebClient):
         self.browser = None
         self.is_logged_in = False
 
+        if user_agent is None:
+            self.user_agent = DEFAULT_USER_AGENT
+        else:
+            self.user_agent = user_agent
+
     @classmethod
     def get_browser(cls, proxy_type=None, proxy_server=None, proxy_port=None, proxy_user=None, proxy_pass=None):
         browser = mechanize.Browser()
@@ -310,9 +324,16 @@ class MechanizeClient(WebClient):
         return self.response_headers
 
     @classmethod
-    def detectFormFields(cls, login_url, proxy_type=None, proxy_server=None, proxy_port=None, proxy_user=None, proxy_pass=None):
+    def detectFormFields(cls, login_url, proxy_type=None, proxy_server=None, proxy_port=None, proxy_user=None, proxy_pass=None, user_agent=DEFAULT_USER_AGENT):
 
         browser = cls.get_browser(proxy_type, proxy_server, proxy_port, proxy_user, proxy_pass)
+
+        # Set the user-agent
+        if user_agent is None:
+            user_agent = DEFAULT_USER_AGENT
+
+        browser.addheaders = [('User-agent', user_agent)]
+
         browser.open(login_url)
 
         # Check each form
@@ -340,11 +361,12 @@ class MechanizeClient(WebClient):
         try:
 
             self.browser = self.get_browser(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
+            self.browser.addheaders = [('User-agent', self.user_agent)]
             self.browser.open(login_url)
 
             # Detect the login form and fields if necessary
             if username_field is None or password_field is None:
-                _, username_field_name, password_field_name = self.detectFormFields(login_url, self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
+                _, username_field_name, password_field_name = self.detectFormFields(login_url, self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass, self.user_agent)
 
                 if username_field is None:
                     username_field = username_field_name
