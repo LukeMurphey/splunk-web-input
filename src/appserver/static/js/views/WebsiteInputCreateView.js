@@ -75,6 +75,7 @@ define([
 			"click .browserHelp" : "showBrowserHelp",
 			"change #inputLoginURL" : "determineFormFields",
 			"click #detect-field-names" : "clickDetermineFormFields",
+			"click .authenticationHelp" : "showAuthenticationHelp"
         },
         
         initialize: function() {
@@ -124,7 +125,15 @@ define([
         showSelectorHelp: function(){
         	$("#selector-help-dialog", this.$el).modal();
 			return false;
-        },
+		},
+		
+		/**
+         * Show the authentication help dialog.
+         */
+		showAuthenticationHelp: function(){
+        	$("#authentication-help-dialog", this.$el).modal();
+			return false;
+		},
         
         /**
          * Add the given item to the associative array if it is non-blank

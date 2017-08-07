@@ -83,6 +83,11 @@
 	margin-left: 12px;
 }
 
+.authenticationHelp{
+    padding-top: 6px;
+    display: inline-block;
+}
+
 /* Styling for detecting login fields. */
 #detect-field-names{
     margin-left: 4px;

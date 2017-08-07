@@ -34,6 +34,38 @@
   </div>
 </div>
 
+<div id="authentication-help-dialog" class="modal hide fade">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Help</h3>
+  </div>
+  <div class="modal-body">
+		Entering credentials will cause the input to attempt to perform authentication before doing the data-extraction.
+
+		<a target="_blank" href="https://en.wikipedia.org/wiki/HTTP_authentication">HTTP authentication <i class="icon-external"></i></a> will be used if no URL is provided for the login form.
+  	<p>
+		If a login form URL is provided, then the input will attempt to authenticate by first submitting the login form.
+		</p>
+		<br />
+  	<p>
+		Note that form authentication is tricky and not all authentication forms will work.
+		Forms that use the following are not supported:
+		</p>
+  	<br />
+    <ol>
+    	<li>Forms that require the use of Javascript</li>
+			<li>Forms that use two-factor authentication</li>
+			<li>Forms that require several forms to be completed in sequence</li>
+			<li>Forms that use a captcha</li>
+    </ol>
+  	<br />
+  	
+  </div>
+  <div class="modal-footer">
+    <a href="#" class="btn" data-dismiss="modal">Close</a>
+  </div>
+</div>
+
 <div id="browser-help-dialog" class="modal hide fade">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -191,7 +223,7 @@
 
 		<div class="control-group hide-when-using-browser">
 	    <label class="control-label"><span class="control-section">Form Authentication</span></label>
-	    <div class="controls"></div>
+	    <div class="controls"><a href="#" class="authenticationHelp">Learn more</a></div>
 	  </div>
 		
 		<div class="control-group hide-when-using-browser">
