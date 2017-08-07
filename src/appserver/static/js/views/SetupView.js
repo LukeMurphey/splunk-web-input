@@ -80,6 +80,7 @@ define([
     "collections/SplunkDsBase",
     "ValidationView",
     "util/splunkd_utils",
+    "models/services/server/ServerInfo",
     "splunkjs/mvc/utils"
 ], function(
     _,
@@ -90,6 +91,7 @@ define([
     SplunkDsBaseCollection,
     ValidationView,
     splunkd_utils,
+	ServerInfo,
     mvc_utils
 ){
 
@@ -161,11 +163,43 @@ define([
 
             // Start the process of the getting the app.conf settings
             this.getAppConfig();
+            this.getInputStanza();
 
             // This stores a list of existing credentials
             this.credentials = null;
 
             this.setupProperties();
+        },
+
+        isOnCloud: function(){
+
+            // Initialize the the is_on_cloud variable if necessary
+            if(typeof this.is_on_cloud === "undefined"){
+                this.is_on_cloud = null;
+            }
+            
+            // Get a promise ready
+            var promise = jQuery.Deferred();
+
+            // If we already loaded the cloud status, then return it
+			if(this.is_on_cloud !== null){
+				promise.resolve(this.is_on_cloud);
+            }
+
+            // Fetch the cloud status
+            new ServerInfo().fetch().done(function(model){
+
+				if(model.entry[0].content.instance_type){
+					this.is_on_cloud = model.entry[0].content.instance_type === 'cloud';
+				}
+				else{
+					this.is_on_cloud = false;
+                }
+
+                promise.resolve(this.is_on_cloud);
+            });
+
+            return promise;
         },
 
         /**
@@ -190,6 +224,35 @@ define([
                     console.warn("Unable to retrieve the app configuration");
                 }.bind(this)
             });
+        },
+
+        /**
+         * Get the app configuration.
+         */
+        getInputStanza: function(){
+
+            // Get a promise ready
+            var promise = jQuery.Deferred();
+
+            // Use the current app if the app name is not defined
+            if(this.input_stanza === null || this.input_stanza === undefined){
+                return;
+            }
+
+            new AppConfig().fetch({
+                url: splunkd_utils.fullpath('/servicesNS/nobody/system/admin/conf-inputs/' + this.input_stanza),
+                success: function (model, response, options) {
+                    console.info("Successfully retrieved the default input stanza configuration");
+                    this.default_input = model.entry.associated.content.attributes;
+                    promise.resolve(this.default_input);
+                }.bind(this),
+                error: function () {
+                    console.warn("Unable to retrieve the default input stanza configuration");
+                    promise.reject();
+                }.bind(this)
+            });
+
+            return promise;
         },
 
         /**

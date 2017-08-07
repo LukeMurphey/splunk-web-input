@@ -46,7 +46,8 @@ define([
             'proxyServerPort' : '.proxy-port input',
             'proxyPassword' : '.proxy-password input',
             'proxyPasswordConfirmation' : '.proxy-password-confirm input',
-            'proxyType' : '.proxy-type select'
+            'proxyType' : '.proxy-type select',
+            'userAgent' : '.user-agent input'
         },
 
         initialize: function() {
@@ -57,6 +58,7 @@ define([
 
             this.website_input_configuration = null;
             this.secure_storage_stanza = this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm);
+            this.input_stanza = "web_input";
         },
 
         updateModel: function(){
@@ -168,6 +170,8 @@ define([
                     this.setProxyUser(model.entry.content.attributes.proxy_user);
                     this.setProxyPassword(model.entry.content.attributes.proxy_password);
                     this.setProxyPasswordConfirmation(model.entry.content.attributes.proxy_password);
+
+                    this.setUserAgent(model.entry.content.attributes.user_agent);
                 }.bind(this),
                 error: function () {
                     console.warn("Unsuccessfully retrieved the default website_input configuration");
@@ -176,42 +180,53 @@ define([
         },
 
         render: function () {
+            $.when(
+                this.isOnCloud()
+            )
+            .then(function(is_on_cloud){
 
-            if(this.userHasAdminAllObjects()){
+                if(this.userHasAdminAllObjects()){
 
-                // Render the view
-                this.$el.html(_.template(Template, {
-                    'has_permission' : this.userHasAdminAllObjects()
-                }));
+                    // Render the view
+                    this.$el.html(_.template(Template, {
+                        'has_permission' : this.userHasAdminAllObjects(),
+                        'is_on_cloud' : is_on_cloud
+                    }));
 
-                // Start the process of loading the app configurtion if necessary
-                if(this.website_input_configuration === null){
+                    // Start the process of loading the app configurtion if necessary
+                    if(this.website_input_configuration === null){
 
-                    this.setControlsEnabled(false);
+                        this.setControlsEnabled(false);
 
-                    $.when(
-                        this.fetchAppConfiguration(),
-                        this.getEncryptedCredential(this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm), true)
-                    )
-                    // If successful, then load the information
-                    .then(
-                        function(a, credential){
+                        $.when(
+                            this.fetchAppConfiguration(),
+                            this.getEncryptedCredential(this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm), true),
+                            this.getInputStanza()
+                        )
+                        // If successful, then load the information
+                        .then(
+                            function(a, credential, default_input){
 
-                            if(credential){
-                                this.setProxyPassword(credential.entry.content.attributes.clear_password);
-                                this.setProxyPasswordConfirmation(credential.entry.content.attributes.clear_password);
-                            }
+                                if(credential){
+                                    this.setProxyPassword(credential.entry.content.attributes.clear_password);
+                                    this.setProxyPasswordConfirmation(credential.entry.content.attributes.clear_password);
+                                }
 
-                            this.setControlsEnabled(true);
-                        }.bind(this)
-                    );
+                                if(default_input){
+                                    this.setUserAgent(default_input.user_agent);
+                                }
+
+                                this.setControlsEnabled(true);
+                            }.bind(this)
+                        );
+
+                    }
 
                 }
-
-            }
-            else{
-                this.$el.html("Sorry, you don't have permission to perform setup");
-            }
+                else{
+                    this.$el.html("Sorry, you don't have permission to perform setup");
+                }
+            }.bind(this));
 
         },
 
@@ -228,6 +243,16 @@ define([
                 return false;
             }
             else if(port < 1 || port > 65535){
+                return false;
+            }
+            else{
+                return true;
+            }
+        },
+
+        isValidUserAgent: function(value){
+
+            if(value.length === 0){
                 return false;
             }
             else{
@@ -270,6 +295,7 @@ define([
             this.addValidator('.proxy-address', this.getProxyServer.bind(this), this.isValidServer, "Must be a valid domain name or IP address");
             this.addValidator('.proxy-port', this.getProxyServerPort.bind(this), this.isValidPort, "Must be a valid port number");
             this.addValidator('.proxy-password-confirm', this.getProxyPasswordConfirmation.bind(this), this.matchesPassword.bind(this), "Must match the password");
+            this.addValidator('.user-agent', this.getUserAgent.bind(this), this.isValidUserAgent.bind(this), "Must not be blank");
         },
     });
 });

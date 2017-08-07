@@ -13,7 +13,7 @@
 </div>
 -->
 <form class="form-horizontal">
-  <fieldset>
+  <fieldset <% if(is_on_cloud){%>style="display:none"<%}%>>
     <legend>Proxy Server</legend>
 
     <div class="control-group proxy-address">
@@ -48,7 +48,7 @@
 
   </fieldset>
 
-  <fieldset>
+  <fieldset <% if(is_on_cloud){%>style="display:none"<%}%>>
     <legend>Proxy Server Authentication</legend>
 
     <div class="control-group proxy-user">
@@ -77,6 +77,19 @@
         </div>
     </div>
     
+  </fieldset>
+
+  <fieldset>
+    <legend>Advanced</legend>
+
+    <div class="control-group user-agent">
+        <label class="control-label">Default User-agent</label>
+        <div class="controls">
+            <input type="text" name="user_agent">
+            <span class="help-inline"></span>
+            <span class="help-block">Enter the user-agent string to use as the default</span>
+        </div>
+    </div>
   </fieldset>
 
   <button href="#" class="btn btn-primary horizontal-form-align-button" id="save-config">Save Configuration</button>
