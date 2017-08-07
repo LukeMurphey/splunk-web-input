@@ -32,7 +32,8 @@ define([
         className: "AppSetupView",
 
         events: {
-            "click #save-config" : "saveConfig"
+            "click #save-config" : "saveConfig",
+            "click #user-agent-return-default" : "setDefaultUserAgent"
         },
 
         defaults: {
@@ -50,7 +51,7 @@ define([
             'userAgent' : '.user-agent input'
         },
 
-        initialize: function() {
+        initialize: function(){
         	this.options = _.extend({}, this.defaults, this.options);
             SetupView.prototype.initialize.apply(this, [this.options]);
 
@@ -59,6 +60,10 @@ define([
             this.website_input_configuration = null;
             this.secure_storage_stanza = this.makeStorageEndpointStanza(this.options.secure_storage_username, this.options.secure_storage_realm);
             this.input_stanza = "web_input";
+        },
+
+        setDefaultUserAgent: function(){
+            this.setUserAgent("Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)");
         },
 
         updateModel: function(){
