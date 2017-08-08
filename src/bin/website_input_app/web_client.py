@@ -1,6 +1,7 @@
 """
-This class wraps various web-clients so that different ones can be used.
+This class wraps various web-clients so that different ones can be used with the website inputs.
 """
+
 import urllib2
 import httplib2
 from httplib2 import socks
