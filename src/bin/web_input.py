@@ -14,6 +14,7 @@ The classes included are:
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
 from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure, LoginFormNotFound, FormAuthenticationFailed, WebClientException
+from website_input_app.web_driver_client import FirefoxClient, ChromeClient
 from website_input_app.event_writer import StashNewWriter
 
 from splunk.models.base import SplunkAppObjModel
@@ -41,9 +42,6 @@ from lxml.etree import XMLSyntaxError
 
 from cssselector import CSSSelector
 from __builtin__ import classmethod
-
-from pyvirtualdisplay import Display
-from easyprocess import EasyProcessCheckInstalledError
 
 def setup_logger():
     """
@@ -607,38 +605,6 @@ class WebScraper(object):
         self.charset_detect_sniff_enabled = charset_detect_sniff_enabled
 
     @classmethod
-    def add_auth_to_url(cls, url, username, password):
-        """
-        Add the username and password to the URL. For example, convert http://test.com to http://admin:opensesame@test.com.
-
-        Arguments:
-        url -- A string version of the URL
-        username -- The username
-        password -- The password
-        """
-
-        if username is not None and password is not None and username != "" and password != "":
-
-            # Split up the URL
-            u = urlsplit(url)
-
-            # Now, build a new URL with the new username and password
-            split = []
-
-            for item in (u[:]):
-                split.append(item)
-
-            # Replace the netloc with one that contains the username and password. Note that this will drop the existing username and password if it exists
-            if u.port is None: #(u.port == 80 and u.scheme == "http") or (u.port == 443 and u.scheme == "https"):
-                split[1] = username + ":" + password + "@" + u.hostname
-            else:
-                split[1] = username + ":" + password + "@" + u.hostname + ":" + str(u.port)
-
-            return urlunsplit(split)
-        else:
-            return url
-
-    @classmethod
     def append_if_not_empty(cls, str1, str2, separator, include_empty=False):
         """
         Append the strings together if they are not blank.
@@ -896,36 +862,6 @@ class WebScraper(object):
         return web_client.response_code, content, encoding
 
     @classmethod
-    def get_firefox_profile(cls, proxy_type="http", proxy_server=None, proxy_port=None, proxy_user=None, proxy_password=None):
-        profile = webdriver.FirefoxProfile()
-
-        # This is necessary in order to avoid the dialog that FireFox uses to stop potential
-        # phishing attacks that use credentials encoded in the URL
-        # See http://lukemurphey.net/issues/1658
-        profile.set_preference('network.http.phishy-userpass-length', 255)
-
-        # Return none if no proxy is defined
-        if proxy_server is None or proxy_port is None:
-            pass
-
-        # Use a socks proxy
-        elif proxy_type == "socks4" or proxy_type == "socks5":
-            profile.set_preference('network.proxy.type', 1)
-            profile.set_preference('network.proxy.socks', proxy_server)
-            profile.set_preference('network.proxy.socks_port', int(proxy_port))
-
-        # Use an HTTP proxy
-        elif proxy_type == "http":
-
-            profile.set_preference('network.proxy.type', 1)
-            profile.set_preference('network.proxy.http', proxy_server)
-            profile.set_preference('network.proxy.http_port', int(proxy_port))
-            profile.set_preference('network.proxy.ssl', proxy_server)
-            profile.set_preference('network.proxy.ssl_port', int(proxy_port))
-
-        return profile
-
-    @classmethod
     def add_browser_driver_to_path(cls):
 
         driver_path = None
@@ -950,28 +886,11 @@ class WebScraper(object):
 
             logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
 
-    @classmethod
-    def get_display(cls):
-
-        # Start a display so that this works on headless hosts
-        if not os.name == 'nt':
-            try:
-                display = Display(visible=0, size=(800, 600))
-                display.start()
-
-                return display
-            except EasyProcessCheckInstalledError:
-                logger.warn("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
-            except Exception:
-                logger.exception("Failed to load the virtual display; the web-browser might not be able to run if this is a headless host")
-
     def get_result_browser(self, url, browser="firefox"):
 
         # Update the path if necessary so that the drivers can be found
         WebScraper.add_browser_driver_to_path()
 
-        driver = None
-        display = None
         logger.debug("Attempting to get content using browser=%s", browser)
 
         try:
@@ -980,66 +899,30 @@ class WebScraper(object):
                 browser = WebScraper.FIREFOX
             else: 
                 browser = browser.lower().strip()
+    
+            web_driver_client = None
 
             # Make the browser
             if browser == WebScraper.FIREFOX:
-
-                display = self.get_display()
-
-                profile = self.get_firefox_profile(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
-
-                if profile is not None:
-                    logger.debug("Using a proxy with Firefox")
-                    driver = webdriver.Firefox(profile, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
-                else:
-                    driver = webdriver.Firefox(log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
+                web_driver_client = FirefoxClient(timeout=self.timeout, logger=logger)
 
             elif browser == WebScraper.CHROME:
-                
-                chrome_options = None
-
-                # Get the proxy configuration if necessary
-                if self.proxy_type is not None and self.proxy_server is not None and self.proxy_port is not None:
-                    proxy = self.proxy_server + ":" + str(self.proxy_port)
-
-                    chrome_options = webdriver.ChromeOptions()
-                    chrome_options.add_argument('--proxy-server=http://%s' % proxy)
-
-                if chrome_options:
-                    driver = webdriver.Chrome(chrome_options=chrome_options)
-                else:
-                    driver = webdriver.Chrome()
+                web_driver_client = ChromeClient(timeout=self.timeout, logger=logger)
 
             else:
                 raise Exception("Browser '%s' not recognized" % (browser))
 
-            # Load the page
-            driver.get(self.add_auth_to_url(url.geturl(), self.username, self.password))
+            logger.debug("Proxy=%s, port=%r", self.proxy_server, self.proxy_port)
+            web_driver_client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
+            web_driver_client.setCredentials(self.username, self.password)
 
-            # Wait for the content to load
-            time.sleep(self.timeout)
-
-            # Get the content
-            content = driver.execute_script("return document.documentElement.outerHTML")
-
-            return content
+            return web_driver_client.get_url(url.geturl())
 
         # Make sure to log this here in case closing the Webdriver connection causes another
         # exception to be thrown. Failing to log it here may cause the exception to be covered up.
         except WebDriverException as exception:
             self.logger.exception("Web-driver failed while attempting to execute")
             raise exception
-
-        finally:
-
-            # Stop the driver so that the web-browser closes. Otherwise, the process would be left open.
-            try:
-                if driver is not None:
-                    driver.quit()
-            finally:
-                # Stop the display that is used to run a headless browser.
-                if display is not None:
-                    display.stop()
 
     def get_result_single(self, web_client, url, selector, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """

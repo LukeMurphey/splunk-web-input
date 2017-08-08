@@ -22,6 +22,7 @@ sys.path.append(os.path.join("..", "src", "bin", "website_input_app"))
 
 from web_input import URLField, DurationField, SelectorField, WebInput, WebScraper
 from web_client import MechanizeClient
+from web_driver_client import WebDriverClient
 from website_input_app.modular_input import Field, FieldValidationException
 from unit_test_web_server import UnitTestWithWebServer, skipIfNoServer
 
@@ -450,21 +451,6 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(result['prefix_string'][0], "ABC")
         self.assertEqual(result['prefix_string'][1], "DEF")
         self.assertEqual(result['prefix_string'][2], "GHI")
-
-    def test_add_auth_to_url(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com:8888", "admin", "changeme"), "http://admin:changeme@tree.com:8888")
-
-    def test_add_auth_to_url_existing_user_pass(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://user:abc1234@tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
-
-    def test_add_auth_to_url_no_username(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", None, "changeme"), "http://tree.com")
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "", "changeme"), "http://tree.com")
-
-    def test_add_auth_to_url_no_password(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "admin", None), "http://tree.com")
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "admin", ""), "http://tree.com")
 
 class TestWebInputCrawling(unittest.TestCase):
     """
@@ -943,6 +929,23 @@ class TestResultHashing(unittest.TestCase):
 
 class TestBrowserRenderingFirefox(TestBrowserRendering):
     BROWSER = WebScraper.FIREFOX
+
+class TestWebDriverClient(unittest.TestCase):
+    
+    def test_add_auth_to_url(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com:8888", "admin", "changeme"), "http://admin:changeme@tree.com:8888")
+
+    def test_add_auth_to_url_existing_user_pass(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://user:abc1234@tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
+
+    def test_add_auth_to_url_no_username(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", None, "changeme"), "http://tree.com")
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "", "changeme"), "http://tree.com")
+
+    def test_add_auth_to_url_no_password(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", None), "http://tree.com")
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", ""), "http://tree.com")
 
 class TestFormAuthentication(UnitTestWithWebServer):
     """
