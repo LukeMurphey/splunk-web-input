@@ -287,9 +287,8 @@ class WebInputController(controllers.BaseController):
                         
                         web_scraper = WebScraper(timeout=timeout)
                         web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
-
-                        content = web_scraper.get_result_browser(urlparse.urlparse(url), browser,
-                                                                 username, password)
+                        web_scraper.set_authentication(username, password)
+                        content = web_scraper.get_result_browser(urlparse.urlparse(url), browser)
 
                 except:
                     logger.exception("Exception generated while attempting to get browser rendering or url=%s", url)
