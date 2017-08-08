@@ -1,3 +1,12 @@
+"""
+This implements the WebClient class for browsers that are controlled by Selenium WebDriver.
+
+This includes the following classes:
+
+  * WebDriverClient: base class fo the web driver controlled clients
+  * FireFoxClient: an instance of the client that loads content from Firefox
+  * ChromeClient: an instance of the client that loads content from Google CHrome
+"""
 
 import os
 from urlparse import urlparse, urljoin, urlunsplit, urlsplit
