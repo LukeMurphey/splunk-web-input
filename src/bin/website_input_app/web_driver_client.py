@@ -5,7 +5,7 @@ This includes the following classes:
 
   * WebDriverClient: base class fo the web driver controlled clients
   * FireFoxClient: an instance of the client that loads content from Firefox
-  * ChromeClient: an instance of the client that loads content from Google CHrome
+  * ChromeClient: an instance of the client that loads content from Google Chrome
 """
 
 import os
@@ -22,7 +22,7 @@ from easyprocess import EasyProcessCheckInstalledError
 
 class WebDriverClient(WebClient):
     """
-    A web-client based on Selenium that use Firefox .
+    A web-client based on Selenium that uses Firefox.
     """
 
     def __init__(self, timeout=30, user_agent=DEFAULT_USER_AGENT, logger=None):
