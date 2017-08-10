@@ -5,14 +5,14 @@ The classes included are:
 
   * SelectorField: a modular input field for verifying that a selector is valid
   * WebsiteInputConfig: a class for getting information from Splunk for configuration of the app
-  * Timer: a class for tracking the amount of time an operation takes
   * DiscoveredURL: represents a URL that was discovered
   * WebInput: the main modular input class
   * WebScraper: a class for performing web-scrapes
 """
 
-from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
+from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
+from website_input_app.timer import Timer
 from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure, LoginFormNotFound, FormAuthenticationFailed, WebClientException
 from website_input_app.web_driver_client import FirefoxClient, ChromeClient
 from website_input_app.event_writer import StashNewWriter
@@ -27,12 +27,9 @@ import hashlib
 import httplib2
 import socket
 import sys
-import time
 import os
 import splunk
 import chardet
-import platform
-from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 import re
 from collections import OrderedDict
@@ -88,23 +85,6 @@ class SelectorField(Field):
 
     def to_string(self, value):
         return value.css
-
-class Timer(object):
-    """
-    This class is used to time durations.
-    """
-
-    def __init__(self, verbose=False):
-        self.verbose = verbose
-
-    def __enter__(self):
-        self.start = time.time()
-        return self
-
-    def __exit__(self, *args):
-        self.end = time.time()
-        self.secs = self.end - self.start
-        self.msecs = self.secs * 1000  # millisecs
 
 class WebsiteInputConfig(SplunkAppObjModel):
 
@@ -715,7 +695,7 @@ class WebScraper(object):
                     encoding = matched_encoding.groups()[0]
 
         # Try sniffing the encoding
-        if encoding is None and charset_detect_sniff_enabled:
+        if encoding is None and charset_detect_sniff_enabled and not isinstance(content, unicode):
             encoding_detection = chardet.detect(content)
             encoding = encoding_detection['encoding']
 
@@ -861,69 +841,6 @@ class WebScraper(object):
 
         return web_client.response_code, content, encoding
 
-    @classmethod
-    def add_browser_driver_to_path(cls):
-
-        driver_path = None
-
-        if sys.platform == "linux2" and platform.architecture()[0] == '64bit':
-            driver_path = "linux64"
-        elif sys.platform == "linux2":
-            driver_path = "linux32"
-        else:
-            driver_path = sys.platform
-
-        full_driver_path = os.path.join(get_apps_dir(), "website_input", "bin", "browser_drivers", driver_path)
-
-        if not full_driver_path in os.environ["PATH"]:
-
-            # Use the correct path separator per the platform
-            # https://lukemurphey.net/issues/1782
-            if os.name == 'nt':
-                os.environ["PATH"] += ";" +full_driver_path
-            else:
-                os.environ["PATH"] += ":" +full_driver_path
-
-            logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
-
-    def get_result_browser(self, url, browser="firefox"):
-
-        # Update the path if necessary so that the drivers can be found
-        WebScraper.add_browser_driver_to_path()
-
-        logger.debug("Attempting to get content using browser=%s", browser)
-
-        try:
-            # Assign a default argument for browser
-            if browser is None:
-                browser = WebScraper.FIREFOX
-            else: 
-                browser = browser.lower().strip()
-    
-            web_driver_client = None
-
-            # Make the browser
-            if browser == WebScraper.FIREFOX:
-                web_driver_client = FirefoxClient(timeout=self.timeout, logger=logger)
-
-            elif browser == WebScraper.CHROME:
-                web_driver_client = ChromeClient(timeout=self.timeout, logger=logger)
-
-            else:
-                raise Exception("Browser '%s' not recognized" % (browser))
-
-            logger.debug("Proxy=%s, port=%r", self.proxy_server, self.proxy_port)
-            web_driver_client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
-            web_driver_client.setCredentials(self.username, self.password)
-
-            return web_driver_client.get_url(url.geturl())
-
-        # Make sure to log this here in case closing the Webdriver connection causes another
-        # exception to be thrown. Failing to log it here may cause the exception to be covered up.
-        except WebDriverException as exception:
-            self.logger.exception("Web-driver failed while attempting to execute")
-            raise exception
-
     def get_result_single(self, web_client, url, selector, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """
         Get the results from performing a HTTP request and parsing the output.
@@ -962,36 +879,36 @@ class WebScraper(object):
                     result[k] = v
 
             # Perform the request
-            with Timer() as timer:
-                response_code, content, encoding = self.get_result_built_in_client(web_client, url)
-                result['browser'] = WebScraper.INTEGRATED_CLIENT
+            content = web_client.get_url(url.geturl())
 
-            # Get the content via the browser too if requested
-            # Note that we already got the content via the internal client. This was necessary because web-driver doesn't give us the response code
-            if browser is not None and browser.strip() != WebScraper.INTEGRATED_CLIENT:
-                try:
-                    content = self.get_result_browser(url, browser)
-                    result['browser'] = browser
-                except:
-                    logger.exception("Unable to get the content using the browser=%s", browser)
+            # Detect the encoding
+            encoding = self.detect_encoding(content, web_client.get_response_headers())
+
+            result['browser'] = browser
 
             # Get the size of the content
             result['response_size'] = len(content)
 
             # Retrieve the meta-data
-            result['response_code'] = response_code   
-            result['request_time'] = timer.msecs
+            if web_client.response_code is not None:
+                result['response_code'] = web_client.response_code
+
             result['url'] = url.geturl()
+            result['request_time'] = web_client.response_time
 
             # Get the hash of the content
-            result['content_md5'] = hashlib.md5(content).hexdigest()
-            result['content_sha224'] = hashlib.sha224(content).hexdigest()
-
-            # Store the encoding in the result
-            result['encoding'] = encoding
+            if content is not None:
+                result['content_md5'] = hashlib.md5(content).hexdigest()
+                result['content_sha224'] = hashlib.sha224(content).hexdigest()
 
             # Decode the content
-            content_decoded = content.decode(encoding=encoding, errors='replace')
+            if encoding is not None and encoding != "":
+                content_decoded = content.decode(encoding=encoding, errors='replace')
+
+                # Store the encoding in the result
+                result['encoding'] = encoding
+            else:
+                content_decoded = content
 
             # Parse the HTML
             try:
@@ -1174,14 +1091,22 @@ class WebScraper(object):
 
         try:
 
-            # Make the client (e.g. Http2LibClient, MechanizeClient)
-            client = DefaultWebClient(self.timeout, user_agent=self.user_agent, logger=logger)
+            # Make the browser client if necessary
+            if browser == WebScraper.FIREFOX:
+                client = FirefoxClient(timeout=self.timeout, user_agent=self.user_agent, logger=logger)
+            elif browser == WebScraper.CHROME:
+                client = ChromeClient(timeout=self.timeout, user_agent=self.user_agent, logger=logger)
+            else:
+                client = DefaultWebClient(self.timeout, user_agent=self.user_agent, logger=logger)
+
+            # Setup the proxy
             client.setProxy(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_password)
+
+            # Setup credentials
             client.setCredentials(self.username, self.password)
 
-            # Do form login if necessary
-            if self.username is not None and self.password is not None and \
-               self.authentication_url is not None:
+            # Do form authentication
+            if self.username is not None and self.password is not None and self.authentication_url is not None:
                 client.doFormLogin(self.authentication_url.geturl(), self.username_field, self.password_field)
 
             # Run the scraper and get the results
@@ -1190,7 +1115,7 @@ class WebScraper(object):
 
             # Process each result
             while len(results) < page_limit:
-                
+
                 source_url_depth = 0
                 url = None
                 
@@ -1245,6 +1170,10 @@ class WebScraper(object):
             # TODO: remove this one or the one in get_result_single()
             logger.exception("A general exception was thrown when executing a web request")
             raise
+
+        finally:
+            if client:
+                client.close()
         
         return results
     
