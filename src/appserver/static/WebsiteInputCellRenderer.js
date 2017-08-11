@@ -25,6 +25,10 @@ define(['jquery', 'underscore', 'splunkjs/mvc', 'views/shared/results_table/rend
 					 $td.addClass("success");
 					 icon = 'check';
 				 }
+				 else if(cell.value === "NA"){
+					 $td.addClass("success");
+					 icon = 'check';
+				 }
 				 else{
 					 $td.addClass("failure");
 					 icon = 'alert';
