@@ -351,7 +351,7 @@ class MechanizeClient(WebClient):
                 content = self.response.read()
 
             self.response_time = timer.msecs
-            
+
             """
         except mechanize.HTTPError as e:
             raise ConnectionFailure(e)
@@ -361,7 +361,7 @@ class MechanizeClient(WebClient):
             if e.reason is not None and str(e.reason) == "timed out":
                 raise RequestTimeout()
             else:
-                raise ConnectionFailure(e)
+                raise ConnectionFailure(str(e), e)
 
         # Get the response code
         self.response_code = self.response.code
