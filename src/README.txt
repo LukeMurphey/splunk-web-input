@@ -210,4 +210,6 @@ Change History
 |         | Removed support for proxy authentication on Splunk Cloud                                                         |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5     | Added support for forms authentication with browsers                                                             |
+|         | Fixed issue where user-agent string was not set for Firefox and Chrome                                           |
+|         | Fixed issue where the browser testing functionality on the UI didn't use the proxy server                        |
 +---------+------------------------------------------------------------------------------------------------------------------+
