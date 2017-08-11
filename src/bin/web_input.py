@@ -1074,6 +1074,8 @@ class WebScraper(object):
 
         results = []
 
+        client = None
+
         try:
 
             # Make the browser client if necessary

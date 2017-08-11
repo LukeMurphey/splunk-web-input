@@ -187,6 +187,8 @@ class WebInputController(controllers.BaseController):
         Proxy a web-page through so that a UI can be displayed for showing potential results.
         """
 
+        web_client = None
+
         try:
 
             # --------------------------------------
@@ -415,6 +417,10 @@ class WebInputController(controllers.BaseController):
             logger.exception("Error when attempting to proxy an HTTP request")
             cherrypy.response.status = 500
             return self.render_error_html("Page preview could not be created")
+
+        finally:
+            if web_client:
+                web_client.close()
 
     @expose_page(must_login=True, methods=['GET']) 
     def test_browser(self, browser, **kwargs):
