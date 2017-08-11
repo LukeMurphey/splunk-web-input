@@ -420,6 +420,10 @@ class WebScraper(object):
             # Detect the encoding
             encoding = self.detect_encoding(content, web_client.get_response_headers())
 
+            # Assign the browser string to the integrated client
+            if browser is None or browser == "":
+                browser = WebScraper.INTEGRATED_CLIENT
+            
             result['browser'] = browser
 
             # Get the size of the content
