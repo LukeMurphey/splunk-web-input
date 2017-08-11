@@ -32,7 +32,8 @@ import splunk.rest as rest
 sys.path.append(os.path.join("..", "..", "..", "bin"))
 sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
-from web_input import WebInput, WebScraper
+from web_input import WebInput
+from website_input_app.web_scraper import WebScraper
 from website_input_app.web_client import DefaultWebClient, MechanizeClient, LoginFormNotFound, FormAuthenticationFailed
 from website_input_app.web_driver_client import FirefoxClient, ChromeClient
 from website_input_app.modular_input import FieldValidationException, ModularInput

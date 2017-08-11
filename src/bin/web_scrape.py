@@ -8,7 +8,8 @@ web-scrape as the search command..
 
 from website_input_app.search_command import SearchCommand
 from website_input_app.modular_input import ModularInput
-from web_input import WebInput, WebScraper
+from web_input import WebInput
+from website_input_app.web_scraper import WebScraper
 
 from splunk.util import normalizeBoolean
 
@@ -23,7 +24,8 @@ class WebScraperSearchCommand(SearchCommand):
                  output_matches_as_separate_fields=False, use_element_name=False, page_limit=1,
                  depth_limit=50, url_filter=None, text_separator=" ", raw_content=False,
                  include_raw_content=None, browser=None, match_prefix=None, user_agent=None,
-                 empty_matches=False, empty_value='NULL'):
+                 empty_matches=False, empty_value='NULL', authentication_url=None,
+                 username_field=None, password_field=None):
 
         # Note: output_matches_as_mv and include_raw_content are supported for legacy purposes
 
@@ -50,8 +52,6 @@ class WebScraperSearchCommand(SearchCommand):
         self.params = {
             "url": url,
             "selector": selector,
-            "username": username,
-            "password": password,
             "name_attributes": name_attributes,
             "output_matches_as_mv": normalizeBoolean(output_as_mv),
             "output_matches_as_separate_fields": normalizeBoolean(output_matches_as_separate_fields),
@@ -66,6 +66,9 @@ class WebScraperSearchCommand(SearchCommand):
             "browser" : browser,
             "match_prefix" : match_prefix
         }
+
+        if username is not None and password is not None:
+            self.web_scraper.set_authentication(username, password, authentication_url, username_field, password_field)
 
         SearchCommand.__init__(self, run_in_preview=True, logger_name="web_scrape")
 
