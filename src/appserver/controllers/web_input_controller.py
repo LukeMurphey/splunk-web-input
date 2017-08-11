@@ -61,7 +61,7 @@ class WebInputController(controllers.BaseController):
     Controller for previewing output of a web-input
     '''
 
-    TEST_BROWSER_URL = "https://google.com"
+    TEST_BROWSER_URL = "https://www.google.com"
 
     def render_error_json(self, msg):
         """
@@ -430,6 +430,17 @@ class WebInputController(controllers.BaseController):
         success = None
 
         web_scraper = WebScraper(3)
+
+        # Set the proxy authentication
+        try:
+            web_input = WebInput(timeout=10)
+            proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = web_input.get_proxy_config(cherrypy.session.get('sessionKey'), "default")
+
+            web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
+
+        except splunk.ResourceNotFound:
+            cherrypy.response.status = 202
+            return self.render_error_json(_("Proxy server information could not be obtained"))
 
         try:
             result = web_scraper.scrape_page(selector="a", url=WebInputController.TEST_BROWSER_URL,
