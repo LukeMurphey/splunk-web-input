@@ -298,7 +298,10 @@ class FirefoxClient(WebDriverClient):
 
             if self.logger is not None:
                 self.logger.debug("Using a proxy with Firefox, type=", self.proxy_type)
-                
+
+        if self.user_agent is not None:
+            profile.set_preference("general.useragent.override", self.user_agent)
+
         return profile
 
     def get_driver(self):
@@ -315,16 +318,23 @@ class ChromeClient(WebDriverClient):
 
     def get_driver(self):
                
-        chrome_options = None
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options_set = False
 
-        # Get the proxy configuration if necessary
+        # Set the proxy configuration if necessary
         if self.proxy_type is not None and self.proxy_server is not None and self.proxy_port is not None:
             proxy = self.proxy_server + ":" + str(self.proxy_port)
 
-            chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument('--proxy-server=http://%s' % proxy)
+            chrome_options_set = True
 
-        if chrome_options:
+        # Set the user-agent as necessary
+        if self.user_agent is not None:
+            chrome_options.add_argument('--user-agent=%s' % self.user_agent)
+            chrome_options_set = True
+
+        # Set the Chrome options in web-driver
+        if chrome_options_set and chrome_options:
             driver = webdriver.Chrome(chrome_options=chrome_options)
         else:
             driver = webdriver.Chrome()
