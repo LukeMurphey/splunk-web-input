@@ -719,16 +719,19 @@ class TestWebClient(UnitTestWithWebServer):
 
     # Override this to test other browsers too (like Firfox)
     BROWSER = WebScraper.INTEGRATED_CLIENT # By default, test the internal browser
+    client = None
 
     def get_client(self, browser):
         if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
-            return MechanizeClient(5)
+            self.client = MechanizeClient(5)
         elif self.BROWSER == WebScraper.FIREFOX:
-            return FirefoxClient(5)
+            self.client = FirefoxClient(5)
         elif self.BROWSER == WebScraper.CHROME:
-            return ChromeClient(5)
+            self.client = ChromeClient(5)
         else:
             raise Exception("Browser not recognized")
+
+        return self.client
 
     def setUp(self):
         browsers_to_test = os.environ.get('TEST_BROWSERS', None)
@@ -741,6 +744,11 @@ class TestWebClient(UnitTestWithWebServer):
             pass
         elif not (self.BROWSER in browsers_to_test):
             self.skipTest("Skipping this browser since it is not listed as a browser to test: " + self.BROWSER)
+
+    def tearDown(self):
+        if self.client is not None:
+            client.close()
+            client = None
 
 class TestBrowserRendering(TestWebClient):
     """
@@ -767,17 +775,10 @@ class TestBrowserRendering(TestWebClient):
         if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
             return
 
-        client = None
+        client = self.get_client(self.BROWSER)
+        content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/html")
 
-        try:
-            client = self.get_client(self.BROWSER)
-            content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/html")
-
-            self.assertEqual(content[0:5], '<html')
-
-        finally:
-            if client is not None:
-                client.close()
+        self.assertEqual(content[0:5], '<html')
 
     @skipIfNoServer
     def test_get_result_basic_auth(self):
@@ -786,17 +787,10 @@ class TestBrowserRendering(TestWebClient):
         if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
             return
 
-        client = None
+        client = self.get_client(self.BROWSER)
+        content = client.get_url("http://admin:changeme@127.0.0.1:" + str(self.web_server_port) + "/")
 
-        try:
-            client = self.get_client(self.BROWSER)
-            content = client.get_url("http://admin:changeme@127.0.0.1:" + str(self.web_server_port) + "/")
-
-            self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
-
-        finally:
-            if client is not None:
-                client.close()
+        self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
 
     @skipIfNoServer
     def test_get_result_basic_auth_as_args(self):
@@ -805,19 +799,11 @@ class TestBrowserRendering(TestWebClient):
         if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
             return
 
-        client = None
+        client = self.get_client(self.BROWSER)
+        client.setCredentials("admin", "changeme")
+        content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/")
 
-        try:
-            client = self.get_client(self.BROWSER)
-            client.setCredentials("admin", "changeme")
-            content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/")
-
-            self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
-
-        finally:
-            if client is not None:
-                client.close()
-
+        self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
 
 class TestBrowserRenderingFirefox(TestBrowserRendering):
     BROWSER = WebScraper.FIREFOX
