@@ -208,4 +208,6 @@ Change History
 | 4.4     | Added support for forms authentication                                                                           |
 |         | Added ability to set a default value for the user-agent globally                                                 |
 |         | Removed support for proxy authentication on Splunk Cloud                                                         |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.5     | Added support for forms authentication with browsers                                                             |
 +---------+------------------------------------------------------------------------------------------------------------------+
