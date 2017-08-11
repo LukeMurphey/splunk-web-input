@@ -62,6 +62,11 @@ import lxml.html
 from StringIO import StringIO
 from collections import OrderedDict
 
+try:
+    import xmlrunner
+except:
+    pass
+
 # Change into the tests directory if necessary
 # This is necessary when tests are executed from the main directory as opposed to the tests
 # directory.
@@ -1147,6 +1152,9 @@ class TestFormAuthenticationChrome(TestFormAuthentication):
 
 if __name__ == "__main__":
     try:
+        with open('../tmp/results.xml', 'wb') as output:
+            unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output), exit=True)
+    except NameError:
         unittest.main(exit=True)
 
     finally:
