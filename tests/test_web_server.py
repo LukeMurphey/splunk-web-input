@@ -25,17 +25,28 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
+    def do_NOTFOUND(self):
+        self.send_response(404)
+        self.end_headers()
+
     def do_SENDCOOKIE(self):
         self.send_response(200)
-        self.send_header('Set-Cookie', 'ABCD')
+        self.send_header('Set-Cookie', 'sessionid=ABCD')
         self.end_headers()
 
     def is_authenticated(self):
         cookie = self.headers.getheader('cookie')
 
-        if cookie and cookie == 'ABCD':
+        if not cookie:
+            if DEBUG_LOG:
+                print "Cookie is not present; user is not authenticated"
+        elif cookie == 'sessionid=ABCD':
+            if DEBUG_LOG:
+                print "Cookie is present; user is authenticated"
             return True
         else:
+            if DEBUG_LOG:
+                print "Cookie is present but wrong; user is not authenticated"
             return False
 
     def authenticate(self):
@@ -137,10 +148,12 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
                 with open(os.path.join("web_files", "authenticated.html"), "r") as webfile:
                     self.wfile.write(webfile.read())
             else:
-                self.do_HEAD()
+                self.do_AUTHFAILED()
                 with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
                     self.wfile.write(webfile.read())
 
+        elif self.path == "/favicon.ico":
+            self.do_NOTFOUND()
 
         # Present frontpage with user authentication.
         elif self.headers.getheader('Authorization') == None:

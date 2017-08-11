@@ -1,11 +1,20 @@
 """
-This class wraps various web-clients so that different ones can be used.
+This class wraps various web-clients so that different ones can be used with the website inputs.
+
+The classes included are:
+  * Timer: a class for tracking the amount of time an operation takes
+  * WebClient: a base class for web-clients (abstract, cannot be constructed)
+  * Http2LibClient: a web-client based on httplib2
+  * MechanizeClient: a web-client based on mechanize (supports form authentication)
 """
+
 import urllib2
 import httplib2
 from httplib2 import socks
 import socket
 import mechanize
+
+from timer import Timer
 
 class WebClientException(Exception):
     def __init__(self, message=None, cause=None):
@@ -63,6 +72,10 @@ class WebClient(object):
         # The following will be populated by the request
         self.response_code = None
         self.content = None
+        self.response_time = None
+
+        # Indicates if the browser is in a logged in state
+        self.is_logged_in = False
 
     def add_header(self, header_name, header_value):
         self.headers[header_name] = header_value
@@ -78,7 +91,39 @@ class WebClient(object):
         self.username = username
         self.password = password
 
-    def doFormLogin(self, login_url, username_field=None, password_field=None):
+    @classmethod
+    def detectFormFields(cls, login_url, proxy_type=None, proxy_server=None, proxy_port=None, proxy_user=None, proxy_pass=None, user_agent=DEFAULT_USER_AGENT):
+        raise FormAuthenticationNotSupported()
+
+    def getFormFieldsIfNecessary(self, login_url, username_field, password_field):
+        """
+        Get the username and password fields if necessary. If the fields are already provided
+        (are not none), then those will be used. Otherwise, they will be auto-discovered.
+
+        A FormAuthenticationFailed exception will be raised if either of the fields could not be
+        associated with a value.
+        """
+
+        # Detect the login form and fields if necessary
+        if username_field is None or password_field is None:
+            _, username_field_name, password_field_name = self.detectFormFields(login_url, self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass, self.user_agent)
+
+            if username_field is None:
+                username_field = username_field_name
+
+            if password_field is None:
+                password_field = password_field_name
+
+        # Stop if some fields are missing
+        if username_field is None:
+            raise FormAuthenticationFailed("Username field is missing")
+
+        if password_field is None:
+            raise FormAuthenticationFailed("Password field is missing")
+
+        return username_field, password_field
+
+    def doFormLogin(self, login_url, username_field=None, password_field=None, form_selector=""):
         raise FormAuthenticationNotSupported()
 
     # The following need to be implemented by the inheriting classes
@@ -112,6 +157,8 @@ class WebClient(object):
     def is_field_for_password(cls, field_name):
         return cls.is_field_match(field_name, cls.PASSWORDS_LIST)
 
+    def close(self):
+        pass
 
 class Http2LibClient(WebClient):
     """
@@ -203,7 +250,11 @@ class Http2LibClient(WebClient):
             self.headers['User-Agent'] = self.user_agent
 
         try:
-            self.response, self.content = http.request(url, 'GET', headers=self.headers)
+            with Timer() as timer:
+                self.response, self.content = http.request(url, 'GET', headers=self.headers)
+
+            self.response_time = timer.msecs
+
         except socket.timeout:
             raise RequestTimeout()
 
@@ -295,8 +346,12 @@ class MechanizeClient(WebClient):
         self.browser.addheaders = [('User-agent', self.user_agent)]
 
         try:
-            self.response = self.browser.open(url, timeout=self.timeout)
-            content = self.response.read()
+            with Timer() as timer:
+                self.response = self.browser.open(url, timeout=self.timeout)
+                content = self.response.read()
+
+            self.response_time = timer.msecs
+
             """
         except mechanize.HTTPError as e:
             raise ConnectionFailure(e)
@@ -306,7 +361,7 @@ class MechanizeClient(WebClient):
             if e.reason is not None and str(e.reason) == "timed out":
                 raise RequestTimeout()
             else:
-                raise ConnectionFailure(e)
+                raise ConnectionFailure(str(e), e)
 
         # Get the response code
         self.response_code = self.response.code
@@ -357,7 +412,7 @@ class MechanizeClient(WebClient):
 
         return None, None, None
 
-    def doFormLogin(self, login_url, username_field=None, password_field=None):
+    def doFormLogin(self, login_url, username_field=None, password_field=None, form_selector=""):
         try:
 
             self.browser = self.get_browser(self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass)
@@ -365,21 +420,7 @@ class MechanizeClient(WebClient):
             self.browser.open(login_url)
 
             # Detect the login form and fields if necessary
-            if username_field is None or password_field is None:
-                _, username_field_name, password_field_name = self.detectFormFields(login_url, self.proxy_type, self.proxy_server, self.proxy_port, self.proxy_user, self.proxy_pass, self.user_agent)
-
-                if username_field is None:
-                    username_field = username_field_name
-
-                if password_field is None:
-                    password_field = password_field_name
-
-            # Stop if some fields are missing
-            if username_field is None:
-                raise FormAuthenticationFailed("Username field is missing")
-
-            if password_field is None:
-                raise FormAuthenticationFailed("Password field is missing")
+            username_field, password_field = self.getFormFieldsIfNecessary(login_url, username_field, password_field)
 
             # Find the form with the username and password fields
             login_form = None

@@ -1,4 +1,55 @@
 # coding=utf-8
+"""
+This class includes the tests for Website Input.
+
+Below are the list of test-cases. The release where the related feature was included is in
+parenthesis:
+
+ * TestURLField: tests the URL field that is used in modular inputs
+ * TestDurationField: tests the duration field that is used in modular inputs
+ * TestWebInput: tests of the core of the WebInput an WebScraper classes
+ * TestWebInputCrawling: tests the ability to spider through several pages (2.0)
+ * TestRawContent: tests the returning of raw content (2.1)
+ * TestCustomSeparator: test the use of a custom separator between results (2.1)
+ * TestWebClient: tests the WebClient web client abstraction layer (4.4)
+ * TestBrowserRendering: tests the abilty to get content from a browser (3.0)
+ * TestBrowserRenderingFirefox: same as above but using Firefox (3.0)
+ * TestBrowserRenderingChrome: same as above but using Chrome (4.3)
+ * TestResultHashing: tests the ability to calculate a hash on the results (3.0)
+ * TestWebDriverClient: tests the client that wraps the Selenium web-driver (4.4)
+ * TestFormAuthentication: tests the use of forms style authentication (4.4)
+ * TestFormAuthenticationFirefox: same as above but using Firefox (4.5)
+ * TestFormAuthenticationChrome: same as above but using Chrome (4.5)
+
+Below are some details regarding how you can run these tests:
+
+ 1) Running tests selectively from the CLI
+    You can run individual tests from the command-line by passing in the name of the test suite
+    or the test in order to run only part of the tests, like this:
+
+         splunk_py unit.py TestFormAuthenticationChrome
+
+         splunk_py unit.py TestWebInput.test_input_timeout
+
+    Note that tests need to be run from the "tests" directory.
+
+  2) Running tests only for particular browsers
+     By default, the test suite will run all tests inckuding those for Firefox and Chrome. These
+     other browsers require you to have them installed. If you want to avoid running tests against
+     one or more of these browsers then you can set the TEST_BROWSERS environment variable with a
+     list of the browsers you want to run against.
+
+     Below is a an example of setting TEST_BROWSERS in bash such that tests run against Firefox
+     only (avoiding the Chrome tests):
+
+        export TEST_BROWSERS=firefox
+
+     Below is a an example that runs tests against both Firefox and Chrome (BTW: this is default
+     behavior the occurs when TEST_BROWSERS isn't set at all)
+
+        export TEST_BROWSERS=firefox,chrome
+"""
+
 import unittest
 import sys
 import os
@@ -22,6 +73,7 @@ sys.path.append(os.path.join("..", "src", "bin", "website_input_app"))
 
 from web_input import URLField, DurationField, SelectorField, WebInput, WebScraper
 from web_client import MechanizeClient
+from web_driver_client import WebDriverClient, FirefoxClient, ChromeClient
 from website_input_app.modular_input import Field, FieldValidationException
 from unit_test_web_server import UnitTestWithWebServer, skipIfNoServer
 
@@ -451,21 +503,6 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(result['prefix_string'][1], "DEF")
         self.assertEqual(result['prefix_string'][2], "GHI")
 
-    def test_add_auth_to_url(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com:8888", "admin", "changeme"), "http://admin:changeme@tree.com:8888")
-
-    def test_add_auth_to_url_existing_user_pass(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://user:abc1234@tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
-
-    def test_add_auth_to_url_no_username(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", None, "changeme"), "http://tree.com")
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "", "changeme"), "http://tree.com")
-
-    def test_add_auth_to_url_no_password(self):
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "admin", None), "http://tree.com")
-        self.assertEqual(WebScraper.add_auth_to_url("http://tree.com", "admin", ""), "http://tree.com")
-
 class TestWebInputCrawling(unittest.TestCase):
     """
     http://lukemurphey.net/issues/762
@@ -670,13 +707,40 @@ class TestCustomSeparator(UnitTestWithWebServer):
     def test_append_if_neither_has_value(self):
         self.assertEqual(WebScraper.append_if_not_empty("", "", ":"), "")
 
-class TestBrowserRendering(UnitTestWithWebServer):
+class TestWebClient(UnitTestWithWebServer):
     """
-    http://lukemurphey.net/issues/1323
+    This is a class that supports running different web-clients for testing.
     """
 
     # Override this to test other browsers too (like Firfox)
     BROWSER = WebScraper.INTEGRATED_CLIENT # By default, test the internal browser
+
+    def get_client(self, browser):
+        if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
+            return MechanizeClient(5)
+        elif self.BROWSER == WebScraper.FIREFOX:
+            return FirefoxClient(5)
+        elif self.BROWSER == WebScraper.CHROME:
+            return ChromeClient(5)
+        else:
+            raise Exception("Browser not recognized")
+
+    def setUp(self):
+        browsers_to_test = os.environ.get('TEST_BROWSERS', None)
+
+        if browsers_to_test is None:
+            # Test them all
+            pass
+        elif self.BROWSER == WebScraper.INTEGRATED_CLIENT:
+            # Always run the internal client since it has no external dependencies
+            pass
+        elif not (self.BROWSER in browsers_to_test):
+            self.skipTest("Skipping this browser since it is not listed as a browser to test: " + self.BROWSER)
+
+class TestBrowserRendering(TestWebClient):
+    """
+    http://lukemurphey.net/issues/1323
+    """
 
     @skipIfNoServer
     def test_scrape_page(self):
@@ -684,7 +748,7 @@ class TestBrowserRendering(UnitTestWithWebServer):
         selector_field = SelectorField("test_custom_separator", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page( url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python("h1"), output_matches_as_mv=True, browser=self.BROWSER)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python("h1"), output_matches_as_mv=True, browser=self.BROWSER)
         result = results[0]
 
         self.assertEqual(len(results), 1)
@@ -698,12 +762,17 @@ class TestBrowserRendering(UnitTestWithWebServer):
         if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
             return
 
-        url_field = URLField("test_web_input", "title", "this is a test")
+        client = None
 
-        web_scraper = WebScraper(timeout=2)
-        content = web_scraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), browser=self.BROWSER)
+        try:
+            client = self.get_client(self.BROWSER)
+            content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/html")
 
-        self.assertEqual(content[0:5], '<html')
+            self.assertEqual(content[0:5], '<html')
+
+        finally:
+            if client is not None:
+                client.close()
 
     @skipIfNoServer
     def test_get_result_basic_auth(self):
@@ -712,12 +781,17 @@ class TestBrowserRendering(UnitTestWithWebServer):
         if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
             return
 
-        url_field = URLField("test_web_input", "title", "this is a test")
+        client = None
 
-        web_scraper = WebScraper(timeout=2)
-        content = web_scraper.get_result_browser(url_field.to_python("http://admin:changeme@127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER)
+        try:
+            client = self.get_client(self.BROWSER)
+            content = client.get_url("http://admin:changeme@127.0.0.1:" + str(self.web_server_port) + "/")
 
-        self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
+            self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
+
+        finally:
+            if client is not None:
+                client.close()
 
     @skipIfNoServer
     def test_get_result_basic_auth_as_args(self):
@@ -726,13 +800,25 @@ class TestBrowserRendering(UnitTestWithWebServer):
         if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
             return
 
-        url_field = URLField("test_web_input", "title", "this is a test")
+        client = None
 
-        web_scraper = WebScraper(timeout=2)
-        web_scraper.set_authentication("admin", "changeme")
-        content = web_scraper.get_result_browser(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/"), browser=self.BROWSER)
+        try:
+            client = self.get_client(self.BROWSER)
+            client.setCredentials("admin", "changeme")
+            content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/")
 
-        self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
+            self.assertGreaterEqual(content.find("Basic YWRtaW46Y2hhbmdlbWU=authenticated!"), 0)
+
+        finally:
+            if client is not None:
+                client.close()
+
+
+class TestBrowserRenderingFirefox(TestBrowserRendering):
+    BROWSER = WebScraper.FIREFOX
+
+class TestBrowserRenderingChrome(TestBrowserRendering):
+    BROWSER = WebScraper.CHROME
 
 class TestResultHashing(unittest.TestCase):
     """
@@ -941,10 +1027,24 @@ class TestResultHashing(unittest.TestCase):
             "048f88e05df4c32adb4309285c7069c3689228b8d4cf4d7f5f58b26e"
         )
 
-class TestBrowserRenderingFirefox(TestBrowserRendering):
-    BROWSER = WebScraper.FIREFOX
+class TestWebDriverClient(unittest.TestCase):
 
-class TestFormAuthentication(UnitTestWithWebServer):
+    def test_add_auth_to_url(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com:8888", "admin", "changeme"), "http://admin:changeme@tree.com:8888")
+
+    def test_add_auth_to_url_existing_user_pass(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://user:abc1234@tree.com", "admin", "changeme"), "http://admin:changeme@tree.com")
+
+    def test_add_auth_to_url_no_username(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", None, "changeme"), "http://tree.com")
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "", "changeme"), "http://tree.com")
+
+    def test_add_auth_to_url_no_password(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", None), "http://tree.com")
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", ""), "http://tree.com")
+
+class TestFormAuthentication(TestWebClient):
     """
     http://lukemurphey.net/issues/758
     """
@@ -959,7 +1059,7 @@ class TestFormAuthentication(UnitTestWithWebServer):
         web_scraper = WebScraper(timeout=3)
         web_scraper.set_authentication("admin", "changeme", authentication_url, "username", "password")
 
-        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"))
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"), browser=self.BROWSER)
         result = results[0]
 
         self.assertEqual(len(results), 1)
@@ -975,32 +1075,45 @@ class TestFormAuthentication(UnitTestWithWebServer):
         web_scraper = WebScraper(timeout=3)
         web_scraper.set_authentication("admin", "changeme", authentication_url, "username", "password")
 
-        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"), page_limit=5)
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"), page_limit=5, browser=self.BROWSER)
         result = results[0]
 
         self.assertEqual(len(results), 4)
         self.assertEqual(result['match'][0], "Auth success")
 
     def test_detect_form_fields(self):
-        client = MechanizeClient(5)
+        client = self.get_client(self.BROWSER)
         _, username_field, password_field = client.detectFormFields("http://127.0.0.1:" + str(self.web_server_port) + "/login")
 
         self.assertEqual(username_field, 'username')
         self.assertEqual(password_field, 'password')
 
     def test_detect_form_fields_overlapping_names(self):
-        client = MechanizeClient(5)
+        client = self.get_client(self.BROWSER)
         _, username_field, password_field = client.detectFormFields("http://127.0.0.1:" + str(self.web_server_port) + "/login_overlapping_names")
 
         self.assertEqual(username_field, 'form_userName')
         self.assertEqual(password_field, 'form_userPassword')
 
     def test_form_auto_discover_form_fields(self):
-        client = MechanizeClient(5)
+        client = self.get_client(self.BROWSER)
         client.setCredentials("admin", "changeme")
         client.doFormLogin("http://127.0.0.1:" + str(self.web_server_port) + "/login")
 
         self.assertEqual(client.is_logged_in, True)
+        
+    def test_form_fields(self):
+        client = self.get_client(self.BROWSER)
+        client.setCredentials("admin", "changeme")
+        client.doFormLogin("http://127.0.0.1:" + str(self.web_server_port) + "/login", "username", "password")
+
+        self.assertEqual(client.is_logged_in, True)
+
+        content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
+        
+        client.close()
+
+        self.assertTrue("<h1>Auth success</h1>" in content)
 
     def test_form_auth_auto_discover_form_fields(self):
         url_field = URLField("test_web_input", "title", "this is a test")
@@ -1012,33 +1125,31 @@ class TestFormAuthentication(UnitTestWithWebServer):
         web_scraper = WebScraper(timeout=3)
         web_scraper.set_authentication("admin", "changeme", authentication_url)
 
-        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"))
+        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"), browser=self.BROWSER)
         result = results[0]
 
         self.assertEqual(len(results), 1)
         self.assertEqual(result['match'][0], "Auth success")
 
-    def test_form_auth_auto_discover_form_fields(self):
-        url_field = URLField("test_web_input", "title", "this is a test")
-        selector_field = SelectorField("test_custom_separator", "title", "this is a test")
+class TestFormAuthenticationFirefox(TestFormAuthentication):
+    """
+    http://lukemurphey.net/issues/1968
+    """
 
-        data_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
-        authentication_url = url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/login")
+    BROWSER = WebScraper.FIREFOX
 
-        web_scraper = WebScraper(timeout=3)
-        web_scraper.set_authentication("admin", "changeme", authentication_url)
+class TestFormAuthenticationChrome(TestFormAuthentication):
+    """
+    http://lukemurphey.net/issues/1968
+    """
 
-        results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"))
-        result = results[0]
-
-        self.assertEqual(len(results), 1)
-        self.assertEqual(result['match'][0], "Auth success")
-
+    BROWSER = WebScraper.CHROME
 
 if __name__ == "__main__":
     try:
         unittest.main(exit=True)
 
     finally:
-        # Shutdown the server. Note that it should shutdown automatically since it is a daemon thread but this code will ensure it is stopped too.
+        # Shutdown the server. Note that it should shutdown automatically since it is a daemon
+        # thread but this code will ensure it is stopped too.
         UnitTestWithWebServer.shutdownServer()
