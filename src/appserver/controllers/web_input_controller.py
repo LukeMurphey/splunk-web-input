@@ -6,6 +6,7 @@ from inputs. There are two main functions that this controller provides:
                 output to make sure it looks like the expected output.
    load_page: this proxies an HTTP request so that the browser can circumvent the cross-domain
               protections that would otherwise not allow Javascript to be added to the page.
+   test_browser: this checks to see if the given browser works
    
 """
 
@@ -33,6 +34,7 @@ sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 
 from web_input import WebInput, WebScraper
 from website_input_app.web_client import DefaultWebClient, MechanizeClient, LoginFormNotFound, FormAuthenticationFailed
+from website_input_app.web_driver_client import FirefoxClient, ChromeClient
 from website_input_app.modular_input import FieldValidationException, ModularInput
 from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 
@@ -192,7 +194,6 @@ class WebInputController(controllers.BaseController):
             #    to use this as a general proxy.
             # --------------------------------------
             if not WebInputController.hasCapability('edit_modinput_web_input'):
-
                 return self.render_error_html('You need the "edit_modinput_web_input" capability ' +
                                               'to make website inputs')
 
@@ -238,8 +239,20 @@ class WebInputController(controllers.BaseController):
             # Get the user-agent
             user_agent = kwargs.get('user_agent', None)
 
+            # Get the information on the browser to use
+            browser = None
+
+            if 'browser' in kwargs:
+                browser = kwargs['browser']
+
             # Make the client
-            web_client = DefaultWebClient(timeout, user_agent, logger)
+            if browser is None or browser == WebScraper.INTEGRATED_CLIENT:
+                web_client = DefaultWebClient(timeout, user_agent, logger)
+            elif browser == WebScraper.FIREFOX:
+                web_client = FirefoxClient(timeout, user_agent, logger)
+            elif browser == WebScraper.CHROME:
+                web_client = ChromeClient(timeout, user_agent, logger)
+            
             web_client.setProxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
 
             # Get the username and password
@@ -263,16 +276,21 @@ class WebInputController(controllers.BaseController):
                 if authentication_url is not None:
                     logger.debug("Authenticating using form login in scrape_page")
                     web_client.doFormLogin(authentication_url, username_field, password_field)
-                    
-                    parsed_authentication_url = urlparse.urlparse(authentication_url)
 
             # Get the page
-            content = web_client.get_url(url, 'GET')
-            response = web_client.get_response_headers()
+            try:
+                content = web_client.get_url(url, 'GET')
+                response = web_client.get_response_headers()
+            except:
+                logger.exception("Exception generated while attempting to content for url=%s", url)
+
+                cherrypy.response.status = 500
+                return self.render_error_html("Page preview could not be created using a web-browser")
 
             # --------------------------------------
             # 4: Render the content with the browser if necessary
             # --------------------------------------
+            """
             if 'text/html' in response['content-type']:
 
                 # Get the information on the browser to use
@@ -296,10 +314,12 @@ class WebInputController(controllers.BaseController):
 
                     cherrypy.response.status = 500
                     return self.render_error_html("Page preview could not be created using a web-browser")
+            """
 
             # --------------------------------------
             # 5: Rewrite the links in HTML files so that they also point to the internal proxy
             # --------------------------------------
+            if "<html" in content:
 
                 # Parse the content
                 html = lxml.html.document_fromstring(content)
@@ -378,7 +398,8 @@ class WebInputController(controllers.BaseController):
             # --------------------------------------
             if response.get('content-type', "") == "application/javascript" \
                or response.get('content-type', "") == "application/x-javascript" \
-               or response.get('content-type', "") == "text/javascript":
+               or response.get('content-type', "") == "text/javascript" \
+               or url.endswith(".js"):
 
                 return ""
 
