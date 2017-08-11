@@ -120,7 +120,19 @@ define([
     	    	return String(bytes) + " bytes";
     	    }
     	},
-        
+		
+		/**
+         * Provide a default value if the original value is undefined, null, or blank
+         */
+        defaultIfBlank: function(orig_value, default_value){
+			if(orig_value === undefined || orig_value === null || orig_value === ""){
+				return default_value;
+			}
+			else{
+				return orig_value;
+			}
+		},
+
         /**
          * Update the preview.
          */
@@ -208,7 +220,8 @@ define([
             		'render_dialog_too' : !this.dialog_rendered,
             		'page' : this.page,
             		'error_message' : this.error_message,
-            		'has_fields' : this.hasFields(this.results, this.page)
+					'has_fields' : this.hasFields(this.results, this.page),
+					'defaultIfBlank' : this.defaultIfBlank.bind(this)
             };
         	
         	// Render the HTML

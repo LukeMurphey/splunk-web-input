@@ -38,7 +38,7 @@
     		
 	    	<ul class="list-dotted">
 		    	<dt>Response Code:</dt>
-		    	<dd><%- results[page]['response_code'] %></dd>
+		    	<dd><%- defaultIfBlank(results[page]['response_code'], "NA") %></dd>
 		    	
 		    	<dt>Response Time:</dt>
 		    	<dd><%- getHumanReadableResponseTime(results[page]['request_time']) %></dd>
@@ -47,7 +47,7 @@
 		    	<dd><%- getHumanReadableBytes(results[page]['response_size']) %></dd>
 		    	
 		    	<dt>Encoding:</dt>
-		    	<dd><%- results[page]['encoding'] %></dd>
+		    	<dd><%- defaultIfBlank(results[page]['encoding'], "NA") %></dd>
 		    	
 		    	<dt>URL:</dt>
 		    	<dd><a href="<%- results[page]['url'] %>" target="_blank"><%- results[page]['url'] %></a></dd>
