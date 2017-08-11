@@ -48,6 +48,18 @@ Below are some details regarding how you can run these tests:
      behavior the occurs when TEST_BROWSERS isn't set at all)
 
         export TEST_BROWSERS=firefox,chrome
+
+  3) Outputting test results in JUnit format (so that CI tools can read them)
+     You have the test script create output in JUnit format by setting the file name where you want
+     the output to go.
+     
+     Below is an example of setting TEST_OUTPUT in bash that will cause the tester to output the
+     results in "tmp/results.xml": 
+
+        export TEST_OUTPUT=tmp/results.xml
+
+    Note that the paths are relative to the root of the source-code directory.
+
 """
 
 import unittest
@@ -1137,11 +1149,33 @@ class TestFormAuthenticationChrome(TestFormAuthentication):
     BROWSER = WebScraper.CHROME
 
 if __name__ == "__main__":
+
+    tests_ran = False
+
     try:
-        with open('../tmp/results.xml', 'wb') as output:
-            unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output), exit=True)
-    except NameError:
-        unittest.main(exit=True)
+        # Get the location of where to put the test output (e.g. "tmp/results.xml")
+        test_output = os.environ.get('TEST_OUTPUT', None)
+
+        # If we have a filename, then output the test results to that location
+        if test_output is not None and test_output != "":
+            
+            # Make the path act as if it is from the root of the code directory
+            test_output_filename = os.path.join("..", test_output)
+
+            try:
+                with open(test_output_filename, 'wb') as output:
+                    unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output), exit=True)
+
+                tests_ran = True
+
+            except NameError:
+                # If we get a name-error, then that means the xmlrunner library isn't available.
+                # For now, just keep going. We will just run the normal test runner later.
+                pass
+
+        # The XMLTestRunner wasn't executed. Run the tests via the normal test runner.
+        if not tests_ran:
+            unittest.main(exit=True)
 
     finally:
         # Shutdown the server. Note that it should shutdown automatically since it is a daemon
