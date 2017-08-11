@@ -1,4 +1,55 @@
 # coding=utf-8
+"""
+This class includes the tests for Website Input.
+
+Below are the list of test-cases. The release where the related feature was included is in
+parenthesis:
+
+ * TestURLField: tests the URL field that is used in modular inputs
+ * TestDurationField: tests the duration field that is used in modular inputs
+ * TestWebInput: tests of the core of the WebInput an WebScraper classes
+ * TestWebInputCrawling: tests the ability to spider through several pages (2.0)
+ * TestRawContent: tests the returning of raw content (2.1)
+ * TestCustomSeparator: test the use of a custom separator between results (2.1)
+ * TestWebClient: tests the WebClient web client abstraction layer (4.4)
+ * TestBrowserRendering: tests the abilty to get content from a browser (3.0)
+ * TestBrowserRenderingFirefox: same as above but using Firefox (3.0)
+ * TestBrowserRenderingChrome: same as above but using Chrome (4.3)
+ * TestResultHashing: tests the ability to calculate a hash on the results (3.0)
+ * TestWebDriverClient: tests the client that wraps the Selenium web-driver (4.4)
+ * TestFormAuthentication: tests the use of forms style authentication (4.4)
+ * TestFormAuthenticationFirefox: same as above but using Firefox (4.5)
+ * TestFormAuthenticationChrome: same as above but using Chrome (4.5)
+
+Below are some details regarding how you can run these tests:
+
+ 1) Running tests selectively from the CLI
+    You can run individual tests from the command-line by passing in the name of the test suite
+    or the test in order to run only part of the tests, like this:
+
+         splunk_py unit.py TestFormAuthenticationChrome
+
+         splunk_py unit.py TestWebInput.test_input_timeout
+
+    Note that tests need to be run from the "tests" directory.
+
+  2) Running tests only for particular browsers
+     By default, the test suite will run all tests inckuding those for Firefox and Chrome. These
+     other browsers require you to have them installed. If you want to avoid running tests against
+     one or more of these browsers then you can set the TEST_BROWSERS environment variable with a
+     list of the browsers you want to run against.
+
+     Below is a an example of setting TEST_BROWSERS in bash such that tests run against Firefox
+     only (avoiding the Chrome tests):
+
+        export TEST_BROWSERS=firefox
+
+     Below is a an example that runs tests against both Firefox and Chrome (BTW: this is default
+     behavior the occurs when TEST_BROWSERS isn't set at all)
+
+        export TEST_BROWSERS=firefox,chrome
+"""
+
 import unittest
 import sys
 import os
@@ -762,6 +813,13 @@ class TestBrowserRendering(TestWebClient):
             if client is not None:
                 client.close()
 
+
+class TestBrowserRenderingFirefox(TestBrowserRendering):
+    BROWSER = WebScraper.FIREFOX
+
+class TestBrowserRenderingChrome(TestBrowserRendering):
+    BROWSER = WebScraper.CHROME
+
 class TestResultHashing(unittest.TestCase):
     """
     https://lukemurphey.net/issues/1806
@@ -968,12 +1026,6 @@ class TestResultHashing(unittest.TestCase):
             self.web_input.hash_data(data, ["C"]),
             "048f88e05df4c32adb4309285c7069c3689228b8d4cf4d7f5f58b26e"
         )
-
-class TestBrowserRenderingFirefox(TestBrowserRendering):
-    BROWSER = WebScraper.FIREFOX
-
-class TestBrowserRenderingChrome(TestBrowserRendering):
-    BROWSER = WebScraper.CHROME
 
 class TestWebDriverClient(unittest.TestCase):
 
