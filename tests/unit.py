@@ -754,13 +754,15 @@ class TestWebClient(UnitTestWithWebServer):
         elif self.BROWSER == WebScraper.INTEGRATED_CLIENT:
             # Always run the internal client since it has no external dependencies
             pass
-        elif not (self.BROWSER in browsers_to_test):
+        elif not self.BROWSER in browsers_to_test:
             self.skipTest("Skipping this browser since it is not listed as a browser to test: " + self.BROWSER)
 
     def tearDown(self):
         if self.client is not None:
-            client.close()
-            client = None
+            self.client.close()
+            self.client = None
+
+        super(TestWebClient, self).tearDown()
 
 class TestBrowserRendering(TestWebClient):
     """
