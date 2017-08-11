@@ -28,12 +28,15 @@ password = <value>
 ##################
 username_field = <value>
 * The name of the username field on the login form
+* If undefined, the input will try to find the username field automatically
 
 password_field = <value>
 * The name of the password field on the login form
+* If undefined, the input will try to find the password field automatically
 
 authentication_url = <value>
 * The URL of the login form
+* If defined, the input will user the username and password fields to do form authentication
 
 ##################
 # Output options
