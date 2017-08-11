@@ -826,21 +826,6 @@ class WebScraper(object):
 
         return links
 
-    def get_result_built_in_client(self, web_client, url):
-        """
-        Get the results using the built-in client.
-
-        Arguments:
-        web_client -- The web-client to use (an instance of WebClient)
-        url -- The url to connect to. This object ought to be an instance derived from using
-               urlparse
-        """
-        content = web_client.get_url(url.geturl())
-
-        encoding = self.detect_encoding(content, web_client.get_response_headers())
-
-        return web_client.response_code, content, encoding
-
     def get_result_single(self, web_client, url, selector, name_attributes=[], output_matches_as_mv=True, output_matches_as_separate_fields=False, include_empty_matches=False, use_element_name=False, extracted_links=None, url_filter=None, source_url_depth=0, include_raw_content=False, text_separator=None, browser=None, additional_fields=None, match_prefix=None, empty_value=None, https_only=False):
         """
         Get the results from performing a HTTP request and parsing the output.
