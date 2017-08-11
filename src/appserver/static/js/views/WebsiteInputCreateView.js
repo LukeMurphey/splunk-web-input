@@ -312,7 +312,12 @@ define([
         			'index' : null,
         			'title' : null,
         			'name' : null,
-					'output_results' : null
+					'output_results' : null,
+					'username' : null,
+					'password' : null,
+					'username_field' : null,
+					'password_field' : null,
+					'authentication_url' : null
         	};
         	
         	// Make a list of the default arguments. If the argument match, then will be excluded from the search string (in order to make it simpler)
@@ -325,8 +330,8 @@ define([
         			 'raw_content' : '0',
         			 'output_as_mv' : '1',
         			 'use_element_name' : '0'
-        	};
-        	
+			};
+
         	// Make up the arguments
 			for(var k in config){
 				
