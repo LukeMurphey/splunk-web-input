@@ -350,6 +350,10 @@ class MechanizeClient(WebClient):
                 try:
                     self.response = self.browser.open(url, timeout=self.timeout)
                 except mechanize.HTTPError, self.response:
+                    # This excepts the HTTP error that can occur for authentication failures.
+                    # We want to ignore the exception and keep moving so that the response can be
+                    # examined.
+                    # See http://bit.ly/2vrkCIq
                     pass
 
                 content = self.response.read()
