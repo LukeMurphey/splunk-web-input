@@ -55,7 +55,7 @@ def setup_logger(level):
     logger.addHandler(file_handler)
     return logger
 
-logger = setup_logger(logging.INFO)
+logger = setup_logger(logging.DEBUG)
 
 class WebInputController(controllers.BaseController):
     '''
@@ -408,9 +408,11 @@ class WebInputController(controllers.BaseController):
             return content
 
         except LoginFormNotFound:
+            logger.debug("Login form not found")
             return self.render_error_html("Login form was not found")
 
         except FormAuthenticationFailed as e:
+            logger.debug("Form authentication failed: " + str(e))
             return self.render_error_html("Form authentication failed: " + str(e))
 
         except:
