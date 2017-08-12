@@ -177,12 +177,13 @@ class WebDriverClient(WebClient):
 
         # Detect the login form and fields if necessary
         username_field, password_field = self.getFormFieldsIfNecessary(login_url, username_field, password_field)
+        self.logger.debug("Detected username and password fields: %s, %s", username_field, password_field)
 
         self.cookies = None
         self.is_logged_in = False
 
         # Load the login form
-        self.get_url(login_url, retain_driver=True)
+        content = self.get_url(login_url, retain_driver=True)
 
         # Fill out the username and password
         try:
@@ -199,7 +200,9 @@ class WebDriverClient(WebClient):
 
         # Find the form to submit
         try:
-            form = self.driver.find_element_by_css_selector(form_selector + ' input[type="submit"]')
+            form = self.driver.find_element_by_css_selector(form_selector + ' input[type="submit"], ' + form_selector + ' button[type="submit"]')
+        except NoSuchElementException:
+            raise FormAuthenticationFailed("Form field submit ould not be found for form")
         except Exception as exception:
             raise LoginFormNotFound(cause=exception)
 
