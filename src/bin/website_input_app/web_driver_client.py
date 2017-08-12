@@ -12,14 +12,16 @@ from urlparse import urlunsplit, urlsplit
 import time
 import platform
 import sys
+import urllib
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
 
-from web_client import WebClient, DEFAULT_USER_AGENT, LoginFormNotFound, FormAuthenticationFailed
-from timer import Timer
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from pyvirtualdisplay import Display
 from easyprocess import EasyProcessCheckInstalledError
+from web_client import WebClient, DEFAULT_USER_AGENT, LoginFormNotFound, FormAuthenticationFailed
+from timer import Timer
 
 class WebDriverClient(WebClient):
     """
@@ -65,7 +67,6 @@ class WebDriverClient(WebClient):
             if logger:
                 logger.debug("Updating path to include selenium driver path=%s, working_path=%s", full_driver_path, os.getcwd())
 
-
     @classmethod
     def add_auth_to_url(cls, url, username, password):
         """
@@ -90,9 +91,9 @@ class WebDriverClient(WebClient):
 
             # Replace the netloc with one that contains the username and password. Note that this will drop the existing username and password if it exists
             if u.port is None: #(u.port == 80 and u.scheme == "http") or (u.port == 443 and u.scheme == "https"):
-                split[1] = username + ":" + password + "@" + u.hostname
+                split[1] = username + ":" + urllib.quote_plus(password) + "@" + u.hostname
             else:
-                split[1] = username + ":" + password + "@" + u.hostname + ":" + str(u.port)
+                split[1] = username + ":" + urllib.quote_plus(password) + "@" + u.hostname + ":" + str(u.port)
 
             return urlunsplit(split)
         else:
@@ -102,7 +103,12 @@ class WebDriverClient(WebClient):
 
         # Load the page
         with Timer() as timer:
-            driver.get(self.add_auth_to_url(url, self.username, self.password))
+
+            # If we are already logged in (using form authentication), then don't update the URL
+            if not self.is_logged_in:
+                driver.get(self.add_auth_to_url(url, self.username, self.password))
+            else:
+                driver.get(url)
 
         self.response_time = timer.msecs
 
@@ -179,11 +185,17 @@ class WebDriverClient(WebClient):
         self.get_url(login_url, retain_driver=True)
 
         # Fill out the username and password
-        username_field_element = self.driver.find_element_by_name(username_field)
-        username_field_element.send_keys(self.username)
+        try:
+            username_field_element = self.driver.find_element_by_name(username_field)
+            username_field_element.send_keys(self.username)
+        except NoSuchElementException:
+            raise FormAuthenticationFailed("Username field could not be found: " + username_field)
 
-        password_field_element = self.driver.find_element_by_name(password_field)
-        password_field_element.send_keys(self.password)
+        try:
+            password_field_element = self.driver.find_element_by_name(password_field)
+            password_field_element.send_keys(self.password)
+        except NoSuchElementException:
+            raise FormAuthenticationFailed("Password field could not be found: " + password_field)
 
         # Find the form to submit
         try:
