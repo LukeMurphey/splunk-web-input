@@ -1049,6 +1049,9 @@ class TestWebDriverClient(unittest.TestCase):
         self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", None), "http://tree.com")
         self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", ""), "http://tree.com")
 
+    def test_add_auth_to_url_weird_password(self):
+        self.assertEqual(WebDriverClient.add_auth_to_url("http://tree.com", "admin", "/#[zPc"), "http://admin:%2F%23%5BzPc@tree.com")
+
 class TestFormAuthentication(TestWebClient):
     """
     http://lukemurphey.net/issues/758
