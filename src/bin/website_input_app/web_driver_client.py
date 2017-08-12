@@ -91,9 +91,9 @@ class WebDriverClient(WebClient):
 
             # Replace the netloc with one that contains the username and password. Note that this will drop the existing username and password if it exists
             if u.port is None: #(u.port == 80 and u.scheme == "http") or (u.port == 443 and u.scheme == "https"):
-                split[1] = username + ":" + urllib.quote_plus(password) + "@" + u.hostname
+                split[1] = urllib.quote_plus(username) + ":" + urllib.quote_plus(password) + "@" + u.hostname
             else:
-                split[1] = username + ":" + urllib.quote_plus(password) + "@" + u.hostname + ":" + str(u.port)
+                split[1] = urllib.quote_plus(username) + ":" + urllib.quote_plus(password) + "@" + u.hostname + ":" + str(u.port)
 
             return urlunsplit(split)
         else:
