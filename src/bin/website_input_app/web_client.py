@@ -347,15 +347,15 @@ class MechanizeClient(WebClient):
 
         try:
             with Timer() as timer:
-                self.response = self.browser.open(url, timeout=self.timeout)
+                try:
+                    self.response = self.browser.open(url, timeout=self.timeout)
+                except mechanize.HTTPError, self.response:
+                    pass
+
                 content = self.response.read()
 
             self.response_time = timer.msecs
 
-            """
-        except mechanize.HTTPError as e:
-            raise ConnectionFailure(e)
-            """
         except urllib2.URLError as e:
             # Make sure the exception is a timeout
             if e.reason is not None and str(e.reason) == "timed out":
