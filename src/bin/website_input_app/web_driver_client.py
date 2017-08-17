@@ -177,7 +177,9 @@ class WebDriverClient(WebClient):
 
         # Detect the login form and fields if necessary
         username_field, password_field = self.getFormFieldsIfNecessary(login_url, username_field, password_field)
-        self.logger.debug("Detected username and password fields: %s, %s", username_field, password_field)
+        
+        if self.logger is not None:
+            self.logger.debug("Detected username and password fields: %s, %s", username_field, password_field)
 
         self.cookies = None
         self.is_logged_in = False
