@@ -108,41 +108,46 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
         encoded_password = base64.b64encode(username + ":" + password)
 
+        if self.path is not None:
+            basepath = self.path.split("?")[0]
+        else:
+            basepath = None
+
         # No path provided
-        if self.path is None:
+        if basepath is None:
             pass
 
         # Present header reflection page
-        elif self.path == "/header_reflection":
+        elif basepath == "/header_reflection":
             self.do_HEAD()
             self.wfile.write('<html><body><div class="user-agent">%s</div></body></html>' % str(self.headers['user-agent']))
 
         # Present XML file
-        elif self.path == "/xml":
+        elif basepath== "/xml":
             self.do_HEAD()
             with open(os.path.join("web_files", "file.xml"), "r") as webfile:
                 self.wfile.write(webfile.read())
 
         # Present HTML file
-        elif self.path == "/html":
+        elif basepath == "/html":
             self.do_HEAD()
             with open(os.path.join("web_files", "simple.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
 
         # Present HTML file for login
-        elif self.path == "/login":
+        elif basepath == "/login":
             self.do_HEAD()
             with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
 
         # Present HTML file for login with overlapping field names
-        elif self.path == "/login_overlapping_names":
+        elif basepath == "/login_overlapping_names":
             self.do_HEAD()
             with open(os.path.join("web_files", "login_form_overlapping_names.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
 
         # Present the authenticated form
-        elif self.path == "/authenticated":
+        elif basepath == "/authenticated":
             if self.is_authenticated():
                 self.do_HEAD()
                 with open(os.path.join("web_files", "authenticated.html"), "r") as webfile:
@@ -152,7 +157,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
                 with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
                     self.wfile.write(webfile.read())
 
-        elif self.path == "/favicon.ico":
+        elif basepath == "/favicon.ico":
             self.do_NOTFOUND()
 
         # Present frontpage with user authentication.

@@ -1084,10 +1084,12 @@ class TestFormAuthentication(TestWebClient):
         web_scraper.set_authentication("admin", "changeme", authentication_url, "username", "password")
 
         results = web_scraper.scrape_page(data_url, selector_field.to_python("h1"), page_limit=5, browser=self.BROWSER)
-        result = results[0]
 
         self.assertEqual(len(results), 4)
-        self.assertEqual(result['match'][0], "Auth success")
+        self.assertEqual(results[0]['match'][0], "Auth success")
+        self.assertEqual(results[1]['match'][0], "Auth success")
+        self.assertEqual(results[2]['match'][0], "Auth success")
+        self.assertEqual(results[3]['match'][0], "Auth success")
 
     def test_detect_form_fields(self):
         client = self.get_client(self.BROWSER)
