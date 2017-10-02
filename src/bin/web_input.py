@@ -8,7 +8,7 @@ The classes included are:
 """
 
 from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
-from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
+from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField, forgive_splunkd_outages
 from website_input_app.timer import Timer
 from website_input_app.web_client import LoginFormNotFound, FormAuthenticationFailed, WebClientException
 from website_input_app.web_scraper import WebScraper
@@ -143,6 +143,7 @@ class WebInput(ModularInput):
 
         return os.path.join(checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json")
 
+    @forgive_splunkd_outages
     def get_proxy_config(self, session_key, stanza="default"):
         """
         Get the proxy configuration

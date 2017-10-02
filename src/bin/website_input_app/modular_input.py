@@ -125,9 +125,22 @@ import json
 from urlparse import urlparse
 from threading import RLock
 
-from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
-from splunk.util import normalizeBoolean as normBool
-import splunk.rest
+# Try to load Splunk's libraries. An inability to do so likely means we are running on a universal
+# forwarder (since it doesn't include Python). We will proceed but will be unable to access
+# Splunk's endpoints via simple request which means we will not able to load secure credentials.
+try:
+    from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
+    from splunk.util import normalizeBoolean as normBool
+    import splunk.rest
+    uf_mode = False
+except:
+    def normBool(value):
+        if str(value).strip().lower() in ['1', 'true']:
+            return True
+        else:
+            return False
+
+    uf_mode = True
 
 class FieldValidationException(Exception):
     pass
@@ -230,7 +243,6 @@ class Field(object):
 
         return str(value)
 
-
 class BooleanField(Field):
     """
     A validator that converts string versions of boolean to a real boolean.
@@ -306,9 +318,9 @@ class StaticListField(Field):
         self._valid_values = values
 
     def to_python(self, value, session_key=None):
-        
+
         Field.to_python(self, value, session_key)
-        
+
         if value is None:
             return None
         elif value not in self.valid_values:
@@ -664,6 +676,38 @@ class ModularInputConfig():
         return ModularInputConfig(server_host, server_uri, session_key, checkpoint_dir,
                                   configuration)
 
+def forgive_splunkd_outages(function):
+    """
+    Try the given function and swallow Splunkd connection exceptions until the limit is reached or
+    the function works.
+
+    Arguments:
+    function -- The function to call
+    """
+    def wrapper(*args, **kwargs):
+        """
+        This wrapper will provide the swallowing of the exception for the provided function call.
+        """
+        attempts = 6
+        attempt_delay = 5
+
+        attempts_tried = 0
+
+        while attempts_tried < attempts:
+            try:
+                return function(*args, **kwargs)
+            except splunk.SplunkdConnectionException:
+
+                # Sleep for a bit in order to let Splunk recover in case this is a temporary issue
+                time.sleep(attempt_delay)
+                attempts_tried += 1
+
+                # If we hit the limit of the attempts, then throw the exception
+                if attempts_tried >= attempts:
+                    raise
+
+    return wrapper
+
 class ModularInput():
     """
     This class functions as a base-class for modular inputs.
@@ -1018,7 +1062,11 @@ class ModularInput():
         logger.propagate = False
         logger.setLevel(self.logger_level)
 
-        file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', self.logger_name + '.log']), maxBytes=25000000, backupCount=5)
+        if uf_mode:
+            file_handler = handlers.RotatingFileHandler(os.path.join(os.environ['SPLUNK_HOME'], 'var', 'log', self.logger_name + '.log'), maxBytes=25000000, backupCount=5)
+        else:
+            file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', self.logger_name + '.log']), maxBytes=25000000, backupCount=5)
+
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         file_handler.setFormatter(formatter)
 
@@ -1044,11 +1092,19 @@ class ModularInput():
         """
         return self.escape_colons(realm) + ":" + self.escape_colons(username) + ":"
 
+    @forgive_splunkd_outages
     def get_secure_password(self, realm, username=None, session_key=None):
         """
         Get the secure password that matches the given realm and username. If no username is
         provided, the first entry with the given realm will be returned.
         """
+
+        if uf_mode:
+            self.logger.warn("Unable to retrieve the secure credential since the input appears " +
+                             "to be running in a Univeral Forwarder")
+            # Cannot get the secure password in universal forwarder mode since we don't
+            # have access to Splunk libraries
+            return None
 
         # Look up the entry by realm only if no username is provided.
         if username is None or len(username) == 0:
@@ -1071,6 +1127,7 @@ class ModularInput():
 
         return password[0]
 
+    @forgive_splunkd_outages
     def get_secure_password_by_realm(self, realm, session_key):
         """
         Get the secure password that matches the given realm.
@@ -1093,6 +1150,7 @@ class ModularInput():
         else:
             return None
 
+    @forgive_splunkd_outages
     @classmethod
     def get_server_info(cls, session_key, force_refresh=False):
         """
@@ -1111,6 +1169,7 @@ class ModularInput():
 
         return cls.server_info
 
+    @forgive_splunkd_outages
     @classmethod
     def is_on_cloud(cls, session_key):
         """
@@ -1119,7 +1178,7 @@ class ModularInput():
 
         server_info = cls.get_server_info(session_key)
 
-        return (server_info['content'].get('instance_type', None) == 'cloud')
+        return server_info['content'].get('instance_type', None) == 'cloud'
 
     def bool_to_str(self, bool_value):
         """
