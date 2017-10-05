@@ -88,6 +88,10 @@
     display: inline-block;
 }
 
+#inputIndexes{
+    width: 240px;
+}
+
 /* Styling for detecting login fields. */
 #detect-field-names{
     margin-left: 4px;
