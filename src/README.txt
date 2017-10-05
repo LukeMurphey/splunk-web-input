@@ -214,4 +214,5 @@ Change History
 |         | Fixed issue where the browser testing functionality on the UI didn't use the proxy server                        |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5.1   | Input is now resilient to transient Splunkd outages                                                              |
+|         | Fixed issue where index selection input was super-wide on Splunk 7.0                                             |
 +---------+------------------------------------------------------------------------------------------------------------------+
