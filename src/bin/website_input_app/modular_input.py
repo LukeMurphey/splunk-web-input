@@ -1150,8 +1150,8 @@ class ModularInput():
         else:
             return None
 
-    @forgive_splunkd_outages
     @classmethod
+    @forgive_splunkd_outages
     def get_server_info(cls, session_key, force_refresh=False):
         """
         Get the server information object.
@@ -1169,8 +1169,8 @@ class ModularInput():
 
         return cls.server_info
 
-    @forgive_splunkd_outages
     @classmethod
+    @forgive_splunkd_outages
     def is_on_cloud(cls, session_key):
         """
         Determine if the host is running on cloud.
