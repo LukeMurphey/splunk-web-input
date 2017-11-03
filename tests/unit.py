@@ -74,8 +74,7 @@ import lxml.html
 from StringIO import StringIO
 from collections import OrderedDict
 
-sys.path.append(os.path.join("lib"))
-import HtmlTestRunner
+import HTMLTestRunner
 
 # Change into the tests directory if necessary
 # This is necessary when tests are executed from the main directory as opposed to the tests
@@ -1158,9 +1157,15 @@ if __name__ == "__main__":
     tests_ran = False
 
     try:
-        test_dir = '../tmp/test_reports'
-        shutil.rmtree(test_dir, ignore_errors=True)
-        unittest.main(testRunner=HtmlTestRunner.HTMLTestRunner(output='../' + test_dir))
+        #test_dir = '../tmp/test_reports'
+        #shutil.rmtree(test_dir, ignore_errors=True)
+        #unittest.main(testRunner=HtmlTestRunner.HTMLTestRunner(output='../' + test_dir))
+
+        with open('../tmp/test_report.html', 'w') as report_file:
+            test_runner = HTMLTestRunner.HTMLTestRunner(
+                stream=report_file
+            )
+            unittest.main(testRunner=test_runner)
 
     finally:
         # Shutdown the server. Note that it should shutdown automatically since it is a daemon
