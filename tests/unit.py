@@ -74,10 +74,8 @@ import lxml.html
 from StringIO import StringIO
 from collections import OrderedDict
 
-try:
-    import xmlrunner
-except:
-    pass
+sys.path.append(os.path.join("lib"))
+import HtmlTestRunner
 
 # Change into the tests directory if necessary
 # This is necessary when tests are executed from the main directory as opposed to the tests
@@ -1160,29 +1158,9 @@ if __name__ == "__main__":
     tests_ran = False
 
     try:
-        # Get the location of where to put the test output (e.g. "tmp/results.xml")
-        test_output = os.environ.get('TEST_OUTPUT', None)
-
-        # If we have a filename, then output the test results to that location
-        if test_output is not None and test_output != "":
-            
-            # Make the path act as if it is from the root of the code directory
-            test_output_filename = os.path.join("..", test_output)
-
-            try:
-                with open(test_output_filename, 'wb') as output:
-                    unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output), exit=True)
-
-                tests_ran = True
-
-            except NameError:
-                # If we get a name-error, then that means the xmlrunner library isn't available.
-                # For now, just keep going. We will just run the normal test runner later.
-                pass
-
-        # The XMLTestRunner wasn't executed. Run the tests via the normal test runner.
-        if not tests_ran:
-            unittest.main(exit=True)
+        test_dir = '../tmp/test_reports'
+        shutil.rmtree(test_dir, ignore_errors=True)
+        unittest.main(testRunner=HtmlTestRunner.HTMLTestRunner(output='../' + test_dir))
 
     finally:
         # Shutdown the server. Note that it should shutdown automatically since it is a daemon
