@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 A TestRunner for use with the Python unit testing framework. It
 generates a HTML report to show the result at a glance.
@@ -252,7 +253,9 @@ function showClassDetail(cid, count) {
     for (var i = 0; i < count; i++) {
         tid = id_list[i];
         if (toHide) {
-            document.getElementById('div_'+tid).style.display = 'none'
+            if(document.getElementById('div_'+tid)){
+                document.getElementById('div_'+tid).style.display = 'none';
+            }
             document.getElementById(tid).className = 'hiddenRow';
         }
         else {
@@ -354,13 +357,11 @@ a.popup_link:hover {
     position: relative;
     left: 0px;
     top: 0px;
-    /*border: solid #627173 1px; */
     padding: 10px;
-    background-color: #E6E6D6;
+    background-color: #EEE;
     font-family: "Lucida Console", "Courier New", Courier, monospace;
     text-align: left;
     font-size: 8pt;
-    width: 500px;
 }
 
 }
@@ -380,16 +381,17 @@ a.popup_link:hover {
     background-color: #777;
 }
 #result_table td {
-    border: 1px solid #777;
+    border: 1px solid rgba(119, 119, 119, 0.23);
     padding: 2px;
+    vertical-align:top; 
 }
 #total_row  { font-weight: bold; }
-.passClass  { background-color: #6c6; }
-.failClass  { background-color: #c60; }
-.errorClass { background-color: #c00; }
-.passCase   { color: #6c6; }
-.failCase   { color: #c60; font-weight: bold; }
-.errorCase  { color: #c00; font-weight: bold; }
+.passClass  { background-color: #00c853; color: white;}
+.failClass  { background-color: #fa842d; color: white;}
+.errorClass { background-color: #fa2d2d; color: white;}
+.passCase   { color: #00c853; }
+.failCase   { color: #fa842d; background-color: #f9ede4; }
+.errorCase  { color: #fa2d2d; background-color: #ffefef }
 .hiddenRow  { display: none; }
 .testcase   { margin-left: 2em; }
 
@@ -471,7 +473,7 @@ a.popup_link:hover {
 """ # variables: (style, desc, count, Pass, fail, error, cid)
 
 
-    REPORT_TEST_WITH_OUTPUT_TMPL = r"""
+    REPORT_TEST_WITH_OUTPUT_TMPL = ur"""
 <tr id='%(tid)s' class='%(Class)s'>
     <td class='%(style)s'><div class='testcase'>%(desc)s</div></td>
     <td colspan='5' align='center'>
@@ -481,9 +483,9 @@ a.popup_link:hover {
         %(status)s</a>
 
     <div id='div_%(tid)s' class="popup_window">
-        <div style='text-align: right; color:red;cursor:pointer'>
+        <div style='text-align: right;cursor:pointer;font-size: large;font-weight: bold;'>
         <a onfocus='this.blur();' onclick="document.getElementById('div_%(tid)s').style.display = 'none' " >
-           [x]</a>
+           ×</a>
         </div>
         <pre>
         %(script)s
