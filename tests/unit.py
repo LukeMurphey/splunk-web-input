@@ -1154,14 +1154,10 @@ class TestFormAuthenticationChrome(TestFormAuthentication):
 
 if __name__ == "__main__":
 
-    tests_ran = False
-
     try:
-        #test_dir = '../tmp/test_reports'
-        #shutil.rmtree(test_dir, ignore_errors=True)
-        #unittest.main(testRunner=HtmlTestRunner.HTMLTestRunner(output='../' + test_dir))
+        report_path = os.path.join('..', os.environ.get('TEST_OUTPUT', 'tmp/test_report.html'))
 
-        with open('../tmp/test_report.html', 'w') as report_file:
+        with open(report_path, 'w') as report_file:
             test_runner = HTMLTestRunner.HTMLTestRunner(
                 stream=report_file
             )
