@@ -327,6 +327,19 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(len(result['match']), 45)
         self.assertEqual(result['encoding'], "utf-8")
 
+    def test_scrape_encoding_invalid(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_web_input_css", "title", "this is a test")
+
+        # Enable only content-type detection
+        web_scraper = WebScraper()
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/bad_encoding"), selector_field.to_python(".verse-container"))
+        result = results[0]
+
+        self.assertEqual(result['response_code'], 200)
+        self.assertEqual(len(result['match']), 45)
+        self.assertEqual(result['encoding'], "utf-8")
+
     def test_scrape_page_adjacent_selector(self):
         # For bug: http://lukemurphey.net/issues/773
 

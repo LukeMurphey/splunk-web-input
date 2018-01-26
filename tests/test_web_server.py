@@ -14,6 +14,11 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
+    def do_HEAD_bad_encoding(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=3Dutf-8=')
+        self.end_headers()
+
     def do_AUTHHEAD(self):
         self.send_response(401)
         self.send_header('WWW-Authenticate', 'Basic realm=\"Test\"')
@@ -131,6 +136,12 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         # Present HTML file
         elif basepath == "/html":
             self.do_HEAD()
+            with open(os.path.join("web_files", "simple.html"), "r") as webfile:
+                self.wfile.write(webfile.read())
+
+        # Present bad encoding
+        elif basepath == "/bad_encoding":
+            self.do_HEAD_bad_encoding()
             with open(os.path.join("web_files", "simple.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
 

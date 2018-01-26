@@ -442,13 +442,21 @@ class WebScraper(object):
                 result['content_sha224'] = hashlib.sha224(content).hexdigest()
 
             # Decode the content
-            if encoding is not None and encoding != "":
-                content_decoded = content.decode(encoding=encoding, errors='replace')
+            try:
+                if encoding is not None and encoding != "":
+                    content_decoded = content.decode(encoding=encoding, errors='replace')
 
-                # Store the encoding in the result
-                result['encoding'] = encoding
-            else:
+                    # Store the encoding in the result
+                    result['encoding'] = encoding
+                else:
+                    content_decoded = content
+            except LookupError:
+                # The charset was not recognized. Try to continue with what we have without decoding.
+                # https://lukemurphey.net/issues/2190
+                if self.logger is not None:
+                    self.logger.warn('Detected encoding was not recognized and the content will be evaluated (possibly with the wrong encoding), encoding_detected="%s"', encoding)
                 content_decoded = content
+
 
             # Parse the HTML
             try:
