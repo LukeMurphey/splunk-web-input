@@ -1029,17 +1029,93 @@ Below is an example of the entry in the file:
     <!-- ================================= 
           target: test.deploy_and_run_unit
          ================================= -->
-    <target name="test.deploy_and_run_unit" description="Deploys the application and runs tests" depends="skip_bump,deploy,test.run_unit" />
+    <target name="test.deploy_and_run_unit" description="Deploys the application and runs the unit tests" depends="skip_bump,deploy,test.run_unit" />
+	
+    <!-- ================================= 
+          target: test.deploy_and_test
+         ================================= -->
+    <target name="test.deploy_and_test" description="Deploys the application and runs the entire test suite" depends="skip_bump,deploy,test" />
 	
     <!-- ================================= 
           target: test.run_unit
          ================================= -->
     <target name="test.run_unit" description="Run unit tests" depends="initialize_properties">
+
+		<!-- Define a default value for the tests to run. Otherwise, arguments passed from the CLI will be used (e.g. ant test.run_unit -Dtest=TestPingParser) -->
+		<property name="test" value="" />
+
         <exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${value.build.test.directory}">
         	<arg line="cmd" />
         	<arg line="python" />
         	<arg line="unit.py" />
+			<arg line="${test}" />
         </exec>
+    </target>
+
+    <!-- ================================= 
+          target: test
+         ================================= -->
+    <target name="test" description="Run the entire test suite" depends="test.run_unit,btool">
+    </target>
+
+    <!-- ================================= 
+          target: btool
+         ================================= -->
+    <target name="btool" description="Check the app configuration with btool" depends="initialize_properties">
+
+        <exec failonerror="true" executable="${value.deploy.splunk_home}/bin/splunk" dir="${value.build.test.directory}">
+        	<arg line="cmd" />
+        	<arg line="btool" />
+        	<arg line="check" />
+			<arg line="--app=${value.build.appname}" />
+        </exec>
+    </target>
+
+    <!-- ================================= 
+          target: appinspect
+         ================================= -->
+    <target name="appinspect" description="Inspect the app appinspect" depends="package">
+		<if>
+			<not>
+				<isset property="value.test.appinspect_path"/>
+			</not>
+			<then>
+				<property name="value.test.appinspect_path" value="splunk-appinspect"/>
+			</then>
+		</if>
+
+		<!-- Check to see if it appinspect is defined in the appinspect_path parameter -->
+		<available file="${value.test.appinspect_path}"  
+             filepath="${value.test.appinspect_path}"  
+             property="appinspect.present" />
+
+		<!-- Check to see if appinspect is on the path -->
+		<available file="splunk-appinspect"  
+             filepath="${env.PATH}"  
+             property="appinspect.present" />
+
+		<if>
+			<isset property="appinspect.present"/>
+
+			<!-- Run appinspect on the package -->
+			<then>
+				<exec failonerror="true" executable="${value.test.appinspect_path}" dir="${value.build.packageoutput.directory}">
+					<arg line="inspect" />
+					<arg line="${value.build.package.file}" />
+				</exec>
+			</then>
+
+			<!-- Tell the user that they need to install appinspect -->
+			<else>
+				<echo>appinspect was not found.
+Install appinspect from http://dev.splunk.com/view/appinspect/SP-CAAAFAK if you haven't already.
+
+You can declare the "value.test.appinspect_path" parameter with the path where appinspect is installed if isn't on your system path.
+Declare it in a local.properties file in the following path:
+     ${absolute_src_path}/local.properties
+</echo>
+			</else>
+		</if>
     </target>
 
 </project>
