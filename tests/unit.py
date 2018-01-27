@@ -333,12 +333,12 @@ class TestWebInput(UnitTestWithWebServer):
 
         # Enable only content-type detection
         web_scraper = WebScraper()
-        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/bad_encoding"), selector_field.to_python(".verse-container"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a > div"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
-        self.assertEqual(len(result['match']), 45)
-        self.assertEqual(result['encoding'], "utf-8")
+        self.assertEqual(len(result['match']), 2)
+        self.assertEqual(result['encoding'], "ascii")
 
     def test_scrape_page_adjacent_selector(self):
         # For bug: http://lukemurphey.net/issues/773
