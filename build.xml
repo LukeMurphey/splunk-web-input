@@ -63,4 +63,9 @@
         <reload_conf endpoint="ui-tour" />
     </target>
 
+    <!-- ================================= 
+          target: deploy_and_refresh
+         ================================= -->
+    <target name="deploy_and_refresh" depends="deploy,splunk.refresh" description="Deploys the app and tells Splunk to refresh to load" ></target>
+
 </project>
