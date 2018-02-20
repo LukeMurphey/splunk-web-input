@@ -60,7 +60,7 @@
         <title>Latest Logs</title>
         <search>
           <query><![CDATA[index=_internal (sourcetype=web_input_modular_input) $severity$
-          | rex field=_raw "(?<severity></severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)"
+          | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)"
           | sort -_time
           | eval time=_time
           | convert ctime(time)
