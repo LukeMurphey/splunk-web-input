@@ -457,6 +457,8 @@ class WebScraper(object):
                     self.logger.warn('Detected encoding was not recognized and the content will be evaluated (possibly with the wrong encoding), encoding_detected="%s"', encoding)
                 content_decoded = content
 
+            # By default, assume we couldn't parse the content
+            tree = None
 
             # Parse the HTML
             try:
@@ -475,7 +477,6 @@ class WebScraper(object):
                 except Exception:
                     if self.logger is not None:
                         self.logger.info('The content could not be parsed, it doesn\'t appear to be valid HTML, url="%s"', url.geturl())
-                    tree = None
 
             except Exception:
                 if self.logger is not None:
