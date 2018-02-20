@@ -480,7 +480,7 @@ class WebScraper(object):
 
             except Exception:
                 if self.logger is not None:
-                    self.logger.info('A unexpected exception was generated while attempting to parse the content, url="%s"', url.geturl())
+                    self.logger.info('An exception was generated while attempting to parse the content, url="%s"', url.geturl())
 
             # Perform extraction if a selector is provided
             if selector is not None and tree is not None:
