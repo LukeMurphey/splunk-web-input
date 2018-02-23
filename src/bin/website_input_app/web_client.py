@@ -366,6 +366,8 @@ class MechanizeClient(WebClient):
                 raise RequestTimeout()
             else:
                 raise ConnectionFailure(str(e), e)
+        except Exception as e:
+            raise ConnectionFailure(str(e), e)
 
         # Get the response code
         self.response_code = self.response.code
