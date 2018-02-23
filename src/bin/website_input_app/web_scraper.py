@@ -404,6 +404,9 @@ class WebScraper(object):
 
         try:
 
+            if self.logger is not None:
+                self.logger.info('Performing web-scrape, url="%s"', url.geturl())
+
             if match_prefix is None:
                 match_prefix = ''
 
@@ -592,15 +595,17 @@ class WebScraper(object):
 
         except httplib2.SSLHandshakeError as e:
             if self.logger is not None:
-                    self.logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
+                self.logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
             return None # Unable to connect to this site due to an SSL issue
 
         except httplib2.RelativeURIError:
+            if self.logger is not None:
+                self.logger.debug('Ignoring relative URI, url="%s", message="%s"', url.geturl(), str(e))
             return None # Not a real URI
 
         except Exception:
             if self.logger is not None:
-                    self.logger.exception("A general exception was thrown when executing a web request")
+                self.logger.exception("A general exception was thrown when executing a web request")
             raise
 
         return result
