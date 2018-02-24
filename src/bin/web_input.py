@@ -300,34 +300,34 @@ class WebInput(ModularInput):
                 if secure_password is not None:
                     password = secure_password['content']['clear_password']
                     self.logger.debug("Successfully loaded the secure password for input=%s", stanza)
-            
+
             # Get the information from the page
             result = None
-            
+
             try:
-                
+
                 # Make sure the page_limit is not too small
                 if page_limit < 1 or page_limit is None or page_limit == "":
                     logger.warn("The parameter is too small for page_limit=%r", page_limit)
                     page_limit = 1
-                    
+
                 # Make sure the depth_limit is valid
                 if depth_limit < 1 or depth_limit is None or depth_limit == "":
                     logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
                     depth_limit = 50
-                    
+    
                 # Determine how to make the match fields
                 output_matches_as_mv = True
                 output_matches_as_separate_fields = False
-                
+
                 if not output_as_mv:
                     output_matches_as_mv = False
                     output_matches_as_separate_fields = True
-                
+
                 additional_fields = {
                     'title' : title
                 }
-                
+
                 # Make an instance of the web-scraper and initialize it
                 web_scraper = WebScraper(timeout, logger=logger)
 
@@ -347,9 +347,9 @@ class WebInput(ModularInput):
                                                  output_matches_as_separate_fields=output_matches_as_separate_fields,
                                                  additional_fields=additional_fields,
                                                  https_only=self.is_on_cloud(input_config.session_key))
-                
+
                 matches = 0
-                
+
                 if result:
                     matches = len(result)
                 else:
@@ -367,11 +367,11 @@ class WebInput(ModularInput):
                 logger.warn('Client connection failed, stanza=%s, error="%s"', stanza, str(e))
 
             except Exception:
-                logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza) 
-            
+                logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza)
+
             # Process the result (if we got one)
             if result is not None:
-                
+
                 # Keep a list of the matches so that we can determine if any of results changed
                 result_hashes = []
 
