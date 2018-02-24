@@ -270,9 +270,9 @@ class WebInput(ModularInput):
         password_field     = cleaned_params.get("password_field", None)
         authentication_url = cleaned_params.get("authentication_url", None)
         source             = stanza
-        
+
         if self.needs_another_run(input_config.checkpoint_dir, stanza, interval):
-            
+
             # Don't scan the URL if the URL is unencrypted and the host is on Cloud
             if self.is_on_cloud(input_config.session_key) and not url.scheme == "https":
                 self.logger.warn("The URL will not be processed because the host is running on Splunk Cloud and the URL isn't using encryption, url=%s", url.geturl())
