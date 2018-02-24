@@ -395,14 +395,13 @@ class WebInput(ModularInput):
                     logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results, matches_hash)
 
                 else:
-                    
+
                     # Build up a list of the hashes so that we can determine if the content changed
                     for r in result:
 
                         # Add the hash
                         if r.get('content_sha224', None) != None:
                             result_hashes.append(r.get('content_sha224', ''))
-
 
                     # Compute a hash on the results
                     content_hash = self.hash_data(result_hashes)
