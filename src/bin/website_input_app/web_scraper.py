@@ -678,6 +678,9 @@ class WebScraper(object):
             extracted_links = OrderedDict()
             extracted_links[url.geturl()] = DiscoveredURL(0)
 
+            #if self.logger is not None:
+            #    self.logger.info('Running web input, url="%s"', url.geturl())
+
             # Process each result
             while results_count < page_limit:
 
