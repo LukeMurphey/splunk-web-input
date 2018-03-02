@@ -468,6 +468,12 @@ class WebInput(ModularInput):
             # Save the checkpoint so that we remember when we last executed this
             self.save_checkpoint_data(input_config.checkpoint_dir, stanza, new_checkpoint_data)
 
+            # Force garbage collection at the end of the run
+            # This is useful since inputs often time run infrequently and we want to clean up
+            # after ourselves while we wait for the next run 
+            import gc
+            gc.collect()
+
 if __name__ == '__main__':
     try:
         web_input = WebInput()
