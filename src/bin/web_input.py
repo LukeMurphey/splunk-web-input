@@ -198,23 +198,27 @@ class WebInput(ModularInput):
         """
 
         # Make a hasher capable of handling SHA224
-        hash_data = hashlib.sha224()
+        hashlib_data = hashlib.sha224()
 
         # Update the hash data accordingly
-        self.update_hash(data, hash_data, ignore_keys)
+        self.update_hash(data, hashlib_data, ignore_keys)
 
         # Compute the hex result
-        return hash_data.hexdigest()
+        return hashlib_data.hexdigest()
 
-    def update_hash(self, data, hash_data, ignore_keys=None):
+    def update_hash(self, data, hashlib_data=None, ignore_keys=None):
         """
         Update the hash data.
 
         Arguments:
         data -- The data to hash
-        hash_data -- The existing hash that contains the hash thus far
+        hashlib_data -- The existing hash that contains the hash thus far
         ignore_keys -- A list of keys to ignore in the dictionaries
         """
+
+        if hashlib_data is None:
+            # Make a hasher capable of handling SHA224
+            hashlib_data = hashlib.sha224()
 
         # Handle the dictionary
         if isinstance(data, dict) or isinstance(data, OrderedDict):
@@ -223,12 +227,12 @@ class WebInput(ModularInput):
             for key, value in sorted(data.items()):
 
                 if ignore_keys is None or key not in ignore_keys:
-                    self.update_hash(key, hash_data, ignore_keys)
-                    self.update_hash(value, hash_data, ignore_keys)
+                    self.update_hash(key, hashlib_data, ignore_keys)
+                    self.update_hash(value, hashlib_data, ignore_keys)
 
         # If the input is a string
         elif isinstance(data, basestring):
-            hash_data.update(data)
+            hashlib_data.update(data)
 
         elif isinstance(data, list) and not isinstance(data, basestring):
 
@@ -236,40 +240,100 @@ class WebInput(ModularInput):
             data.sort()
 
             for entry in data:
-                self.update_hash(entry, hash_data, ignore_keys)
+                self.update_hash(entry, hashlib_data, ignore_keys)
 
         else:
-            hash_data.update(str(data))
+            hashlib_data.update(str(data))
+
+        return hashlib_data
+
+    def output_results(self, results, index, source, sourcetype, host, checkpoint_data, output_results_policy, match_hashes, result_hashes):
+        """
+        Output the 
+
+        Arguments:
+        data -- The data to hash
+        hashlib_data -- The existing hash that contains the hash thus far
+        """
+
+        # Process the result (if we got one)
+        if results is not None:
+
+            # Compute the hash of the results
+            with Timer() as timer:
+                matches_hash = self.hash_data(results, WebScraper.GENERATED_FIELDS)
+
+            match_hashes.append(matches_hash)
+
+            logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), matches_hash, checkpoint_data.get('matches_hash', ''))
+            
+            # Assign a default for the content hash; it will be populated later
+            content_hash = ""
+
+            # Don't output the results if we are set to not output results unless the matches change
+            if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == matches_hash:
+                logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, matches_hash)
+
+            else:
+
+                # Build up a list of the hashes so that we can determine if the content changed
+                for r in results:
+
+                    # Add the hash
+                    if r.get('content_sha224', None) != None:
+                        result_hashes.append(r.get('content_sha224', ''))
+
+                # Check to see if the content changed
+                # Don't output the results if we are set to not output results unless the matches change
+                if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == content_hash:
+                    logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, content_hash)
+
+                else:
+
+                    # Process each event
+                    for r in results:
+
+                        # Send the event
+                        if self.OUTPUT_USING_STASH:
+
+                            # Write the event as a stash new file
+                            writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
+                            logger.debug("Wrote stash file=%s", writer.write_event(r))
+
+                        else:
+
+                            # Write the event using the built-in modular input method
+                            self.output_event(r, source, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
 
     def run(self, stanza, cleaned_params, input_config):
 
         # Make the parameters
-        interval           = cleaned_params["interval"]
-        title              = cleaned_params["title"]
-        url                = cleaned_params["url"]
-        selector           = cleaned_params.get("selector", None)
-        username           = cleaned_params.get("username", None)
-        password           = cleaned_params.get("password", None)
-        name_attributes    = cleaned_params.get("name_attributes", [])
-        user_agent         = cleaned_params.get("user_agent", None)
-        timeout            = cleaned_params.get("timeout", self.timeout)
-        sourcetype         = cleaned_params.get("sourcetype", "web_input")
-        host               = cleaned_params.get("host", None)
-        index              = cleaned_params.get("index", "default")
-        conf_stanza        = cleaned_params.get("configuration", None)
-        use_element_name   = cleaned_params.get("use_element_name", False)
-        page_limit         = cleaned_params.get("page_limit", 1)
-        url_filter         = cleaned_params.get("url_filter", None)
-        depth_limit        = cleaned_params.get("depth_limit", 25)
-        raw_content        = cleaned_params.get("raw_content", False)
-        text_separator     = cleaned_params.get("text_separator", " ")
-        browser            = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
-        output_as_mv       = cleaned_params.get("output_as_mv", True)
-        output_results     = cleaned_params.get("output_results", None)
-        username_field     = cleaned_params.get("username_field", None)
-        password_field     = cleaned_params.get("password_field", None)
-        authentication_url = cleaned_params.get("authentication_url", None)
-        source             = stanza
+        interval              = cleaned_params["interval"]
+        title                 = cleaned_params["title"]
+        url                   = cleaned_params["url"]
+        selector              = cleaned_params.get("selector", None)
+        username              = cleaned_params.get("username", None)
+        password              = cleaned_params.get("password", None)
+        name_attributes       = cleaned_params.get("name_attributes", [])
+        user_agent            = cleaned_params.get("user_agent", None)
+        timeout               = cleaned_params.get("timeout", self.timeout)
+        sourcetype            = cleaned_params.get("sourcetype", "web_input")
+        host                  = cleaned_params.get("host", None)
+        index                 = cleaned_params.get("index", "default")
+        conf_stanza           = cleaned_params.get("configuration", None)
+        use_element_name      = cleaned_params.get("use_element_name", False)
+        page_limit            = cleaned_params.get("page_limit", 1)
+        url_filter            = cleaned_params.get("url_filter", None)
+        depth_limit           = cleaned_params.get("depth_limit", 25)
+        raw_content           = cleaned_params.get("raw_content", False)
+        text_separator        = cleaned_params.get("text_separator", " ")
+        browser               = cleaned_params.get("browser", WebScraper.INTEGRATED_CLIENT)
+        output_as_mv          = cleaned_params.get("output_as_mv", True)
+        output_results_policy = cleaned_params.get("output_results", None)
+        username_field        = cleaned_params.get("username_field", None)
+        password_field        = cleaned_params.get("password_field", None)
+        authentication_url    = cleaned_params.get("authentication_url", None)
+        source                = stanza
 
         if self.needs_another_run(input_config.checkpoint_dir, stanza, interval):
 
@@ -302,8 +366,6 @@ class WebInput(ModularInput):
                     self.logger.debug("Successfully loaded the secure password for input=%s", stanza)
 
             # Get the information from the page
-            result = None
-
             try:
 
                 # Make sure the page_limit is not too small
@@ -335,8 +397,24 @@ class WebInput(ModularInput):
                 web_scraper.user_agent = user_agent
                 web_scraper.set_authentication(username, password, authentication_url, username_field, password_field)
 
+                # Get the checkpoint data so that we can determine the prior hash of the results if necessary
+                checkpoint_data = self.get_checkpoint_data(input_config.checkpoint_dir, stanza)
+
+                if checkpoint_data is None:
+                    checkpoint_data = {}
+
+                # Keep a list of the matches so that we can determine if any of results changed
+                result_hashes = []
+                match_hashes = []
+
+                if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE or output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE:
+                    output_fx = None
+                else:
+                    # Setup the output function so that we can stream the results
+                    output_fx = lambda result: self.output_results([result], index, source, sourcetype, host, checkpoint_data, None, match_hashes, result_hashes)
+
                 # Perform the scrape
-                result = web_scraper.scrape_page(url, selector, name_attributes,
+                results = web_scraper.scrape_page(url, selector, name_attributes,
                                                  use_element_name=use_element_name,
                                                  page_limit=page_limit,
                                                  depth_limit=depth_limit, url_filter=url_filter,
@@ -346,17 +424,17 @@ class WebInput(ModularInput):
                                                  output_matches_as_mv=output_matches_as_mv,
                                                  output_matches_as_separate_fields=output_matches_as_separate_fields,
                                                  additional_fields=additional_fields,
-                                                 https_only=self.is_on_cloud(input_config.session_key))
+                                                 https_only=self.is_on_cloud(input_config.session_key),
+                                                 output_fx=output_fx)
 
-                matches = 0
-
-                if result:
-                    matches = len(result)
-                else:
-                    logger.debug("No match returned in the result")
+                # Determine the number of results
+                if output_fx is None: 
+                    matches = len(results)
+                elif output_fx is not None:
+                    matches = results
 
                 logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
-
+                    
             except LoginFormNotFound as e:
                 logger.warn('Form authentication failed since the form could not be found, stanza=%s', stanza)
 
@@ -369,77 +447,26 @@ class WebInput(ModularInput):
             except Exception:
                 logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza)
 
-            # Process the result (if we got one)
-            if result is not None:
+            # Get the time that the input last ran
+            last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
 
-                # Keep a list of the matches so that we can determine if any of results changed
-                result_hashes = []
+            # If we didn't output the results already (using streaming output, then do it now)
+            if output_fx is None:
+                self.output_results(results, index, source, sourcetype, host, checkpoint_data, output_results_policy, match_hashes, result_hashes)
 
-                # Determine the prior hash of the results
-                checkpoint_data = self.get_checkpoint_data(input_config.checkpoint_dir, stanza)
+            # Compute a hash on the results
+            content_hash = self.hash_data(result_hashes)
+            matches_hash = self.hash_data(match_hashes)
 
-                if checkpoint_data is None:
-                    checkpoint_data = {}
+            # Make the new checkpoint data dictionary
+            new_checkpoint_data = {
+                'last_run' : self.get_non_deviated_last_run(last_ran, interval, stanza),
+                'matches_hash' : matches_hash,
+                'content_hash' : content_hash
+            }
 
-                # Compute the hash of the results
-                with Timer() as timer:
-                    matches_hash = self.hash_data(result, WebScraper.GENERATED_FIELDS)
-
-                logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), matches_hash, checkpoint_data.get('matches_hash', ''))
-                
-                # Assign a default for the content hash; it will be populated later
-                content_hash = ""
-
-                # Don't output the results if we are set to not output results unless the matches change
-                if output_results == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == matches_hash:
-                    logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results, matches_hash)
-
-                else:
-
-                    # Build up a list of the hashes so that we can determine if the content changed
-                    for r in result:
-
-                        # Add the hash
-                        if r.get('content_sha224', None) != None:
-                            result_hashes.append(r.get('content_sha224', ''))
-
-                    # Compute a hash on the results
-                    content_hash = self.hash_data(result_hashes)
-
-                    # Check to see if the content changed
-                    # Don't output the results if we are set to not output results unless the matches change
-                    if output_results == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == content_hash:
-                        logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results, content_hash)
-
-                    else:
-
-                        # Process each event
-                        for r in result:
-
-                            # Send the event
-                            if self.OUTPUT_USING_STASH:
-
-                                # Write the event as a stash new file
-                                writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
-                                logger.debug("Wrote stash file=%s", writer.write_event(r))
-
-                            else:
-
-                                # Write the event using the built-in modular input method
-                                self.output_event(r, stanza, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
-
-                # Get the time that the input last ran
-                last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
-
-                # Make the new checkpoint data dictionary
-                new_checkpoint_data = {
-                    'last_run' : self.get_non_deviated_last_run(last_ran, interval, stanza),
-                    'matches_hash' : matches_hash,
-                    'content_hash' : content_hash
-                }
-
-                # Save the checkpoint so that we remember when we last executed this
-                self.save_checkpoint_data(input_config.checkpoint_dir, stanza, new_checkpoint_data)
+            # Save the checkpoint so that we remember when we last executed this
+            self.save_checkpoint_data(input_config.checkpoint_dir, stanza, new_checkpoint_data)
 
 if __name__ == '__main__':
     try:

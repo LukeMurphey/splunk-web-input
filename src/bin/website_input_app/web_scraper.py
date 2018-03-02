@@ -615,7 +615,7 @@ class WebScraper(object):
                     use_element_name=False, page_limit=1, depth_limit=50, url_filter=None,
                     include_raw_content=False, text_separator=None, browser=None,
                     additional_fields=None, match_prefix=None, empty_value='NULL',
-                    https_only=False):
+                    https_only=False, output_fx=None):
         """
         Retrieve data from a website.
         
@@ -637,6 +637,7 @@ class WebScraper(object):
         match_prefix -- A prefix to attach to prepend to the front of the match fields
         empty_value -- The value to use for empty matches
         https_only -- Only extract links that use HTTPS
+        output_fx -- Run this function against the results for outputting them
         """
 
         if isinstance(url, basestring):
@@ -649,6 +650,7 @@ class WebScraper(object):
             self.logger.info('Running web input, url="%s"', url.geturl())
 
         results = []
+        results_count = 0
 
         client = None
 
@@ -677,7 +679,7 @@ class WebScraper(object):
             extracted_links[url.geturl()] = DiscoveredURL(0)
 
             # Process each result
-            while len(results) < page_limit:
+            while results_count < page_limit:
 
                 source_url_depth = 0
                 url = None
@@ -725,8 +727,13 @@ class WebScraper(object):
                 
                 # Append the result
                 if result is not None:
-                    results.append(result)
-                
+                    if output_fx is None:
+                        results.append(result)
+                        results_count = len(results)
+                    else:
+                        output_fx(result)
+                        results_count = results_count + 1
+
         except (LoginFormNotFound, FormAuthenticationFailed, WebClientException) as e:
             raise e
 
@@ -739,8 +746,14 @@ class WebScraper(object):
         finally:
             if client:
                 client.close()
-        
-        return results
+
+        # Return the results if we didn't use the output function 
+        if output_fx is None:
+            return results
+
+        # Otherwise the results count
+        else:
+            return results_count
     
     @classmethod
     def unescape(cls, text):

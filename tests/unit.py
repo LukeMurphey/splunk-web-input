@@ -531,6 +531,21 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(result['prefix_string'][1], "DEF")
         self.assertEqual(result['prefix_string'][2], "GHI")
 
+    @skipIfNoServer
+    def test_scrape_page_output_fx(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_scrape_page_name_attributes", "title", "this is a test")
+
+        results = []
+        output_fx = lambda result: results.append(result)
+
+        web_scraper = WebScraper(timeout=3)
+        web_scraper.set_authentication("admin", "changeme")
+        results_count = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python(".hd"), name_attributes=["class"], output_fx=output_fx)
+
+        self.assertEqual(results_count, 1)
+        self.assertEqual(len(results[0]['hd']), 31)
+
 class TestWebInputCrawling(unittest.TestCase):
     """
     http://lukemurphey.net/issues/762
