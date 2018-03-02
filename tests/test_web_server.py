@@ -1,9 +1,13 @@
-from BaseHTTPServer import BaseHTTPRequestHandler
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import os
 import base64
 import cgi
+import random
 
 DEBUG_LOG = False
+
+with open(os.path.join("web_files", "lorem_ipsum.txt"), "r") as webfile:
+    LOREM_IPSUM = webfile.read()
 
 class TestWebServerHandler(BaseHTTPRequestHandler):
     """
@@ -139,6 +143,26 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             with open(os.path.join("web_files", "simple.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
 
+        # Present HTML file with lots of links
+        elif basepath == "/links":
+            self.do_HEAD()
+
+            html = """
+<html>
+    <body>"""
+
+            for i in range(1, 10):
+                random_number = str(random.randint(1,100000000))
+                html += str(i) + ' <a href="/links?random=' + random_number + '">Link ' + random_number + '</a><br/>'
+
+            html += LOREM_IPSUM
+
+            html += """
+    </body>
+</html>"""
+
+            self.wfile.write(html)
+
         # Present bad encoding
         elif basepath == "/bad_encoding":
             self.do_HEAD_bad_encoding()
@@ -196,3 +220,8 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             
             if DEBUG_LOG:
                 print 'auth header was wrong:', self.headers.getheader('Authorization')
+
+if __name__ == "__main__":
+    server_address = ('127.0.0.1', 8080)
+    httpd = HTTPServer(server_address, TestWebServerHandler)
+    httpd.serve_forever()
