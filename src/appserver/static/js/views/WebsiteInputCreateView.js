@@ -75,7 +75,9 @@ define([
 			"click .browserHelp" : "showBrowserHelp",
 			"change #inputLoginURL" : "determineFormFields",
 			"click #detect-field-names" : "clickDetermineFormFields",
-			"click .authenticationHelp" : "showAuthenticationHelp"
+			"click .authenticationHelp" : "showAuthenticationHelp",
+			"change #inputPageLimit" : "changeInputSelector",
+			"click #suggestURLFilter" : "suggestURLFilter",
         },
         
         initialize: function() {
@@ -1348,7 +1350,54 @@ define([
         	var parsed = this.parseURL(url);
         	
         	return this.generateStanzaFromString(parsed.hostname);
-        },
+		},
+		
+        /**
+         * Get the proposed filter from the URL.
+         */
+        generateFilterFromURL: function(url){
+        	
+			var parsed = this.parseURL(url);
+			
+			var url_filter = parsed.protocol + '//' + parsed.hostname;
+
+			if(parsed.port !== ""){
+				url_filter = url_filter + ":" + parsed.port;
+			}
+
+			return url_filter + "/*";
+		},
+
+
+		/**
+		 * Suggest a URL filter if necessary.
+		 */
+		changeInputSelector: function(){
+			if($('#inputURLFilter', this.$el).val().length !== 0){
+				// Ignore, the filter already exists
+			}
+			else if(parseInt($('#inputPageLimit', this.$el).val(), 10) <= 1){
+				// Ignore, no filter is needed
+			}
+			else if($('#inputURL', this.$el).val().length <= 0){
+				// Ignore, no URL defined
+			}
+			else{
+				$('#inputURLFilter', this.$el).val(this.generateFilterFromURL($('#inputURL', this.$el).val()));
+			}
+		},
+
+		/**
+		 * Suggest a URL filter if necessary.
+		 */
+		suggestURLFilter: function(){
+			if($('#inputURL', this.$el).val().length <= 0){
+				// No URL is defined, ignore for now
+			}
+			else{
+				$('#inputURLFilter', this.$el).val(this.generateFilterFromURL($('#inputURL', this.$el).val()));
+			}
+		},
         
         /**
          * Get a list of the existing inputs.

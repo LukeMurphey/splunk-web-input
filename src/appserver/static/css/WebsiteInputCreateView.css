@@ -124,7 +124,7 @@
 }
 
 /* Styling for whether the browser works or not. */
-#browserConnectionTest{
+#browserConnectionTest, #suggestURLFilter{
     margin-left: 4px;
 }
 
