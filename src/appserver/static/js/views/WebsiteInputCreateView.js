@@ -1382,7 +1382,7 @@ define([
 			else if($('#inputURL', this.$el).val().length <= 0){
 				// Ignore, no URL defined
 			}
-			else{
+			else if($('#inputURL', this.$el).val().indexOf('http') === 0 && this.isValidURL($('#inputURL', this.$el).val())){
 				$('#inputURLFilter', this.$el).val(this.generateFilterFromURL($('#inputURL', this.$el).val()));
 			}
 		},
@@ -1394,9 +1394,11 @@ define([
 			if($('#inputURL', this.$el).val().length <= 0){
 				// No URL is defined, ignore for now
 			}
-			else{
+			else if($('#inputURL', this.$el).val().indexOf('http') === 0 && this.isValidURL($('#inputURL', this.$el).val())){
 				$('#inputURLFilter', this.$el).val(this.generateFilterFromURL($('#inputURL', this.$el).val()));
 			}
+
+			return false;
 		},
         
         /**
