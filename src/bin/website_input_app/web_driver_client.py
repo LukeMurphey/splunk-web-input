@@ -46,11 +46,11 @@ class WebDriverClient(WebClient):
 
         driver_path = None
 
-        if sys.platform == "linux2" and platform.architecture()[0] == '64bit':
+        if sys.platform == "linux2":
             driver_path = "linux64"
-        elif sys.platform == "linux2":
-            driver_path = "linux32"
         else:
+            # Note that Windows will always return win32 (even on 64-bit hosts)
+            # See http://bit.ly/2Dq6xM5
             driver_path = sys.platform
 
         full_driver_path = os.path.join(get_apps_dir(), "website_input", "bin", "browser_drivers", driver_path)
