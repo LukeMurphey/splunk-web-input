@@ -3,6 +3,7 @@ import os
 import base64
 import cgi
 import random
+import urlparse
 
 DEBUG_LOG = False
 
@@ -13,9 +14,11 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
     """
     Main class to present web-pages for testing purposes
     """
-    def do_HEAD(self):
+    def do_HEAD(self, size=None):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
+        if size is not None:
+            self.send_header('Content-length', str(size))
         self.end_headers()
 
     def do_HEAD_bad_encoding(self):
@@ -191,6 +194,26 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
                 self.do_AUTHFAILED()
                 with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
                     self.wfile.write(webfile.read())
+
+        # Present a file of requested size (can be an unlimited large file if the size parameter
+        # isn't provided)
+        elif basepath == "/bigfile":
+
+            # Get the file size
+            parsed_path = urlparse.urlparse(self.path)  
+            parsed_args = urlparse.parse_qs(parsed_path.query)
+            size_limit = parsed_args.get('size', [None])[0]
+
+            self.do_HEAD(size_limit)
+
+            # Write out the file
+            bytes_written = 0
+
+            while size_limit is None or bytes_written < size_limit:
+                random_number = random.randint(0,9)
+                self.wfile.write(format(random_number, '01'))
+
+                bytes_written = bytes_written + 1
 
         elif basepath == "/favicon.ico":
             self.do_NOTFOUND()

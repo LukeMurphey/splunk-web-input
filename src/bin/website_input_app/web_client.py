@@ -47,6 +47,8 @@ class WebClient(object):
     USERNAMES_LIST = ['username', 'email', 'email_address', 'user', 'username']
     PASSWORDS_LIST = ['password', 'pword', 'pass']
 
+    DEFAULT_MAXIMUM_BYTES = 500 * 1024 # 500 KB
+
     def __init__(self, timeout=30, user_agent=DEFAULT_USER_AGENT, logger=None):
 
         # These are for storing the options for performing the request
@@ -356,7 +358,7 @@ class MechanizeClient(WebClient):
                     # See http://bit.ly/2vrkCIq
                     pass
 
-                content = self.response.read()
+                content = self.response.read(self.DEFAULT_MAXIMUM_BYTES)
 
             self.response_time = timer.msecs
 
@@ -366,8 +368,13 @@ class MechanizeClient(WebClient):
                 raise RequestTimeout()
             else:
                 raise ConnectionFailure(str(e), e)
+
         except Exception as e:
             raise ConnectionFailure(str(e), e)
+
+        finally:
+            if self.response is not None:
+                self.response.close()
 
         # Get the response code
         self.response_code = self.response.code

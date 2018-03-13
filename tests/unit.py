@@ -534,7 +534,7 @@ class TestWebInput(UnitTestWithWebServer):
     @skipIfNoServer
     def test_scrape_page_output_fx(self):
         url_field = URLField("test_web_input", "title", "this is a test")
-        selector_field = SelectorField("test_scrape_page_name_attributes", "title", "this is a test")
+        selector_field = SelectorField("test_scrape_page_output_fx", "title", "this is a test")
 
         results = []
         output_fx = lambda result: results.append(result)
@@ -545,6 +545,19 @@ class TestWebInput(UnitTestWithWebServer):
 
         self.assertEqual(results_count, 1)
         self.assertEqual(len(results[0]['hd']), 31)
+
+    @skipIfNoServer
+    def test_scrape_page_download_limit(self):
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_scrape_page_download_limit", "title", "this is a test")
+
+        web_scraper = WebScraper(timeout=3)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/bigfile"), selector_field.to_python("*"))
+
+        self.assertEqual(len(results), 1)
+
+        self.assertEqual(len(results[0]['match']), 1)
+        self.assertEqual(len(results[0]['match'][0]), 512000)
 
 class TestWebInputCrawling(unittest.TestCase):
     """
