@@ -215,4 +215,11 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5.1   | Input is now resilient to transient Splunkd outages                                                              |
 |         | Fixed issue where index selection input was super-wide on Splunk 7.0                                             |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.5.2   | Input now handles large files much better by only downloading the first 512 KB of the file                       |
+|         | Updated the Chrome driver so that the input works with newer versions of Chrome                                  |
+|         | The input creation wizard auto-suggests a URL filter now when using spidering                                    |
+|         | Output is not streamed (as opposed to being cached) in order to reduce memory usage                              |
+|         | The input now gracefully handles websites that return a bad encoding                                             |
+|         | Fixed issue where you could not drill-down on logs from the health dashboard                                     |
 +---------+------------------------------------------------------------------------------------------------------------------+
