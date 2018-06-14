@@ -52,12 +52,20 @@
     margin-left: -73px;
 }
 
+.preview-urls-loading-container{
+    display: inline-block;
+    vertical-align: middle;
+
+}
+
 .preview-urls-loading{
 	display: inline-block;
 	margin-left: 6px;
 	background-image: url('/static/app/website_input/img/spiffygif_14x14.gif'); /* http://spiffygif.com/?color=000&length=2&radius=3&width=1 */
 	background-repeat: no-repeat;
     padding-left: 16px;
+    font-size: 12px; /* Set the size to override the font-size: 0 setting on Splunk 7.1+ */
+    background-position-y: 2px;
 }
 
 .inline{
