@@ -270,30 +270,31 @@
 		</div>
 	</div>
 
-	<div class="form-horizontal" >
+	<div class="form-horizontal fullWidth">
 		
 		<div class="control-group inline">
-		    <label class="control-label required-input" for="inputSelector">Selector</label>
-		    <div class="controls">
-		    	<div class="input-append">
-				  <input id="inputSelector" type="text" value="" />
-				  <button class="btn clearSelector" type="button">Clear</button>
-				  <div class="btn-group">
-				    <button class="btn dropdown-toggle" data-toggle="dropdown">
-				      Select Preview URL
-				      <span class="caret"></span>
-				    </button>
-					<ul class="dropdown-menu preview-url-dropdown-selector">
-	                  <li><a href="#" class="preview-url">No URLs loaded yet</a></li>
-	                </ul>
-				  </div>
+		  <label class="control-label required-input" for="inputSelector">Selector</label>
+		  <div class="controls">
+				<div class="input-append">
+					<div class="btn-group">
+						<input id="inputSelector" type="text" value="" />
+						<button class="btn clearSelector" type="button">Clear</button>
+						<button class="btn dropdown-toggle" data-toggle="dropdown">
+							Select Preview URL
+							<span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu preview-url-dropdown-selector">
+								<li><a href="#" class="preview-url">No URLs loaded yet</a></li>
+						</ul>
+					</div>
 				</div>
+				
 				<div class="preview-urls-loading" style="display:none">Loading preview URLs...</div>
 				<div class="help-block match-count"></div>
 			</div>
 		</div>
 		
-		<div class="control-group pull-right">
+		<div class="control-group pull-right styles-switcher">
 		    <label class="control-label">Styles</label>
 		    <div class="controls">
 			    <div class="btn-group btn-group-radio switch-styles">

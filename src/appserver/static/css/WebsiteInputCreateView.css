@@ -123,6 +123,27 @@
     padding-left: 16px;
 }
 
+#inputSelector{
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-right: 0px;
+}
+
+/*
+.styles-switcher .control-label, .styles-switcher .controls{
+    display: inline-block;
+}
+
+
+.styles-switcher{
+    margin-top: 20px;
+}
+*/
+
+.fullWidth{
+    width: 100%;
+}
+
 /* Styling for whether the browser works or not. */
 #browserConnectionTest, #suggestURLFilter{
     margin-left: 4px;
