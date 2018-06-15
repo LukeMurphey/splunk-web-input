@@ -222,4 +222,6 @@ Change History
 |         | Output is not streamed (as opposed to being cached) in order to reduce memory usage                              |
 |         | The input now gracefully handles websites that return a bad encoding                                             |
 |         | Fixed issue where you could not drill-down on logs from the health dashboard                                     |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.5.3   | Updating the styling to work better on Splunk 7.1                                                                |
 +---------+------------------------------------------------------------------------------------------------------------------+
