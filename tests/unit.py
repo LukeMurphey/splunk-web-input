@@ -15,7 +15,7 @@ parenthesis:
  * TestBrowserRendering: tests the abilty to get content from a browser (3.0)
  * TestBrowserRenderingFirefox: same as above but using Firefox (3.0)
  * TestBrowserRenderingChrome: same as above but using Chrome (4.3)
- * TestResultHashing: tests the ability to calculate a hash on the results (3.0)
+ * TestHashHelper: tests the ability to calculate a hash on the results (3.0)
  * TestWebDriverClient: tests the client that wraps the Selenium web-driver (4.4)
  * TestFormAuthentication: tests the use of forms style authentication (4.4)
  * TestFormAuthenticationFirefox: same as above but using Firefox (4.5)
@@ -90,6 +90,7 @@ from web_input import URLField, DurationField, SelectorField, WebInput, WebScrap
 from web_client import MechanizeClient
 from web_driver_client import WebDriverClient, FirefoxClient, ChromeClient
 from website_input_app.modular_input import Field, FieldValidationException
+from website_input_app import hash_helper
 from unit_test_web_server import UnitTestWithWebServer, skipIfNoServer
 
 class TestURLField(unittest.TestCase):
@@ -559,6 +560,57 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(len(results[0]['match']), 1)
         self.assertEqual(len(results[0]['match'][0]), 512000)
 
+    def test_output_results_matches_unchanged(self):
+        web_input = WebInput(timeout=3)
+        web_input.OUTPUT_USING_STASH = False
+
+        match_hashes = []
+        result_hashes = []
+        checkpoint_data = {
+            'matches_hash' : 'd9235d53616e48fe7f25c531f35675be7e886b75be454ac4b2dedaba'
+        }
+
+        results = [
+            {
+                'match' : ['tree', 'frog'],
+                'response_time' : '1'
+            }
+        ]
+
+        # Run the input so that the match_hashes are populated
+        result_info = web_input.output_results(results, "main", "web_input://test_case", "web_input", "no_host", checkpoint_data, WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE)
+
+        self.assertEquals(result_info.results_outputted, 0)
+
+        # We are going to test again with a result set that is equivalent in its matches to the
+        # previous output and see if it correctly determines that the matches are the same.
+        # To do this, we will create an identical result in terms of matches but different in the
+        # response time. The response time should be allowed to be different while recognizing
+        # that the matches are the same.
+        results2 = [
+            {
+                'match' : ['tree', 'frog'],
+                'response_time' : '2'
+            }
+        ]
+
+        # Run the input and ensure that the matches are now ignored
+        result_info = web_input.output_results(results2, "main", "web_input://test_case", "web_input", "no_host", checkpoint_data, WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE)
+
+        self.assertEquals(result_info.results_outputted, 0)
+
+        # Run the input and ensure that the matches are not ignored now that the hash is different
+        results3 = [
+            {
+                'match' : ['bull', 'frog'],
+                'response_time' : '2'
+            }
+        ]
+
+        result_info = web_input.output_results(results3, "main", "web_input://test_case", "web_input", "no_host", checkpoint_data, WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE)
+
+        self.assertEquals(result_info.results_outputted, 1)
+
 class TestWebInputCrawling(unittest.TestCase):
     """
     http://lukemurphey.net/issues/762
@@ -864,13 +916,10 @@ class TestBrowserRenderingFirefox(TestBrowserRendering):
 class TestBrowserRenderingChrome(TestBrowserRendering):
     BROWSER = WebScraper.CHROME
 
-class TestResultHashing(unittest.TestCase):
+class TestHashHelper(unittest.TestCase):
     """
     https://lukemurphey.net/issues/1806
     """
-
-    def setUp(self):
-        self.web_input = WebInput()
 
     def test_hash_string(self):
         """
@@ -880,7 +929,7 @@ class TestResultHashing(unittest.TestCase):
         data = "Test"
 
         self.assertEqual(
-            self.web_input.hash_data(data),
+            hash_helper.hash_data(data),
             "3606346815fd4d491a92649905a40da025d8cf15f095136b19f37923"
         )
 
@@ -902,7 +951,7 @@ class TestResultHashing(unittest.TestCase):
         }
 
         self.assertEqual(
-            self.web_input.hash_data(data),
+            hash_helper.hash_data(data),
             "2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2"
         )
 
@@ -928,8 +977,8 @@ class TestResultHashing(unittest.TestCase):
             "One": 1
         }
 
-        pre_sorted = self.web_input.hash_data(data)
-        post_sorted = self.web_input.hash_data(data2)
+        pre_sorted = hash_helper.hash_data(data)
+        post_sorted = hash_helper.hash_data(data2)
 
         self.assertEqual(pre_sorted, '2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2')
         self.assertEqual(pre_sorted, post_sorted)
@@ -956,8 +1005,8 @@ class TestResultHashing(unittest.TestCase):
             "list" : [1, 2, 3] # This was changed, should cause the hash to change
         }
 
-        pre_sorted = self.web_input.hash_data(data)
-        post_sorted = self.web_input.hash_data(data2)
+        pre_sorted = hash_helper.hash_data(data)
+        post_sorted = hash_helper.hash_data(data2)
 
         self.assertEqual(pre_sorted, '2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2')
         self.assertNotEqual(pre_sorted, post_sorted)
@@ -970,7 +1019,7 @@ class TestResultHashing(unittest.TestCase):
         data = 1
 
         self.assertEqual(
-            self.web_input.hash_data(data),
+            hash_helper.hash_data(data),
             "e25388fde8290dc286a6164fa2d97e551b53498dcbf7bc378eb1f178"
         )
 
@@ -982,7 +1031,7 @@ class TestResultHashing(unittest.TestCase):
         data = ["DEF", "ABC"]
 
         self.assertEqual(
-            self.web_input.hash_data(data),
+            hash_helper.hash_data(data),
             'fd6639af1cc457b72148d78e90df45df4d344ca3b66fa44598148ce4'
         )
 
@@ -994,7 +1043,7 @@ class TestResultHashing(unittest.TestCase):
         data = []
 
         self.assertEqual(
-            self.web_input.hash_data(data),
+            hash_helper.hash_data(data),
             'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f'
         )
 
@@ -1006,7 +1055,7 @@ class TestResultHashing(unittest.TestCase):
         data = None
 
         self.assertEqual(
-            self.web_input.hash_data(data),
+            hash_helper.hash_data(data),
             '741e1753b71b2b6b2879a507a69a00f8933bca84317a40e04a011d77'
         )
 
@@ -1016,8 +1065,8 @@ class TestResultHashing(unittest.TestCase):
         considered the same.
         """
 
-        pre_sorted = self.web_input.hash_data(["DEF", "ABC", 1])
-        post_sorted = self.web_input.hash_data([1, "ABC", "DEF"])
+        pre_sorted = hash_helper.hash_data(["DEF", "ABC", 1])
+        post_sorted = hash_helper.hash_data([1, "ABC", "DEF"])
 
         self.assertEqual(pre_sorted, '9fe0831cf1aa981d9781d112a6a87ed102752b16682a0bbb2fda9163')
         self.assertEqual(pre_sorted, post_sorted)
@@ -1037,13 +1086,13 @@ class TestResultHashing(unittest.TestCase):
         }
 
         self.assertEqual(
-            self.web_input.hash_data(data, ["A", 2]),
+            hash_helper.hash_data(data, ["A", 2]),
             "6485bff299355123ad83272c364132c8c5e1641a4026b23af45b7d70"
         )
 
         # Make sure an ordered dict is handled as a dict
         self.assertEqual(
-            self.web_input.hash_data(OrderedDict(data), ["A", 2]),
+            hash_helper.hash_data(OrderedDict(data), ["A", 2]),
             "6485bff299355123ad83272c364132c8c5e1641a4026b23af45b7d70"
         )
 
@@ -1062,13 +1111,24 @@ class TestResultHashing(unittest.TestCase):
         }
 
         self.assertEqual(
-            self.web_input.hash_data(data, ["B"]),
+            hash_helper.hash_data(data, ["B"]),
             "9646b619d3e7ae9951a80aa68d29ddf62205033c6d67b31d625f5b72"
         )
 
         self.assertEqual(
-            self.web_input.hash_data(data, ["C"]),
+            hash_helper.hash_data(data, ["C"]),
             "048f88e05df4c32adb4309285c7069c3689228b8d4cf4d7f5f58b26e"
+        )
+
+
+    def test_hash_list_with_one_entry(self):
+        """
+        Test hashing of a list with a single entry when compared to a non-list with the same value.
+        """
+
+        self.assertEqual(
+            hash_helper.hash_data(["B"]),
+            hash_helper.hash_data("B"),
         )
 
 class TestWebDriverClient(unittest.TestCase):

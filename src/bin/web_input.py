@@ -14,6 +14,7 @@ from website_input_app.web_client import LoginFormNotFound, FormAuthenticationFa
 from website_input_app.web_scraper import WebScraper
 from website_input_app.selector_field import SelectorField
 from website_input_app.event_writer import StashNewWriter
+from website_input_app import hash_helper
 
 from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
@@ -21,12 +22,10 @@ from splunk.models.field import IntField as ModelIntField
 
 import logging
 from logging import handlers
-import hashlib
 import sys
 import os
 import splunk
 import re
-from collections import OrderedDict
 from urlparse import urlparse
 
 from __builtin__ import classmethod
@@ -61,6 +60,22 @@ class WebsiteInputConfig(SplunkAppObjModel):
     proxy_type = ModelField()
     proxy_user = ModelField()
     proxy_password = ModelField()
+
+class WebInputResult():
+    """
+    An object representing the output of the web input modular input call ot output_results().
+    """
+
+    match_hashes = []
+    result_hashes = []
+
+    latest_content_hash = None
+    latest_matches_hash = None
+
+    results_outputted = 0
+
+    def get_hash_for_all_matches():
+        pass
 
 class WebInput(ModularInput):
     """
@@ -188,122 +203,87 @@ class WebInput(ModularInput):
 
         return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
 
-    def hash_data(self, data, ignore_keys=None):
+    def output_results(self, results, index, source, sourcetype, host, checkpoint_data, output_results_policy, result_info = None):
         """
-        Hash the data and compute a SHA224 hex digest that uniquely represents the data.
+        Output the results to Splunk unless the results don't match the export policy.
+
+        Returns an integer indicating how many results were outputted.
 
         Arguments:
-        data -- The data to hash
-        ignore_keys -- A list of keys to ignore in the dictionaries
+        results -- The results from scrape_page (a list of dictionaries containing the matches and related data)
+        index -- The index to send the data to
+        source -- The name of the source
+        sourcetype -- The name of the sourcetype
+        host -- The name of the host
+        checkpoint_data -- The checkpoint data dictionary provided to the modular input
+        output_results_policy -- A string representing how output should be exported
+        result_info -- An instance of WebInputResult for tracking information such as result hashes
         """
 
-        # Make a hasher capable of handling SHA224
-        hashlib_data = hashlib.sha224()
+        # Keep a record of
+        results_outputted = 0
 
-        # Update the hash data accordingly
-        self.update_hash(data, hashlib_data, ignore_keys)
-
-        # Compute the hex result
-        return hashlib_data.hexdigest()
-
-    def update_hash(self, data, hashlib_data=None, ignore_keys=None):
-        """
-        Update the hash data.
-
-        Arguments:
-        data -- The data to hash
-        hashlib_data -- The existing hash that contains the hash thus far
-        ignore_keys -- A list of keys to ignore in the dictionaries
-        """
-
-        if hashlib_data is None:
-            # Make a hasher capable of handling SHA224
-            hashlib_data = hashlib.sha224()
-
-        # Handle the dictionary
-        if isinstance(data, dict) or isinstance(data, OrderedDict):
-
-            # Sort the dictionary by key
-            for key, value in sorted(data.items()):
-
-                if ignore_keys is None or key not in ignore_keys:
-                    self.update_hash(key, hashlib_data, ignore_keys)
-                    self.update_hash(value, hashlib_data, ignore_keys)
-
-        # If the input is a string
-        elif isinstance(data, basestring):
-            hashlib_data.update(data)
-
-        elif isinstance(data, list) and not isinstance(data, basestring):
-
-            # Sort the list
-            data.sort()
-
-            for entry in data:
-                self.update_hash(entry, hashlib_data, ignore_keys)
-
-        else:
-            hashlib_data.update(str(data))
-
-        return hashlib_data
-
-    def output_results(self, results, index, source, sourcetype, host, checkpoint_data, output_results_policy, match_hashes, result_hashes):
-        """
-        Output the 
-
-        Arguments:
-        data -- The data to hash
-        hashlib_data -- The existing hash that contains the hash thus far
-        """
+        # Create an instance of the web-result output
+        if result_info is None: 
+            result_info = WebInputResult()
 
         # Process the result (if we got one)
         if results is not None:
 
-            # Compute the hash of the results
+            # Compute the hash of the matches
             with Timer() as timer:
-                matches_hash = self.hash_data(results, WebScraper.GENERATED_FIELDS)
 
-            match_hashes.append(matches_hash)
+                # Hash the results
+                result_info.latest_content_hash = hash_helper.hash_data(results, WebScraper.GENERATED_FIELDS)
 
-            logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), matches_hash, checkpoint_data.get('matches_hash', ''))
-            
-            # Assign a default for the content hash; it will be populated later
-            content_hash = ""
+                # Accumulate the matches hashes so that we can generate a hash of the matches
+                matches_content = []
+
+                for result in results:
+                    matches_content.append(result['match'])
+
+                result_info.latest_matches_hash = hash_helper.hash_data(matches_content, WebScraper.GENERATED_FIELDS)
+
+            # Add to the list of the matches
+            result_info.match_hashes.append(result_info.latest_matches_hash)
+
+            logger.debug("Hash of results and matches calculated, time=%sms, matches_hash=%s, prior_matches_hash=%s, content_hash=%s, prior_content_hash=%s", round(timer.msecs, 3), result_info.latest_matches_hash, checkpoint_data.get('matches_hash', ''), result_info.latest_content_hash, checkpoint_data.get('content_hash', ''))
 
             # Don't output the results if we are set to not output results unless the matches change
-            if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == matches_hash:
-                logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, matches_hash)
+            # Note: we will compare the content later
+            if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == result_info.latest_matches_hash:
+                logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, result_info.latest_matches_hash)
 
             else:
-
                 # Build up a list of the hashes so that we can determine if the content changed
                 for r in results:
 
                     # Add the hash
                     if r.get('content_sha224', None) != None:
-                        result_hashes.append(r.get('content_sha224', ''))
+                        result_info.result_hashes.append(r.get('content_sha224', ''))
 
                 # Check to see if the content changed
-                # Don't output the results if we are set to not output results unless the matches change
-                if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == content_hash:
-                    logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, content_hash)
+                # Don't output the results if we are set to not output results unless the content changes
+                if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == result_info.latest_content_hash:
+                    logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, result_info.latest_content_hash)
 
                 else:
-
                     # Process each event
                     for r in results:
-
                         # Send the event
                         if self.OUTPUT_USING_STASH:
-
                             # Write the event as a stash new file
                             writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
                             logger.debug("Wrote stash file=%s", writer.write_event(r))
 
                         else:
-
                             # Write the event using the built-in modular input method
                             self.output_event(r, source, index=index, source=source, sourcetype=sourcetype, host=host, unbroken=True, close=True, encapsulate_value_in_double_quotes=True)
+
+                        # Keep a count of the results sent
+                        result_info.results_outputted += 1
+
+        return result_info
 
     def run(self, stanza, cleaned_params, input_config):
 
@@ -404,14 +384,13 @@ class WebInput(ModularInput):
                     checkpoint_data = {}
 
                 # Keep a list of the matches so that we can determine if any of results changed
-                result_hashes = []
-                match_hashes = []
+                result_info = WebInputResult()
 
                 if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE or output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE:
                     output_fx = None
                 else:
                     # Setup the output function so that we can stream the results
-                    output_fx = lambda result: self.output_results([result], index, source, sourcetype, host, checkpoint_data, None, match_hashes, result_hashes)
+                    output_fx = lambda result: self.output_results([result], index, source, sourcetype, host, checkpoint_data, None, result_info)
 
                 # Perform the scrape
                 results = web_scraper.scrape_page(url, selector, name_attributes,
@@ -452,11 +431,13 @@ class WebInput(ModularInput):
 
             # If we didn't output the results already (using streaming output, then do it now)
             if output_fx is None:
-                self.output_results(results, index, source, sourcetype, host, checkpoint_data, output_results_policy, match_hashes, result_hashes)
+                self.output_results(results, index, source, sourcetype, host, checkpoint_data, output_results_policy, result_info)
 
             # Compute a hash on the results
-            content_hash = self.hash_data(result_hashes)
-            matches_hash = self.hash_data(match_hashes)
+            content_hash = hash_helper.hash_data(result_info.result_hashes)
+            matches_hash = hash_helper.hash_data(result_info.match_hashes)
+
+            self.logger.info("Hash of matches, matches_hash=%s, result_info.match_hashes=%r, result_info.latest_matches_hash=%s", matches_hash, result_info.match_hashes, result_info.latest_matches_hash)
 
             # Make the new checkpoint data dictionary
             new_checkpoint_data = {
@@ -464,6 +445,8 @@ class WebInput(ModularInput):
                 'matches_hash' : matches_hash,
                 'content_hash' : content_hash
             }
+
+            self.logger.info("Saving hashes, matches_hash=%s, content_hash=%s", matches_hash, content_hash)
 
             # Save the checkpoint so that we remember when we last executed this
             self.save_checkpoint_data(input_config.checkpoint_dir, stanza, new_checkpoint_data)
