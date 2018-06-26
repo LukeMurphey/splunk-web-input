@@ -224,4 +224,6 @@ Change History
 |         | Fixed issue where you could not drill-down on logs from the health dashboard                                     |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5.3   | Updating the styling to work better on Splunk 7.1                                                                |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.5.4   | Fixed the "when_matches_change" setting of "output_results" made results even the matches hadn't changed         |
 +---------+------------------------------------------------------------------------------------------------------------------+
