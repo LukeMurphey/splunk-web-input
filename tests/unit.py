@@ -567,7 +567,7 @@ class TestWebInput(UnitTestWithWebServer):
         match_hashes = []
         result_hashes = []
         checkpoint_data = {
-            'matches_hash' : 'd9235d53616e48fe7f25c531f35675be7e886b75be454ac4b2dedaba'
+            'matches_hash' : '863eb10bc0bee8b54a93e1cc1a3075f43f8752a48e9b7ea605c2d58b'
         }
 
         results = [

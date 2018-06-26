@@ -25,6 +25,7 @@ from logging import handlers
 import sys
 import os
 import splunk
+import hashlib
 import re
 from urlparse import urlparse
 
@@ -66,16 +67,20 @@ class WebInputResult():
     An object representing the output of the web input modular input call ot output_results().
     """
 
-    match_hashes = []
-    result_hashes = []
+    def __init__(self):
+        self.match_hashes = []
+        self.result_hashes = []
 
-    latest_content_hash = None
-    latest_matches_hash = None
+        self.latest_content_hash = None
+        self.latest_matches_hash = None
 
-    results_outputted = 0
+        self.results_outputted = 0
 
-    def get_hash_for_all_matches():
-        pass
+    def get_hash_of_all_matches(self):
+        return hash_helper.hash_data(self.match_hashes)
+
+    def get_hash_of_all_results(self):
+        return hash_helper.hash_data(self.result_hashes)
 
 class WebInput(ModularInput):
     """
@@ -247,12 +252,11 @@ class WebInput(ModularInput):
             # Add to the list of the matches
             result_info.match_hashes.append(result_info.latest_matches_hash)
 
-            logger.debug("Hash of results and matches calculated, time=%sms, matches_hash=%s, prior_matches_hash=%s, content_hash=%s, prior_content_hash=%s", round(timer.msecs, 3), result_info.latest_matches_hash, checkpoint_data.get('matches_hash', ''), result_info.latest_content_hash, checkpoint_data.get('content_hash', ''))
-
             # Don't output the results if we are set to not output results unless the matches change
             # Note: we will compare the content later
-            if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == result_info.latest_matches_hash:
-                logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, result_info.latest_matches_hash)
+            hash_of_all_matches = result_info.get_hash_of_all_matches()
+            if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == hash_of_all_matches:
+                logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, hash_of_all_matches)
 
             else:
                 # Build up a list of the hashes so that we can determine if the content changed
@@ -264,8 +268,9 @@ class WebInput(ModularInput):
 
                 # Check to see if the content changed
                 # Don't output the results if we are set to not output results unless the content changes
-                if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == result_info.latest_content_hash:
-                    logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, result_info.latest_content_hash)
+                hash_of_all_results = result_info.get_hash_of_all_results()
+                if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == hash_of_all_results:
+                    logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, hash_of_all_results)
 
                 else:
                     # Process each event
@@ -433,20 +438,12 @@ class WebInput(ModularInput):
             if output_fx is None:
                 self.output_results(results, index, source, sourcetype, host, checkpoint_data, output_results_policy, result_info)
 
-            # Compute a hash on the results
-            content_hash = hash_helper.hash_data(result_info.result_hashes)
-            matches_hash = hash_helper.hash_data(result_info.match_hashes)
-
-            self.logger.info("Hash of matches, matches_hash=%s, result_info.match_hashes=%r, result_info.latest_matches_hash=%s", matches_hash, result_info.match_hashes, result_info.latest_matches_hash)
-
             # Make the new checkpoint data dictionary
             new_checkpoint_data = {
                 'last_run' : self.get_non_deviated_last_run(last_ran, interval, stanza),
-                'matches_hash' : matches_hash,
-                'content_hash' : content_hash
+                'matches_hash' : result_info.get_hash_of_all_matches(),
+                'content_hash' : result_info.get_hash_of_all_results()
             }
-
-            self.logger.info("Saving hashes, matches_hash=%s, content_hash=%s", matches_hash, content_hash)
 
             # Save the checkpoint so that we remember when we last executed this
             self.save_checkpoint_data(input_config.checkpoint_dir, stanza, new_checkpoint_data)
