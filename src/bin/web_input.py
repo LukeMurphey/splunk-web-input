@@ -249,12 +249,14 @@ class WebInput(ModularInput):
 
                 result_info.latest_matches_hash = hash_helper.hash_data(matches_content, WebScraper.GENERATED_FIELDS)
 
+                hash_of_all_matches = result_info.get_hash_of_all_matches()
+                logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), hash_of_all_matches, checkpoint_data.get('matches_hash', ''))
+
             # Add to the list of the matches
             result_info.match_hashes.append(result_info.latest_matches_hash)
 
             # Don't output the results if we are set to not output results unless the matches change
             # Note: we will compare the content later
-            hash_of_all_matches = result_info.get_hash_of_all_matches()
             if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == hash_of_all_matches:
                 logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, hash_of_all_matches)
 
