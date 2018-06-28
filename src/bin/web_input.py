@@ -249,8 +249,8 @@ class WebInput(ModularInput):
 
                 result_info.latest_matches_hash = hash_helper.hash_data(matches_content, WebScraper.GENERATED_FIELDS)
 
-                hash_of_all_matches = result_info.get_hash_of_all_matches()
-                logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), hash_of_all_matches, checkpoint_data.get('matches_hash', ''))
+            hash_of_all_matches = result_info.get_hash_of_all_matches()
+            logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), hash_of_all_matches, checkpoint_data.get('matches_hash', ''))
 
             # Add to the list of the matches
             result_info.match_hashes.append(result_info.latest_matches_hash)
