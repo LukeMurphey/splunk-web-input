@@ -226,4 +226,5 @@ Change History
 | 4.5.3   | Updating the styling to work better on Splunk 7.1                                                                |
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5.4   | Fixed the "when_matches_change" setting of "output_results" made results even the matches hadn't changed         |
+|         | Fixed issue where the severity chart filtered based on the severity filter                                       |
 +---------+------------------------------------------------------------------------------------------------------------------+
