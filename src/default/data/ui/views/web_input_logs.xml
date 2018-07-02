@@ -26,7 +26,7 @@
     <panel>
       <chart>
         <search>
-          <query><![CDATA[index=_internal sourcetype=web_input_modular_input $severity$ | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)" | fillnull severity value="UNDEFINED" | timechart count(severity) as count by severity]]></query>
+          <query><![CDATA[index=_internal sourcetype=web_input_modular_input | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)" | fillnull severity value="UNDEFINED" | timechart count(severity) as count by severity]]></query>
           <earliest>$field1.earliest$</earliest>
           <latest>$field1.latest$</latest>
         </search>
