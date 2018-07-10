@@ -113,7 +113,18 @@ define([
                   console.error("Unable to fetch the indexes");
                 }
             });
-        	
+			
+			// Load the stylesheet for the step control wizard if we are on an older version of Splunk that doesn't include it automatically
+			var version = $C.VERSION_LABEL.split('.');
+
+            if (version.length > 1) {
+                var major = Number(version[0]);
+
+                if (major <= 6) {
+                    require(["css!../app/website_input/css/StepControlWizard.css",]);
+                }
+            }
+
         	// Start syncing the selector gadget back to the form
         	setInterval(this.syncSelectorGadget.bind(this), 100);
         	
