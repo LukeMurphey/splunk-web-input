@@ -1,8 +1,9 @@
 /*
  * The following improves the styling of the dashboard by removing the white border and padding.
  */
-#content1{
-    background-color: #eee;
+#content1 .panel-body.html{
+    padding-top: 0px;
+    padding-bottom: 0px;
 }
 
 .dashboard-header{

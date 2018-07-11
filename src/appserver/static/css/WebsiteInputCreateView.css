@@ -83,6 +83,19 @@
     font-weight: 700;
 }
 
+
+/**
+ * The following two entries will get the labels and inputs to consistently align.
+ */
+ .controls> .help-block{
+    padding-left: 10px;
+}
+
+.controls > input,
+.controls > select{
+    margin-left: 10px;
+}
+
 .preview-urls-loading .spinner{
 	margin-right: 3px;
 }
@@ -93,6 +106,7 @@
 
 .authenticationHelp{
     padding-top: 6px;
+    padding-left: 10px;
     display: inline-block;
 }
 
@@ -102,7 +116,7 @@
 
 /* Styling for detecting login fields. */
 #detect-field-names{
-    margin-left: 4px;
+    margin-left: 10px;
 }
 
 .detectFieldsWorked, .detectFieldsFailed, .detectFieldsChecking{
@@ -217,7 +231,7 @@
 
 /* Make the Splunk JS combo box line-up with the other plain Bootstrap elements */
 #inputOutputResults > .splunk-choice-input{
-	margin-left: 0px;
+	margin-left: 10px;
 }
 
 #inputOutputResults > .splunk-choice-input > .select2-container{
