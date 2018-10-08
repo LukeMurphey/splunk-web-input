@@ -151,6 +151,10 @@
     border-right: 0px;
 }
 
+.selector-buttons{
+	min-width: 600px;
+}
+
 /*
 .styles-switcher .control-label, .styles-switcher .controls{
     display: inline-block;
