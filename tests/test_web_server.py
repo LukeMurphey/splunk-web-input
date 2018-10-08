@@ -97,6 +97,17 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         else:
             return True
 
+    def create_html_with_links(self, links):
+
+        html = '<html><body>'
+
+        for link in links:
+            html += '<a href="%s">Link</a>' % link
+
+        html += '</body></html>'
+
+        return html
+
     def do_POST(self):
 
         # The authentication form
@@ -145,6 +156,11 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             self.do_HEAD()
             with open(os.path.join("web_files", "simple.html"), "r") as webfile:
                 self.wfile.write(webfile.read())
+
+        # Present simulated view with sub-directories
+        elif basepath == "/page_":
+            self.do_HEAD()
+            self.wfile.write()
 
         # Present HTML file with lots of links
         elif basepath == "/links":
