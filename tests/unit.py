@@ -462,21 +462,21 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(result['encoding'], "ISO-8859-1")
 
     @skipIfNoServer
-    def test_scape_page_custom_user_agent(self):
+    def test_scrape_page_custom_user_agent(self):
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        web_scraper.user_agent = "test_scape_page_custom_user_agent"
+        web_scraper.user_agent = "test_scrape_page_custom_user_agent"
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/header_reflection"), selector_field.to_python(".user-agent"), output_matches_as_mv=True)
         result = results[0]
 
         #print result['match']
         self.assertEqual(len(result['match']), 1)
-        self.assertEqual(result['match'][0], "test_scape_page_custom_user_agent")
+        self.assertEqual(result['match'][0], "test_scrape_page_custom_user_agent")
         
     @skipIfNoServer
-    def test_scape_page_xml(self):
+    def test_scrape_page_xml(self):
         # http://lukemurphey.net/issues/1144
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
@@ -489,7 +489,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(result['match'][0], "695")
 
     @skipIfNoServer
-    def test_scape_page_names_as_tag_name(self):
+    def test_scrape_page_names_as_tag_name(self):
         # http://lukemurphey.net/issues/1145
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
@@ -504,7 +504,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(result['cook_temp'][0], "695")
 
     @skipIfNoServer
-    def test_scape_page_match_prefix(self):
+    def test_scrape_page_match_prefix(self):
 
         url_field = URLField("test_web_input", "title", "this is a test")
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
@@ -517,7 +517,7 @@ class TestWebInput(UnitTestWithWebServer):
         self.assertEqual(result['prefix_cook_temp'][0], "695")
 
     @skipIfNoServer
-    def test_scape_page_match_prefix_with_multiple(self):
+    def test_scrape_page_match_prefix_with_multiple(self):
         # http://lukemurphey.net/issues/1628
 
         url_field = URLField("test_web_input", "title", "this is a test")
@@ -704,7 +704,7 @@ class TestWebInputCrawling(unittest.TestCase):
         self.assertEqual(links[0], "https://textcritical.net")
         self.assertEqual(links[1], "https://textcritical.net/read/link_3")
 
-    def test_scape_page_spider(self):
+    def test_scrape_page_spider(self):
         # http://lukemurphey.net/issues/762
 
         url_field = URLField("test_web_input", "title", "this is a test")
@@ -718,7 +718,7 @@ class TestWebInputCrawling(unittest.TestCase):
         self.assertEqual(len(result['match']), 3)
         self.assertEqual(result['match'][0], "Source code")
 
-    def test_scape_page_spider_https_only(self):
+    def test_scrape_page_spider_https_only(self):
         # http://lukemurphey.net/issues/1882
 
         url_field = URLField("test_web_input", "title", "this is a test")
@@ -736,7 +736,7 @@ class TestWebInputCrawling(unittest.TestCase):
         self.assertFalse(WebScraper.is_url_in_url_filter("http://textcritical.net/", "http://textcritical.com/*"))
         self.assertTrue(WebScraper.is_url_in_url_filter("http://textcritical.com", "http://textcritical.*"))
 
-    def test_scape_page_spider_depth_limit(self):
+    def test_scrape_page_spider_depth_limit(self):
         # http://lukemurphey.net/issues/1312
 
         url_field = URLField("test_web_input", "title", "this is a test")
@@ -746,7 +746,7 @@ class TestWebInputCrawling(unittest.TestCase):
         results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), output_matches_as_mv=True, page_limit=5, depth_limit=0)
         self.assertEqual(len(results), 1)
 
-    def test_scape_page_spider_from_non_matching_links(self):
+    def test_scrape_page_spider_from_non_matching_links(self):
         # http://lukemurphey.net/issues/1366
 
         url_field = URLField("test_web_input", "title", "this is a test")
