@@ -19,7 +19,7 @@ class WebScraperSearchCommand(SearchCommand):
     modular input functions so that you could you run the input manually.
     """
 
-    def __init__(self, url, selector, username=None, password=None, timeout=30,
+    def __init__(self, url=None, selector=None, username=None, password=None, timeout=30,
                  name_attributes=None, output_as_mv=True, output_matches_as_mv=None,
                  output_matches_as_separate_fields=False, use_element_name=False, page_limit=1,
                  depth_limit=50, url_filter=None, text_separator=" ", raw_content=False,
@@ -28,6 +28,13 @@ class WebScraperSearchCommand(SearchCommand):
                  username_field=None, password_field=None):
 
         # Note: output_matches_as_mv and include_raw_content are supported for legacy purposes
+
+        # Make sure the required arguments are provided
+        if url is None:
+            raise ValueError("url argument must be provided")
+
+        if selector is None:
+            raise ValueError("selector argument must be provided")
 
         # Use the older output_matches_as_mv field if included
         if output_matches_as_mv is not None:
