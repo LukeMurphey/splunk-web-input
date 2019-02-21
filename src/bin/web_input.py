@@ -245,7 +245,9 @@ class WebInput(ModularInput):
                 matches_content = []
 
                 for result in results:
-                    matches_content.append(result['match'])
+                    # Handle MV based match content
+                    if 'match' in result:
+                        matches_content.append(result['match'])
 
                 result_info.latest_matches_hash = hash_helper.hash_data(matches_content, WebScraper.GENERATED_FIELDS)
 
