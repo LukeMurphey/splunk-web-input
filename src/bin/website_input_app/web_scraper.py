@@ -39,6 +39,20 @@ class WebScraper(object):
     This class performs the operation of web-scraping.
     """
 
+    BROWSER_FIELD = 'browser'
+    RESPONSE_SIZE_FIELD = 'response_size'
+    RESPONSE_CODE_FIELD = 'response_code'
+    REQUEST_TIME_FIELD = 'request_time'
+    URL_FIELD = 'url'
+    CONTENT_MD5_FIELD = 'content_md5'
+    CONTENT_SHA224_FIELD = 'content_sha224'
+    ENCODING_FIELD = 'encoding'
+    RAW_MATCH_COUNT_FIELD = 'raw_match_count'
+    CONTENT_FIELD = 'content'
+    TIMED_OUT_FIELD = 'timed_out'
+    TITLE_FIELD = 'title'
+    TIME_FIELD = '_time'
+
     RESERVED_FIELD_NAMES = [
         # Splunk reserved fields:
         'source',
@@ -48,9 +62,9 @@ class WebScraper(object):
         'punct',
 
         # Internal reserved fields:
-        'request_time',
-        'response_code',
-        'raw_match_count'
+        REQUEST_TIME_FIELD,
+        RESPONSE_CODE_FIELD,
+        RAW_MATCH_COUNT_FIELD
     ]
 
     FIREFOX = "firefox"
@@ -61,9 +75,11 @@ class WebScraper(object):
 
     SUPPORTED_BROWSERS = [INTEGRATED_CLIENT, FIREFOX, CHROME]
 
-    GENERATED_FIELDS = ['browser', 'response_size', 'response_code', 'request_time', 'url',
-                        'content_md5', 'content_sha224', 'encoding', 'raw_match_count', 'content',
-                        'timed_out', 'title', '_time']
+    # This is a list of the fields that this class will put into the result object that are not the raw data that is
+    # being extracted.
+    GENERATED_FIELDS = [BROWSER_FIELD, RESPONSE_SIZE_FIELD, RESPONSE_CODE_FIELD, REQUEST_TIME_FIELD, URL_FIELD,
+                        CONTENT_MD5_FIELD, CONTENT_SHA224_FIELD, ENCODING_FIELD, RAW_MATCH_COUNT_FIELD, CONTENT_FIELD,
+                        TIMED_OUT_FIELD, TITLE_FIELD, TIME_FIELD]
 
     # Below are the class parameters
 
@@ -248,7 +264,7 @@ class WebScraper(object):
         # Try sniffing the encoding
         if encoding is None and charset_detect_sniff_enabled and not isinstance(content, unicode):
             encoding_detection = chardet.detect(content)
-            encoding = encoding_detection['encoding']
+            encoding = encoding_detection[WebScraper.ENCODING_FIELD]
 
         # If all else fails, default to "Windows-1252"
         if encoding is None:
@@ -427,22 +443,22 @@ class WebScraper(object):
             if browser is None or browser == "":
                 browser = WebScraper.INTEGRATED_CLIENT
             
-            result['browser'] = browser
+            result[WebScraper.BROWSER_FIELD] = browser
 
             # Get the size of the content
-            result['response_size'] = len(content)
+            result[WebScraper.RESPONSE_SIZE_FIELD] = len(content)
 
             # Retrieve the meta-data
             if web_client.response_code is not None:
-                result['response_code'] = web_client.response_code
+                result[WebScraper.RESPONSE_CODE_FIELD] = web_client.response_code
 
-            result['url'] = url.geturl()
-            result['request_time'] = web_client.response_time
+            result[WebScraper.URL_FIELD] = url.geturl()
+            result[WebScraper.REQUEST_TIME_FIELD] = web_client.response_time
 
             # Get the hash of the content
             if content is not None:
-                result['content_md5'] = hashlib.md5(content).hexdigest()
-                result['content_sha224'] = hashlib.sha224(content).hexdigest()
+                result[WebScraper.CONTENT_MD5_FIELD] = hashlib.md5(content).hexdigest()
+                result[WebScraper.CONTENT_SHA224_FIELD] = hashlib.sha224(content).hexdigest()
 
             # Decode the content
             try:
@@ -450,7 +466,7 @@ class WebScraper(object):
                     content_decoded = content.decode(encoding=encoding, errors='replace')
 
                     # Store the encoding in the result
-                    result['encoding'] = encoding
+                    result[WebScraper.ENCODING_FIELD] = encoding
                 else:
                     content_decoded = content
             except LookupError:
@@ -492,7 +508,7 @@ class WebScraper(object):
                 matches = selector(tree)
 
                 # Store the raw match count (the nodes that the CSS matches)
-                result['raw_match_count'] = len(matches)
+                result[WebScraper.RAW_MATCH_COUNT_FIELD] = len(matches)
   
                 # Get the text from matching nodes
                 if output_matches_as_mv:
@@ -567,7 +583,7 @@ class WebScraper(object):
  
             # Include the raw content if requested
             if include_raw_content:
-                result['content'] = content
+                result[WebScraper.CONTENT_FIELD] = content
 
             # If we are to extract links, do it
             if tree is not None:
@@ -588,10 +604,10 @@ class WebScraper(object):
         except RequestTimeout:
 
             # Note that the connection timed out    
-            result['timed_out'] = True
+            result[WebScraper.TIMED_OUT_FIELD] = True
 
         except ConnectionFailure:
-            result['timed_out'] = True
+            result[WebScraper.TIMED_OUT_FIELD] = True
 
         except httplib2.SSLHandshakeError as e:
             if self.logger is not None:
