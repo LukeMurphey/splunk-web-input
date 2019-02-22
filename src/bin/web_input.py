@@ -249,7 +249,13 @@ class WebInput(ModularInput):
                     if 'match' in result:
                         matches_content.append(result['match'])
 
-                result_info.latest_matches_hash = hash_helper.hash_data(matches_content, WebScraper.GENERATED_FIELDS)
+                    # Handle non-MV based match content by looking for fields that are not generated as meta fields
+                    else:
+                        for key, value in result:
+                            if key not in WebScraper.GENERATED_FIELDS:
+                                 matches_content.append(value)
+
+                result_info.latest_matches_hash = hash_helper.hash_data(matches_content)
 
             # Add to the list of the matches
             result_info.match_hashes.append(result_info.latest_matches_hash)
