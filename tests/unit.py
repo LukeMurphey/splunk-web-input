@@ -564,8 +564,6 @@ class TestWebInput(UnitTestWithWebServer):
         web_input = WebInput(timeout=3)
         web_input.OUTPUT_USING_STASH = False
 
-        match_hashes = []
-        result_hashes = []
         checkpoint_data = {
             'matches_hash' : '863eb10bc0bee8b54a93e1cc1a3075f43f8752a48e9b7ea605c2d58b'
         }
@@ -610,6 +608,21 @@ class TestWebInput(UnitTestWithWebServer):
         result_info = web_input.output_results(results3, "main", "web_input://test_case", "web_input", "no_host", checkpoint_data, WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE)
 
         self.assertEquals(result_info.results_outputted, 1)
+
+    def test_output_results_hash_non_mv_matches(self):
+        """
+        This test makes sure that hashes are made when output is non-MV.
+        """
+        # https://lukemurphey.net/issues/2363
+        url_field = URLField("test_web_input", "title", "this is a test")
+        selector_field = SelectorField("test_scrape_page", "title", "this is a test")
+
+        web_scraper = WebScraper()
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".ab"), output_matches_as_mv=False)
+        result = results[0]
+        print result
+        self.assertEqual(result['response_code'], 200)
+        self.assertEqual(result['content_md5'], 'ccf5efbb669f49af10abc0751f896a4e')
 
 class TestWebInputCrawling(UnitTestWithWebServer):
     """
