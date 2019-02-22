@@ -230,4 +230,7 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5.5   | Improved styling on Splunk 7.0+                                                                                  |
 |         | Fixed issue where passwords were not loaded if there were more than 30                                           |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.5.6   | Fixed error that occurred when output values as multi-valued fields                                              |
+|         | Fixed issue where proxy password from secure storage was not being used                                          |
 +---------+------------------------------------------------------------------------------------------------------------------+
