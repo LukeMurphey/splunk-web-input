@@ -206,7 +206,7 @@ class WebInput(ModularInput):
         else:
             proxy_password = website_input_config.proxy_password
 
-        return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, website_input_config.proxy_password
+        return website_input_config.proxy_type, website_input_config.proxy_server, website_input_config.proxy_port, website_input_config.proxy_user, proxy_password
 
     def output_results(self, results, index, source, sourcetype, host, checkpoint_data, output_results_policy, result_info = None):
         """
