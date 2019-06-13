@@ -142,9 +142,9 @@ class WebScraper(object):
         Set the strategy to use for detecting the contenttype
 
         Arguments:
-        charset_detect_meta_enabled -- The type of the proxy server
-        charset_detect_content_type_header_enabled -- The server
-        charset_detect_sniff_enabled -- The port of the proxy server (an integer)
+        charset_detect_meta_enabled -- Detect via the meta tag
+        charset_detect_content_type_header_enabled -- Detect the content-type header
+        charset_detect_sniff_enabled -- Detect by looking at the content
         """
 
         self.charset_detect_meta_enabled = charset_detect_meta_enabled
