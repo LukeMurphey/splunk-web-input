@@ -620,9 +620,23 @@ class TestWebInput(UnitTestWithWebServer):
         web_scraper = WebScraper()
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".ab"), output_matches_as_mv=False)
         result = results[0]
-        print result
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(result['content_md5'], 'ccf5efbb669f49af10abc0751f896a4e')
+
+    def test_output_results_non_mv(self):
+        """
+        Ensure that no error is thrown when results in OrderedDict format are sent
+        """
+        # https://lukemurphey.net/issues/2437
+        web_input = WebInput(timeout=3)
+        web_input.OUTPUT_USING_STASH = False
+
+        results = [OrderedDict([('title', u'temp input test'), ('timed_out', True)])]
+
+        # Run the input so that the match_hashes are populated
+        result_info = web_input.output_results(results, "main", "web_input://test_case", "web_input", "no_host", {}, WebInput.OUTPUT_RESULTS_ALWAYS)
+
+        self.assertEquals(result_info.results_outputted, 1)
 
 class TestWebInputCrawling(UnitTestWithWebServer):
     """
