@@ -233,4 +233,7 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5.6   | Fixed error that occurred when output values as multi-valued fields                                              |
 |         | Fixed issue where proxy password from secure storage was not being used                                          |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.5.7   | Fixed another error that occurred when output values as multi-valued fields                                      |
+|         | Updated the geckodriver to 0.24 so that newer versions of Firefox work                                           |
 +---------+------------------------------------------------------------------------------------------------------------------+
