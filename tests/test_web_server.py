@@ -21,6 +21,11 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             self.send_header('Content-length', str(size))
         self.end_headers()
 
+    def do_HEAD_utf8_encoding(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+
     def do_HEAD_bad_encoding(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html; charset=3Dutf-8=')
@@ -155,6 +160,30 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         elif basepath == "/html":
             self.do_HEAD()
             with open(os.path.join("web_files", "simple.html"), "r") as webfile:
+                self.wfile.write(webfile.read())
+
+        # Present HTML file with UTF-8 content
+        elif basepath == "/utf8":
+            self.do_HEAD()
+            with open(os.path.join("web_files", "utf8.html"), "r") as webfile:
+                self.wfile.write(webfile.read())
+
+        # Present HTML file with a meta tag noting the content-type
+        elif basepath == "/utf8_meta":
+            self.do_HEAD()
+            with open(os.path.join("web_files", "utf8_meta.html"), "r") as webfile:
+                self.wfile.write(webfile.read())
+
+        # Present HTML file and a header saying it is UTF-8
+        elif basepath == "/utf8_header":
+            self.do_HEAD_utf8_encoding()
+            with open(os.path.join("web_files", "simple.html"), "r") as webfile:
+                self.wfile.write(webfile.read())
+
+        # Present HTML file with XML
+        elif basepath == "/xml_with_encoding":
+            self.do_HEAD()
+            with open(os.path.join("web_files", "xml_with_encoding.xml"), "r") as webfile:
                 self.wfile.write(webfile.read())
 
         # Present simulated view with sub-directories

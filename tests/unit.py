@@ -224,7 +224,8 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://192.168.30.23/"), selector_field.to_python(".hero-unit.main_background"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.2/"), selector_field.to_python("div"))
+        print results
         result = results[0]
         self.assertEqual(result['timed_out'], True)
 
@@ -279,12 +280,12 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/utf8"), selector_field.to_python(".ab"))
         result = results[0]
         self.assertEqual(result['response_code'], 200)
-        self.assertEqual(len(result['match']), 45)
+        self.assertEqual(len(result['match']), 1)
         #print result['match']
-        self.assertEqual(unicodedata.normalize('NFC', result['match'][1]), unicodedata.normalize('NFC', u"2 Καθὼς γέγραπται ἐν τῷ Ἠσαίᾳ τῷ προφήτῃ Ἰδοὺ ἀποστέλλω τὸν ἄγγελόν μου πρὸ προσώπου σου , ὃς κατασκευάσει τὴν ὁδόν σου :"))
+        self.assertEqual(unicodedata.normalize('NFC', result['match'][0]), unicodedata.normalize('NFC', u"ΕΝ ΑΡΧΗ ἦν ὁ λόγος, καὶ ὁ λόγος ἦν πρὸς τὸν θεόν, καὶ θεὸς ἦν ὁ λόγος."))
         self.assertEqual(result['encoding'], "utf-8")
 
     def test_scrape_encoding_detect_sniff(self):
@@ -294,11 +295,11 @@ class TestWebInput(UnitTestWithWebServer):
         web_scraper = WebScraper(timeout=3)
         # Enable only sniffing
         web_scraper.set_charset_detection(False, False, True)
-        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/utf8"), selector_field.to_python("div"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
-        self.assertEqual(len(result['match']), 45)
+        self.assertEqual(len(result['match']), 8)
         self.assertEqual(result['encoding'], "utf-8")
 
     def test_scrape_encoding_detect_meta(self):
@@ -308,11 +309,11 @@ class TestWebInput(UnitTestWithWebServer):
         web_scraper = WebScraper()
         # Enable only meta detection
         web_scraper.set_charset_detection(True, False, False)
-        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2"), selector_field.to_python(".verse-container"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/utf8_meta"), selector_field.to_python("div"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
-        self.assertEqual(result['encoding'], "utf-8")
+        self.assertEqual(result['encoding'], "UTF-8")
 
     def test_scrape_encoding_detect_content_type_header(self):
         url_field = URLField("test_web_input", "title", "this is a test")
@@ -321,11 +322,11 @@ class TestWebInput(UnitTestWithWebServer):
         # Enable only content-type detection
         web_scraper = WebScraper()
         web_scraper.set_charset_detection(False, True, False)
-        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net/work/new-testament/Mark/1/2?async"), selector_field.to_python(".verse-container"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/utf8_header"), selector_field.to_python("div"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
-        self.assertEqual(len(result['match']), 45)
+        self.assertEqual(len(result['match']), 8)
         self.assertEqual(result['encoding'], "utf-8")
 
     def test_scrape_encoding_invalid(self):
@@ -454,12 +455,11 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper()
-        results = web_scraper.scrape_page(url_field.to_python("http://rss.slashdot.org/Slashdot/slashdot"), selector_field.to_python("description"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/xml_with_encoding"), selector_field.to_python("tree"))
         result = results[0]
 
         self.assertEqual(result['response_code'], 200)
-        self.assertGreater(len(result['match']), 0)
-        self.assertEqual(result['encoding'], "ISO-8859-1")
+        self.assertEqual(result['encoding'], "ascii")
 
     @skipIfNoServer
     def test_scrape_page_custom_user_agent(self):
