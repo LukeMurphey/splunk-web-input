@@ -248,14 +248,9 @@ class WebInput(ModularInput):
 
                     # Handle non-MV based match content by looking for fields that are not generated as meta fields
                     else:
-                        print 'Result:', result
                         for key, value in result.items():
-                            print 'k/v:', key, value
-                            # self.logger.error('key: %s, value: %s', key, value)
                             if key not in WebScraper.GENERATED_FIELDS:
                                 matches_content.append(value)
-                                #value = result[key]
-                                #matches_content.append(value)
 
                 result_info.latest_matches_hash = hash_helper.hash_data(matches_content)
 
