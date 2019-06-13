@@ -851,11 +851,12 @@ class TestWebClient(UnitTestWithWebServer):
     client = None
 
     def get_client(self, browser):
-        if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
+        print self.BROWSER
+        if self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             self.client = MechanizeClient(5)
-        elif self.BROWSER == WebScraper.FIREFOX:
+        elif self.BROWSER.lower() == WebScraper.FIREFOX:
             self.client = FirefoxClient(5)
-        elif self.BROWSER == WebScraper.CHROME:
+        elif self.BROWSER.lower() == WebScraper.CHROME:
             self.client = ChromeClient(5)
         else:
             raise Exception("Browser not recognized")
@@ -865,10 +866,14 @@ class TestWebClient(UnitTestWithWebServer):
     def setUp(self):
         browsers_to_test = os.environ.get('TEST_BROWSERS', None)
 
+        # Change the strings to lowercase. This is important in case people specified the name in uppercase.
+        if browsers_to_test is not None:
+            browsers_to_test = browsers_to_test.lower()
+
         if browsers_to_test is None:
             # Test them all
             pass
-        elif self.BROWSER == WebScraper.INTEGRATED_CLIENT:
+        elif self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             # Always run the internal client since it has no external dependencies
             pass
         elif not self.BROWSER in browsers_to_test:
@@ -903,7 +908,7 @@ class TestBrowserRendering(TestWebClient):
     def test_get_result(self):
 
         # Don't execute this for the integrated client
-        if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
+        if self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             return
 
         client = self.get_client(self.BROWSER)
@@ -915,7 +920,7 @@ class TestBrowserRendering(TestWebClient):
     def test_get_result_basic_auth(self):
 
         # Don't execute this for the integrated client
-        if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
+        if self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             return
 
         client = self.get_client(self.BROWSER)
@@ -927,7 +932,7 @@ class TestBrowserRendering(TestWebClient):
     def test_get_result_basic_auth_as_args(self):
 
         # Don't execute this for the integrated client
-        if self.BROWSER == WebScraper.INTEGRATED_CLIENT:
+        if self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             return
 
         client = self.get_client(self.BROWSER)
