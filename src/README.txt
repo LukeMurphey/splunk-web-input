@@ -236,4 +236,6 @@ Change History
 |---------|------------------------------------------------------------------------------------------------------------------|
 | 4.5.7   | Fixed another error that occurred when output values as multi-valued fields                                      |
 |         | Updated the geckodriver to 0.24 so that newer versions of Firefox work                                           |
+|         | Added link to search logs to determine why browser test failed                                                   |
+|         | Fixed issue where integrated browser test failed on the input wizard                                             |
 +---------+------------------------------------------------------------------------------------------------------------------+
