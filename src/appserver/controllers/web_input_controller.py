@@ -453,6 +453,8 @@ class WebInputController(controllers.BaseController):
                 success = False
             elif len(result) < 1:
                 success = False
+            elif 'browser' not in result[0]:
+                success = True
             else:
                 success = (result[0]['browser'] == browser)
         
