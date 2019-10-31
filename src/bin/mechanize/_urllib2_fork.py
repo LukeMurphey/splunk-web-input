@@ -10,7 +10,7 @@ Copyright 2002-2009 John J Lee <jjl@pobox.com>
 
 This code is free software; you can redistribute it and/or modify it
 under the terms of the BSD or ZPL 2.1 licenses (see the file
-COPYING.txt included with the distribution).
+LICENSE included with the distribution).
 
 """
 
@@ -34,53 +34,64 @@ import base64
 import bisect
 import copy
 import hashlib
-import httplib
 import logging
-import mimetools
 import os
 import platform
 import posixpath
-import random
 import re
 import socket
 import sys
 import time
-import urllib
-import urlparse
-from cStringIO import StringIO
+from collections import OrderedDict
 from functools import partial
-# support for FileHandler, proxies via environment variables
-from urllib import (addinfourl, ftpwrapper, getproxies, splitattr, splitpasswd,
-                    splitport, splittype, splituser, splitvalue, unquote,
-                    unwrap, url2pathname)
-from urllib2 import HTTPError, URLError
+from io import BytesIO, BufferedReader
 
 from . import _rfc3986
 from ._clientcookie import CookieJar
-from ._response import closeable_response
 from ._headersutil import normalize_header_name
+from ._response import closeable_response
+from .polyglot import (HTTPConnection, HTTPError, HTTPSConnection, URLError,
+                       as_unicode, create_response_info, ftpwrapper,
+                       getproxies, is_class, is_mapping, is_py2, is_string,
+                       iteritems, map, raise_with_traceback, splitattr,
+                       splitpasswd, splitport, splittype, splituser,
+                       splitvalue, unquote, unwrap, url2pathname,
+                       urllib_proxy_bypass, urllib_splithost, urlparse,
+                       urlsplit)
 
 
-def sha1_digest(bytes):
-    return hashlib.sha1(bytes).hexdigest()
+def sha1_digest(data):
+    if not isinstance(data, bytes):
+        data = data.encode('utf-8')
+    return hashlib.sha1(data).hexdigest()
 
 
-def md5_digest(bytes):
-    return hashlib.md5(bytes).hexdigest()
+def md5_digest(data):
+    if not isinstance(data, bytes):
+        data = data.encode('utf-8')
+    return hashlib.md5(data).hexdigest()
 
 
 if platform.python_implementation() == 'PyPy':
     def create_readline_wrapper(fh):
+        fh.recv = fh.read
         if not hasattr(fh, '_drop'):
             fh._drop = lambda: None
             fh._reuse = lambda: None
         return socket._fileobject(fh, close=True)
 else:
     def create_readline_wrapper(fh):
-        return socket._fileobject(fh, close=True)
+        fh.recv = fh.read
+        if is_py2:
+            ans = socket._fileobject(fh, close=True)
+        else:
+            fh.recv_into = fh.readinto
+            fh._decref_socketios = lambda: None
+            ans = BufferedReader(socket.SocketIO(fh, 'r'))
+        return ans
 
 
-splithost = urllib.splithost
+splithost = urllib_splithost
 
 
 # used in User-Agent header sent
@@ -113,7 +124,7 @@ def request_host(request):
 
     """
     url = request.get_full_url()
-    host = urlparse.urlparse(url)[1]
+    host = urlparse(url)[1]
     if host == "":
         host = request.get_header("Host", "")
 
@@ -135,14 +146,18 @@ class Request:
         self.port = None
         self._tunnel_host = None
         self.data = data
-        self.headers = {}
-        for key, value in headers.items():
+        self.headers = OrderedDict()
+        for key, value in iteritems(headers):
             self.add_header(key, value)
-        self.unredirected_hdrs = {}
+        self.unredirected_hdrs = OrderedDict()
         if origin_req_host is None:
             origin_req_host = request_host(self)
         self.origin_req_host = origin_req_host
         self.unverifiable = unverifiable
+        try:
+            self.get_host()  # in py3 cookiejar expect self.host to be not None
+        except Exception:
+            self.host = None
 
     def __getattr__(self, attr):
         # XXX this is a fallback mechanism to guard against these
@@ -178,6 +193,13 @@ class Request:
         return self.data
 
     def get_full_url(self):
+        return self.__original
+
+    @property
+    def full_url(self):
+        # In python 3 this is a deleteable and settable property, which when
+        # deleted gets set to None. But this interface does not seem to be used
+        # by any stdlib code, so this should be sufficient.
         return self.__original
 
     def get_type(self):
@@ -261,14 +283,15 @@ class Request:
         '''
         hdrs = self.unredirected_hdrs.copy()
         hdrs.update(self.headers)
-        return list(hdrs.iteritems())
+        return list(iteritems(hdrs))
 
 
-class OpenerDirector:
+class OpenerDirector(object):
 
     def __init__(self):
         client_version = "Python-urllib/%s" % __version__
         self.addheaders = [('User-agent', client_version)]
+        self.finalize_request_headers = None
         # manage the individual handlers
         self.handlers = []
         self.handle_open = {}
@@ -392,21 +415,15 @@ def build_opener(*handlers):
     If any of the handlers passed as arguments are subclasses of the
     default handlers, the default handlers will not be used.
     """
-    import types
-
-    def isclass(obj):
-        return isinstance(obj, (types.ClassType, type))
-
     opener = OpenerDirector()
     default_classes = [ProxyHandler, UnknownHandler, HTTPHandler,
                        HTTPDefaultErrorHandler, HTTPRedirectHandler,
                        FTPHandler, FileHandler, HTTPErrorProcessor]
-    if hasattr(httplib, 'HTTPS'):
-        default_classes.append(HTTPSHandler)
+    default_classes.append(HTTPSHandler)
     skip = set()
     for klass in default_classes:
         for check in handlers:
-            if isclass(check):
+            if is_class(check):
                 if issubclass(check, klass):
                     skip.add(klass)
             elif isinstance(check, klass):
@@ -418,7 +435,7 @@ def build_opener(*handlers):
         opener.add_handler(klass())
 
     for h in handlers:
-        if isclass(h):
+        if is_class(h):
             h = h()
         opener.add_handler(h)
     return opener
@@ -435,7 +452,8 @@ class BaseHandler:
         pass
 
     def __lt__(self, other):
-        return self.handler_order < getattr(other, 'handler_order', sys.maxint)
+        return self.handler_order < getattr(
+                other, 'handler_order', sys.maxsize)
 
     def __copy__(self):
         return self.__class__()
@@ -674,14 +692,14 @@ class ProxyHandler(BaseHandler):
         if proxies is None:
             proxies = getproxies()
 
-        assert hasattr(proxies, 'has_key'), "proxies must be a mapping"
+        assert is_mapping(proxies), "proxies must be a mapping"
         self.proxies = proxies
-        for type, url in proxies.items():
+        for type, url in iteritems(proxies):
             setattr(self, '%s_open' % type,
                     lambda r, proxy=url, type=type, meth=self.proxy_open:
                     meth(r, proxy, type))
         if proxy_bypass is None:
-            proxy_bypass = urllib.proxy_bypass
+            proxy_bypass = urllib_proxy_bypass
         self._proxy_bypass = proxy_bypass
 
     def proxy_open(self, req, proxy, type):
@@ -696,7 +714,11 @@ class ProxyHandler(BaseHandler):
 
         if user and password:
             user_pass = '%s:%s' % (unquote(user), unquote(password))
+            if not isinstance(user_pass, bytes):
+                user_pass = user_pass.encode('utf-8')
             creds = base64.b64encode(user_pass).strip()
+            if isinstance(creds, bytes):
+                creds = creds.decode('ascii')
             req.add_header('Proxy-authorization', 'Basic ' + creds)
         hostport = unquote(hostport)
         req.set_proxy(hostport, proxy_type)
@@ -723,7 +745,7 @@ class HTTPPasswordMgr:
 
     def add_password(self, realm, uri, user, passwd):
         # uri could be a single URI or a sequence
-        if isinstance(uri, basestring):
+        if is_string(uri):
             uri = [uri]
         if realm not in self.passwd:
             self.passwd[realm] = {}
@@ -736,7 +758,7 @@ class HTTPPasswordMgr:
         domains = self.passwd.get(realm, {})
         for default_port in True, False:
             reduced_authuri = self.reduce_uri(authuri, default_port)
-            for uris, authinfo in domains.iteritems():
+            for uris, authinfo in iteritems(domains):
                 for uri in uris:
                     if self.is_suburi(uri, reduced_authuri):
                         return authinfo
@@ -745,7 +767,7 @@ class HTTPPasswordMgr:
     def reduce_uri(self, uri, default_port=True):
         """Accept authority or URI and extract only the authority and path."""
         # note HTTP URLs do not have a userinfo component
-        parts = urlparse.urlsplit(uri)
+        parts = urlsplit(uri)
         if parts[1]:
             # URI
             scheme = parts[0]
@@ -781,7 +803,7 @@ class HTTPPasswordMgr:
 
     def __copy__(self):
         ans = self.__class__()
-        ans.proxies = copy.deepcopy(self.passwd)
+        ans.passwd = copy.deepcopy(self.passwd)
         return ans
 
 
@@ -831,8 +853,9 @@ class AbstractBasicAuthHandler:
         user, pw = self.passwd.find_user_password(realm, host)
         if pw is not None:
             raw = "%s:%s" % (user, pw)
-            auth = 'Basic %s' % base64.b64encode(raw).strip()
-            if req.headers.get(self.auth_header, None) == auth:
+            auth = str('Basic %s' % base64.b64encode(
+                    raw.encode('utf-8')).strip().decode('ascii'))
+            if req.get_header(self.auth_header, None) == auth:
                 return None
             newreq = copy.copy(req)
             newreq.add_header(self.auth_header, auth)
@@ -875,19 +898,7 @@ class ProxyBasicAuthHandler(AbstractBasicAuthHandler, BaseHandler):
         return AbstractBasicAuthHandler.__copy__(self)
 
 
-def randombytes(n):
-    """Return n random bytes."""
-    # Use /dev/urandom if it is available.  Fall back to random module
-    # if not.  It might be worthwhile to extend this function to use
-    # other platform-specific mechanisms for getting random bytes.
-    if os.path.exists("/dev/urandom"):
-        f = open("/dev/urandom")
-        s = f.read(n)
-        f.close()
-        return s
-    else:
-        L = [chr(random.randrange(0, 256)) for i in range(n)]
-        return "".join(L)
+randombytes = os.urandom
 
 
 class AbstractDigestAuthHandler:
@@ -936,7 +947,7 @@ class AbstractDigestAuthHandler:
         auth = self.get_authorization(req, chal)
         if auth:
             auth_val = 'Digest %s' % auth
-            if req.headers.get(self.auth_header, None) == auth_val:
+            if req.get_header(self.auth_header, None) == auth_val:
                 return None
             newreq = copy.copy(req)
             newreq.add_unredirected_header(self.auth_header, auth_val)
@@ -1047,7 +1058,7 @@ class HTTPDigestAuthHandler(BaseHandler, AbstractDigestAuthHandler):
     handler_order = 490  # before Basic auth
 
     def http_error_401(self, req, fp, code, msg, headers):
-        host = urlparse.urlparse(req.get_full_url())[1]
+        host = urlparse(req.get_full_url())[1]
         retry = self.http_error_auth_reqed('www-authenticate',
                                            host, req, headers)
         self.reset_retry_count()
@@ -1116,7 +1127,7 @@ class AbstractHTTPHandler(BaseHandler):
         http_class must implement the HTTPConnection API from httplib.
         The addinfourl return value is a file-like object.  It also
         has methods and attributes including:
-            - info(): return a mimetools.Message object for the headers
+            - info(): return a HTTPMessage object for the headers
             - geturl(): return the original request URL
             - code: HTTP status code
         """
@@ -1127,30 +1138,41 @@ class AbstractHTTPHandler(BaseHandler):
         h = http_class(host_port, timeout=req.timeout)
         h.set_debuglevel(self._debuglevel)
 
-        headers = dict(req.headers)
-        headers.update(req.unredirected_hdrs)
+        headers = OrderedDict(req.headers)
+        for key, val in iteritems(req.unredirected_hdrs):
+            headers[key] = val
         # We want to make an HTTP/1.1 request, but the addinfourl
         # class isn't prepared to deal with a persistent connection.
         # It will try to read all remaining data from the socket,
         # which will block while the server waits for the next request.
         # So make sure the connection gets closed after the (only)
         # request.
-        headers[b"Connection"] = b"close"
+        headers["Connection"] = "close"
         # httplib in python 2 needs str() not unicode() for all request
         # parameters
-        headers = {str(name.title()): str(val)
-                   for name, val in headers.items()}
+        if is_py2:
+            headers = OrderedDict(
+                    (str(name.title()), str(val))
+                    for name, val in iteritems(headers))
+        else:
+            headers = OrderedDict(
+                    (as_unicode(name, 'iso-8859-1').title(),
+                     as_unicode(val, 'iso-8859-1'))
+                    for name, val in iteritems(headers))
 
         if req._tunnel_host:
             set_tunnel = h.set_tunnel if hasattr(
                 h, "set_tunnel") else h._set_tunnel
             tunnel_headers = {}
-            proxy_auth_hdr = b"Proxy-Authorization"
+            proxy_auth_hdr = "Proxy-Authorization"
             if proxy_auth_hdr in headers:
                 tunnel_headers[proxy_auth_hdr] = headers[proxy_auth_hdr]
                 # Proxy-Authorization should not be sent to origin server.
                 del headers[proxy_auth_hdr]
             set_tunnel(req._tunnel_host, headers=tunnel_headers)
+
+        if self.parent.finalize_request_headers is not None:
+            self.parent.finalize_request_headers(req, headers)
 
         try:
             h.request(str(req.get_method()), str(req.get_selector()), req.data,
@@ -1161,16 +1183,6 @@ class AbstractHTTPHandler(BaseHandler):
 
         # Pick apart the HTTPResponse object to get the addinfourl
         # object initialized properly.
-
-        # Wrap the HTTPResponse object in socket's file object adapter
-        # for Windows.  That adapter calls recv(), so delegate recv()
-        # to read().  This weird wrapping allows the returned object to
-        # have readline() and readlines() methods.
-
-        # XXX It might be better to extract the read buffering code
-        # out of socket._fileobject() and into a base class.
-
-        r.recv = r.read
         fp = create_readline_wrapper(r)
 
         resp = closeable_response(
@@ -1185,42 +1197,40 @@ class AbstractHTTPHandler(BaseHandler):
 class HTTPHandler(AbstractHTTPHandler):
 
     def http_open(self, req):
-        return self.do_open(httplib.HTTPConnection, req)
+        return self.do_open(HTTPConnection, req)
 
     http_request = AbstractHTTPHandler.do_request_
 
 
-if hasattr(httplib, 'HTTPS'):
+class HTTPSHandler(AbstractHTTPHandler):
 
-    class HTTPSHandler(AbstractHTTPHandler):
+    def __init__(self, client_cert_manager=None):
+        AbstractHTTPHandler.__init__(self)
+        self.client_cert_manager = client_cert_manager
+        self.ssl_context = None
 
-        def __init__(self, client_cert_manager=None):
-            AbstractHTTPHandler.__init__(self)
-            self.client_cert_manager = client_cert_manager
-            self.ssl_context = None
+    def https_open(self, req):
+        key_file = cert_file = None
+        if self.client_cert_manager is not None:
+            key_file, cert_file = self.client_cert_manager.find_key_cert(
+                req.get_full_url())
+        if self.ssl_context is None:
+            conn_factory = partial(
+                HTTPSConnection, key_file=key_file,
+                cert_file=cert_file)
+        else:
+            conn_factory = partial(
+                HTTPSConnection, key_file=key_file,
+                cert_file=cert_file, context=self.ssl_context)
+        return self.do_open(conn_factory, req)
 
-        def https_open(self, req):
-            key_file = cert_file = None
-            if self.client_cert_manager is not None:
-                key_file, cert_file = self.client_cert_manager.find_key_cert(
-                    req.get_full_url())
-            if self.ssl_context is None:
-                conn_factory = partial(
-                    httplib.HTTPSConnection, key_file=key_file,
-                    cert_file=cert_file)
-            else:
-                conn_factory = partial(
-                    httplib.HTTPSConnection, key_file=key_file,
-                    cert_file=cert_file, context=self.ssl_context)
-            return self.do_open(conn_factory, req)
+    https_request = AbstractHTTPHandler.do_request_
 
-        https_request = AbstractHTTPHandler.do_request_
-
-        def __copy__(self):
-            ans = self.__class__(self.client_cert_manager)
-            ans._debuglevel = self._debuglevel
-            ans.ssl_context = self.ssl_context
-            return ans
+    def __copy__(self):
+        ans = self.__class__(self.client_cert_manager)
+        ans._debuglevel = self._debuglevel
+        ans.ssl_context = self.ssl_context
+        return ans
 
 
 class HTTPCookieProcessor(BaseHandler):
@@ -1259,12 +1269,12 @@ class UnknownHandler(BaseHandler):
         raise URLError('unknown url type: %s' % type)
 
 
-def parse_keqv_list(l):
+def parse_keqv_list(ln):
     """Parse list of key=value strings where keys are not duplicated."""
     parsed = {}
-    for elt in l:
+    for elt in ln:
         k, v = elt.split('=', 1)
-        if v[0] == '"' and v[-1] == '"':
+        if v[0:1] == '"' and v[-1:] == '"':
             v = v[1:-1]
         parsed[k] = v
     return parsed
@@ -1311,7 +1321,7 @@ def parse_http_list(s):
     if part:
         res.append(part)
 
-    return [part_.strip() for part_ in res]
+    return list(filter(None, (part_.strip() for part_ in res)))
 
 
 class FileHandler(BaseHandler):
@@ -1340,11 +1350,7 @@ class FileHandler(BaseHandler):
 
     # not entirely sure what the rules are here
     def open_local_file(self, req):
-        try:
-            import email.utils as emailutils
-        except ImportError:
-            # python 2.4
-            import email.Utils as emailutils
+        import email.utils as emailutils
         import mimetypes
         host = req.get_host()
         file = req.get_selector()
@@ -1358,17 +1364,18 @@ class FileHandler(BaseHandler):
             size = stats.st_size
             modified = emailutils.formatdate(stats.st_mtime, usegmt=True)
             mtype = mimetypes.guess_type(file)[0]
-            headers = mimetools.Message(StringIO(
-                'Content-type: %s\nContent-length: %d\nLast-modified: %s\n' %
-                (mtype or 'text/plain', size, modified)))
+            headers = create_response_info(BytesIO(
+                ('Content-type: %s\nContent-length: %d\nLast-modified: %s\n' %
+                    (mtype or 'text/plain', size, modified)).encode(
+                        'iso-8859-1')))
             if host:
                 host, port = splitport(host)
             if not host or (
                     not port and socket.gethostbyname(host) in self.get_names()
             ):
-                return addinfourl(open(localfile, 'rb'),
-                                  headers, 'file:' + file)
-        except OSError, msg:
+                fp = open(localfile, 'rb')
+                return closeable_response(fp, headers, 'file:' + file)
+        except OSError as msg:
             # urllib2 users shouldn't expect OSErrors coming from urlopen()
             raise URLError(msg)
         raise URLError('file not on local host')
@@ -1400,11 +1407,11 @@ class FTPHandler(BaseHandler):
 
         try:
             host = socket.gethostbyname(host)
-        except socket.error, msg:
+        except socket.error as msg:
             raise URLError(msg)
         path, attrs = splitattr(req.get_selector())
         dirs = path.split('/')
-        dirs = map(unquote, dirs)
+        dirs = list(map(unquote, dirs))
         dirs, file = dirs[:-1], dirs[-1]
         if dirs and not dirs[0]:
             dirs = dirs[1:]
@@ -1423,11 +1430,11 @@ class FTPHandler(BaseHandler):
                 headers += "Content-type: %s\n" % mtype
             if retrlen is not None and retrlen >= 0:
                 headers += "Content-length: %d\n" % retrlen
-            sf = StringIO(headers)
-            headers = mimetools.Message(sf)
-            return addinfourl(fp, headers, req.get_full_url())
+            sf = BytesIO(headers.encode('iso-8859-1'))
+            headers = create_response_info(sf)
+            return closeable_response(fp, headers, req.get_full_url())
         except ftplib.all_errors as msg:
-            raise URLError('ftp error: %s' % msg), None, sys.exc_info()[2]
+            raise_with_traceback(URLError('ftp error: %s' % msg))
 
     def connect_ftp(self, user, passwd, host, port, dirs, timeout):
         try:
@@ -1471,7 +1478,7 @@ class CacheFTPHandler(FTPHandler):
         # first check for old ones
         t = time.time()
         if self.soonest <= t:
-            for k, v in self.timeout.items():
+            for k, v in iteritems(self.timeout):
                 if v < t:
                     self.cache[k].close()
                     del self.cache[k]
@@ -1480,7 +1487,7 @@ class CacheFTPHandler(FTPHandler):
 
         # then check the size
         if len(self.cache) == self.max_conns:
-            for k, v in self.timeout.items():
+            for k, v in iteritems(self.timeout):
                 if v == self.soonest:
                     del self.cache[k]
                     del self.timeout[k]

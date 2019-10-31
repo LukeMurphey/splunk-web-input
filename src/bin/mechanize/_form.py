@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import re
 from collections import defaultdict
-from urlparse import urljoin
 
 from ._form_controls import HTMLForm, Label
 from ._request import Request
+from .polyglot import urljoin, is_string, as_unicode
 
 
 class SkipControl(ValueError):
@@ -13,7 +13,7 @@ class SkipControl(ValueError):
 
 
 def normalize_line_endings(text):
-    return re.sub(ur"(?:(?<!\r)\n)|(?:\r(?!\n))", u"\r\n", text)
+    return re.sub(as_unicode(r"(?:(?<!\r)\n)|(?:\r(?!\n))"), u"\r\n", text)
 
 
 def label_text(elem):
@@ -27,7 +27,7 @@ def label_text(elem):
 
 
 def parse_control(elem, parent_of, default_type='text'):
-    attrs = elem.attrib.copy()
+    attrs = dict(elem.attrib)
     label_elem = parent_of(elem, 'label')
     if label_elem is not None:
         lt = label_text(label_elem)
@@ -76,15 +76,15 @@ def parse_select(elem, parent_of, *a):
     return ctype, name, {'__select': attrs}
 
 
-def parse_forms(root, base_url, request_class=None, select_default=False):
+def parse_forms(root, base_url, request_class=None, select_default=False, encoding=None):
     if request_class is None:
         request_class = Request
-    global_form = HTMLForm(base_url)
+    global_form = HTMLForm(base_url, encoding=encoding)
     forms, labels = [], []
     form_elems = []
     form_id_map = {}
     all_elems = tuple(
-        e for e in root.iter('*') if isinstance(e.tag, basestring))
+        e for e in root.iter('*') if is_string(e.tag))
     parent_map = {c: p for p in all_elems for c in p}
     id_to_labels = defaultdict(list)
     for e in all_elems:
@@ -97,9 +97,9 @@ def parse_forms(root, base_url, request_class=None, select_default=False):
         elif q == 'label':
             for_id = e.get('for')
             if for_id is not None:
-                l = Label(label_text(e), for_id)
-                labels.append(l)
-                id_to_labels[for_id].append(l)
+                label = Label(label_text(e), for_id)
+                labels.append(label)
+                id_to_labels[for_id].append(label)
         elif q == 'base':
             base_url = e.get('href') or base_url
 
@@ -124,7 +124,7 @@ def parse_forms(root, base_url, request_class=None, select_default=False):
         else:
             action = base_url
         form = HTMLForm(action, method, enctype, name, form_elem.attrib,
-                        request_class, forms, labels, id_to_labels)
+                        request_class, forms, labels, id_to_labels, encoding=encoding)
         forms_map[form_elem] = form
         forms.append(form)
 

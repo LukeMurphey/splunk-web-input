@@ -4,7 +4,7 @@
 
 This code is free software; you can redistribute it and/or modify it
 under the terms of the BSD or ZPL 2.1 licenses (see the file
-COPYING.txt included with the distribution).
+LICENSE included with the distribution).
 """
 
 from __future__ import absolute_import
@@ -44,11 +44,8 @@ def reset_deprecations():
 
 
 def read_file(filename):
-    fh = open(filename)
-    try:
-        return fh.read()
-    finally:
-        fh.close()
+    with open(filename, 'rb') as f:
+        return f.read()
 
 
 def write_file(filename, data):
@@ -67,21 +64,13 @@ def get1(sequence):
 def isstringlike(x):
     try:
         x + ""
-    except:
+    except Exception:
         return False
     else:
         return True
 
-# def caller():
-# try:
-##         raise SyntaxError
-# except:
-##         import sys
-# return sys.exc_traceback.tb_frame.f_back.f_back.f_code.co_name
-
-
-
 # Date/time conversion routines for formats used by the HTTP protocol.
+
 
 EPOCH = 1970
 
@@ -93,6 +82,7 @@ def my_timegm(tt):
         return timegm(tt)
     else:
         return None
+
 
 days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -146,7 +136,7 @@ timezone_re = re.compile(r"^([-+])?(\d\d?):?(\d\d)?$")
 
 def offset_from_tz_string(tz):
     offset = None
-    if UTC_ZONES.has_key(tz):
+    if tz in UTC_ZONES:
         offset = 0
     else:
         m = timezone_re.search(tz)
@@ -299,7 +289,7 @@ def http2time(text):
 
 
 iso_re = re.compile(
-    """^
+    r"""^
     (\d{4})              # year
        [-\/]?
     (\d\d?)              # numerical month

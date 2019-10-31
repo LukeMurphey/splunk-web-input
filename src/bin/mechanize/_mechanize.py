@@ -4,7 +4,7 @@ Copyright 2003-2006 John J. Lee <jjl@pobox.com>
 Copyright 2003 Andy Lester (original Perl code)
 
 This code is free software; you can redistribute it and/or modify it
-under the terms of the BSD or ZPL 2.1 licenses (see the file COPYING.txt
+under the terms of the BSD or ZPL 2.1 licenses (see the file LICENSE
 included with the distribution).
 
 """
@@ -13,14 +13,13 @@ from __future__ import absolute_import
 import copy
 import os
 import re
-import urllib
-import urllib2
 
 from . import _request, _response, _rfc3986, _sockettimeout, _urllib2_fork
 from ._clientcookie import Cookie
 from ._headersutil import normalize_header_name
 from ._html import Factory
 from ._useragent import UserAgentBase
+from .polyglot import pathname2url, HTTPError, is_string, iteritems
 
 
 class BrowserStateError(Exception):
@@ -36,7 +35,7 @@ class FormNotFoundError(Exception):
 
 
 def sanepathname2url(path):
-    urlpath = urllib.pathname2url(path)
+    urlpath = pathname2url(path)
     if os.name == "nt" and urlpath.startswith("///"):
         urlpath = urlpath[2:]
     # XXX don't ask me about the mac...
@@ -282,13 +281,13 @@ class Browser(UserAgentBase):
         success = True
         try:
             response = UserAgentBase.open(self, request, data)
-        except urllib2.HTTPError, error:
+        except HTTPError as error:
             success = False
             if error.fp is None:  # not a response
                 raise
             response = error
 
-#         except (IOError, socket.error, OSError), error:
+#         except (IOError, socket.error, OSError) as error:
 #             Yes, urllib2 really does raise all these :-((
 #             See test_urllib2.py for examples of socket.gaierror and OSError,
 #             plus note that FTPHandler raises IOError.
@@ -442,6 +441,8 @@ class Browser(UserAgentBase):
         Currently, this method does not allow for adding RFC 2986 cookies.
         This limitation will be lifted if anybody requests it.
 
+        See also :meth:`set_simple_cookie()` for an easier way to set cookies
+        without needing to create a Set-Cookie header string.
         """
         if self._response is None:
             raise BrowserStateError("not viewing any document")
@@ -467,7 +468,7 @@ class Browser(UserAgentBase):
                                       path='/some-page')
         '''
         self.cookiejar.set_cookie(
-            Cookie(None, name, value, None, False, domain, True, False, path,
+            Cookie(0, name, value, None, False, domain, True, False, path,
                    True, False, None, False, None, None, None))
 
     @property
@@ -623,16 +624,16 @@ class Browser(UserAgentBase):
             return
 
         def attr_selector(q):
-            if isinstance(q, basestring):
+            if is_string(q):
                 return lambda x: x == q
             if callable(q):
                 return q
             return lambda x: q.match(x) is not None
         attrsq = {aname.rstrip('_').replace('_', '-'): attr_selector(v)
-                  for aname, v in attrs.iteritems()}
+                  for aname, v in iteritems(attrs)}
 
         def form_attrs_match(form_attrs):
-            for aname, q in attrsq.iteritems():
+            for aname, q in iteritems(attrsq):
                 val = form_attrs.get(aname)
                 if val is None or not q(val):
                     return False
@@ -661,7 +662,7 @@ class Browser(UserAgentBase):
             if orig_nr is not None:
                 description.append("nr %d" % orig_nr)
             if attrs:
-                for k, v in attrs.iteritems():
+                for k, v in iteritems(attrs):
                     description.append('%s = %r' % (k, v))
             description = ", ".join(description)
             raise FormNotFoundError("no form matching " + description)
@@ -757,20 +758,21 @@ class Browser(UserAgentBase):
             as this argument, if supplied
         :param name: as for text and text_regex, but matched
             against the name HTML attribute of the link tag
-        :url: as for text and text_regex, but matched against the
+        :param url: as for text and text_regex, but matched against the
             URL of the link tag (note this matches against Link.url, which is a
             relative or absolute URL according to how it was written in the
             HTML)
         :param tag: element name of opening tag, e.g. "a"
         :param predicate: a function taking a Link object as its single
             argument, returning a boolean result, indicating whether the links
-        :nr: matches the nth link that matches all other criteria (default 0)
+        :param nr: matches the nth link that matches all other
+            criteria (default 0)
 
         """
         try:
-            return self._filter_links(self._factory.links(), text, text_regex,
-                                      name, name_regex, url, url_regex, tag,
-                                      predicate, nr).next()
+            return next(self._filter_links(
+                self._factory.links(), text, text_regex, name, name_regex, url,
+                url_regex, tag, predicate, nr))
         except StopIteration:
             raise LinkNotFoundError()
 
@@ -782,6 +784,16 @@ class Browser(UserAgentBase):
                 "%s instance has no attribute %s (perhaps you forgot to "
                 ".select_form()?)" % (self.__class__, name))
         return getattr(form, name)
+
+    def __getitem__(self, name):
+        if self.form is None:
+            raise BrowserStateError('No form selected')
+        return self.form[name]
+
+    def __setitem__(self, name, val):
+        if self.form is None:
+            raise BrowserStateError('No form selected')
+        self.form[name] = val
 
     def _filter_links(self,
                       links,

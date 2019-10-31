@@ -1,16 +1,27 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # vim:fileencoding=utf-8
 from __future__ import absolute_import
 
 import random
 import re
 import sys
-import urllib
-import urlparse
 import warnings
-from cStringIO import StringIO
+from io import BytesIO
+from mimetypes import guess_type
 
 from . import _request
+from .polyglot import (as_unicode, is_py2, iteritems, unicode_type, urlencode,
+                       urlparse, urlunparse)
+
+if is_py2:
+    from cStringIO import StringIO
+else:
+    class StringIO(BytesIO):
+
+        def write(self, x):
+            if isinstance(x, str):
+                x = x.encode('utf-8')
+            BytesIO.write(self, x)
 
 
 class Missing:
@@ -49,18 +60,19 @@ def compress_whitespace(text):
 
 
 def isstringlike(x):
+    if isinstance(x, (bytes, unicode_type)):
+        return True
     try:
         x + ""
-    except:
-        return False
-    else:
         return True
+    except Exception:
+        return False
 
 
 def choose_boundary():
     """Return a string usable as a multipart boundary."""
     # follow IE and firefox
-    nonce = "".join([str(random.randint(0, sys.maxint - 1)) for i in 0, 1, 2])
+    nonce = "".join(str(random.randint(0, sys.maxsize - 1)) for i in (0, 1, 2))
     return "-" * 27 + nonce
 
 
@@ -173,7 +185,8 @@ class MimeWriter:
                 self._headers.append(line)
 
     def flushheaders(self):
-        self._fp.writelines(self._headers)
+        for line in self._headers:
+            self._fp.write(line)
         self._headers = []
 
     def startbody(self,
@@ -347,7 +360,9 @@ class Control:
         """Write data for a subitem of this control to a MimeWriter."""
         # called by HTMLForm
         mw2 = mw.nextpart()
-        mw2.addheader("Content-Disposition", 'form-data; name="%s"' % name, 1)
+        mw2.addheader(
+            "Content-Disposition", 'form-data; name="%s"' % as_unicode(name),
+            1)
         f = mw2.startbody(prefix=0)
         f.write(value)
 
@@ -394,12 +409,12 @@ class ScalarControl(Control):
         self.readonly = 'readonly' in attrs
         self.id = attrs.get("id")
 
-        self.attrs = attrs.copy()
+        self.attrs = dict(attrs)
 
         self._clicked = False
 
-        self._urlparse = urlparse.urlparse
-        self._urlunparse = urlparse.urlunparse
+        self._urlparse = urlparse
+        self._urlunparse = urlunparse
 
     def __getattr__(self, name):
         if name == "value":
@@ -512,7 +527,9 @@ class FileControl(ScalarControl):
         if filename is not None and not isstringlike(filename):
             raise TypeError("filename must be None or string-like")
         if content_type is None:
-            content_type = "application/octet-stream"
+            if getattr(file_object, 'name', None):
+                content_type = guess_type(file_object.name)[0]
+            content_type = content_type or "application/octet-stream"
         self._upload_data.append((file_object, content_type, filename))
 
     def _totally_ordered_pairs(self):
@@ -530,7 +547,7 @@ class FileControl(ScalarControl):
         # assert _name == self.name and _value == ''
         if len(self._upload_data) < 2:
             if len(self._upload_data) == 0:
-                file_object = StringIO()
+                file_object = BytesIO()
                 content_type = "application/octet-stream"
                 filename = ""
             else:
@@ -690,14 +707,15 @@ class Item:
     def __repr__(self):
         # XXX appending the attrs without distinguishing them from name and id
         # is silly
-        attrs = [("name", self.name), ("id", self.id)] + self.attrs.items()
+        attrs = [("name", self.name), ("id", self.id)] + list(
+                iteritems(self.attrs))
         return "<%s %s>" % (self.__class__.__name__,
                             " ".join(["%s=%r" % (k, v) for k, v in attrs]))
 
 
 def disambiguate(items, nr, **kwds):
     msgs = []
-    for key, value in kwds.items():
+    for key, value in iteritems(kwds):
         msgs.append("%s=%r" % (key, value))
     msg = " ".join(msgs)
     if not items:
@@ -998,7 +1016,7 @@ class ListControl(Control):
     def set_item_disabled(self, disabled, name, by_label=False, nr=None):
         """Set disabled state of named list item in a ListControl.
 
-        disabled: boolean disabled state
+        :arg disabled: boolean disabled state
 
         """
         deprecation("control.get(...).disabled = <boolean>")
@@ -1007,7 +1025,7 @@ class ListControl(Control):
     def set_all_items_disabled(self, disabled):
         """Set disabled state of all list items in a ListControl.
 
-        disabled: boolean disabled state
+        :arg disabled: boolean disabled state
 
         """
         for o in self.items:
@@ -1164,11 +1182,8 @@ class ListControl(Control):
         ]
         names = {}
         for nn in value:
-            if nn in names.keys():
-                names[nn] += 1
-            else:
-                names[nn] = 1
-        for name, count in names.items():
+            names[nn] = names.setdefault(nn, 0) + 1
+        for name, count in iteritems(names):
             on, off = self._get_items(name, count)
             for i in range(count):
                 if on:
@@ -1410,13 +1425,13 @@ class SelectControl(ListControl):
     def __init__(self, type, name, attrs, select_default=False, index=None):
         # fish out the SELECT HTML attributes from the OPTION HTML attributes
         # dictionary
-        self.attrs = attrs["__select"].copy()
+        self.attrs = dict(attrs["__select"])
         self.__dict__["_label"] = _get_label(self.attrs)
         self.__dict__["id"] = self.attrs.get("id")
         self.__dict__["multiple"] = 'multiple' in self.attrs
         # the majority of the contents, label, and value dance already happened
         contents = attrs.get("contents")
-        attrs = attrs.copy()
+        attrs = dict(attrs)
         del attrs["__select"]
 
         ListControl.__init__(
@@ -1825,7 +1840,8 @@ class HTMLForm:
                  request_class=_request.Request,
                  forms=None,
                  labels=None,
-                 id_to_labels=None):
+                 id_to_labels=None,
+                 encoding=None):
         """
         In the usual case, use ParseResponse (or ParseFile) to create new
         HTMLForm objects.
@@ -1840,9 +1856,10 @@ class HTMLForm:
         self.action = action
         self.method = method
         self.enctype = enctype
+        self.form_encoding = encoding or 'utf-8'
         self.name = name
         if attrs is not None:
-            self.attrs = attrs.copy()
+            self.attrs = dict(attrs)
         else:
             self.attrs = {}
         self.controls = []
@@ -1853,8 +1870,8 @@ class HTMLForm:
         self._labels = labels  # this is a semi-public API!
         self._id_to_labels = id_to_labels  # this is a semi-public API!
 
-        self._urlunparse = urlparse.urlunparse
-        self._urlparse = urlparse.urlparse
+        self._urlunparse = urlunparse
+        self._urlparse = urlparse
 
     def new_control(self,
                     type,
@@ -1892,7 +1909,7 @@ class HTMLForm:
             else:
                 klass = TextControl
 
-        a = attrs.copy()
+        a = dict(attrs)
         if issubclass(klass, ListControl):
             control = klass(type, name, a, select_default, index)
         else:
@@ -1921,6 +1938,7 @@ class HTMLForm:
         """
         for control in self.controls:
             control.fixup()
+            control.form_encoding = self.form_encoding
 
 # ---------------------------------------------------
 
@@ -1945,7 +1963,7 @@ class HTMLForm:
         control = self.find_control(name)
         try:
             control.value = value
-        except AttributeError, e:
+        except AttributeError as e:
             raise ValueError(str(e))
 
     def get_value(
@@ -1961,7 +1979,9 @@ class HTMLForm:
 
         If only name and value arguments are supplied, equivalent to
 
-        form[name]
+        .. code-block:: python
+
+            form[name]
 
         """
         if by_label:
@@ -1992,7 +2012,9 @@ class HTMLForm:
 
         If only name and value arguments are supplied, equivalent to
 
-        form[name] = value
+        .. code-block:: python
+
+            form[name] = value
 
         """
         if by_label:
@@ -2098,7 +2120,7 @@ class HTMLForm:
             label=None):
         """Select / deselect named list item.
 
-        selected: boolean selected state
+        :arg selected: boolean selected state
 
         """
         self._find_list_control(name, type, kind, id, label, nr).set(
@@ -2139,8 +2161,10 @@ class HTMLForm:
         For example, if a checkbox has a single item named "on", the following
         two calls are equivalent:
 
-        control.toggle("on")
-        control.toggle_single()
+        .. code-block:: python
+
+            control.toggle("on")
+            control.toggle_single()
 
         """  # by_label ignored and deprecated
         self._find_list_control(name, type, kind, id, label,
@@ -2190,12 +2214,12 @@ class HTMLForm:
         Note the following useful HTML attributes of file upload controls (see
         HTML 4.01 spec, section 17):
 
-        accept: comma-separated list of content types that the server will
-         handle correctly; you can use this to filter out non-conforming files
-        size: XXX IIRC, this is indicative of whether form wants multiple or
-         single files
-
-        maxlength: XXX hint of max content length in bytes?
+          * `accept`: comma-separated list of content types
+             that the server will handle correctly;
+             you can use this to filter out non-conforming files
+          * `size`: XXX IIRC, this is indicative of whether form
+             wants multiple or single files
+          * `maxlength`: XXX hint of max content length in bytes?
 
         """
         self.find_control(
@@ -2471,6 +2495,8 @@ class HTMLForm:
         for control_index in range(len(self.controls)):
             control = self.controls[control_index]
             for ii, key, val in control._totally_ordered_pairs():
+                if ii is None:
+                    ii = -1
                 pairs.append((ii, key, val, control_index))
 
         # stable sort by ONLY first item in tuple
@@ -2485,18 +2511,27 @@ class HTMLForm:
         rest, (query, frag) = parts[:-2], parts[-2:]
         frag
 
+        def encode_data(x):
+            if isinstance(x, unicode_type):
+                x = x.encode(self.form_encoding)
+            return x
+
+        def encode_query():
+            p = [(encode_data(k), encode_data(v)) for k, v in self._pairs()]
+            return urlencode(p)
+
         if method == "GET":
             if self.enctype != "application/x-www-form-urlencoded":
                 raise ValueError("unknown GET form encoding type '%s'" %
                                  self.enctype)
-            parts = rest + (urllib.urlencode(self._pairs()), None)
+            parts = rest + (encode_query(), None)
             uri = self._urlunparse(parts)
             return uri, None, []
         elif method == "POST":
             parts = rest + (query, None)
             uri = self._urlunparse(parts)
             if self.enctype == "application/x-www-form-urlencoded":
-                return (uri, urllib.urlencode(self._pairs()),
+                return (uri, encode_query(),
                         [("Content-Type", self.enctype)])
             elif self.enctype == "multipart/form-data":
                 data = StringIO()
@@ -2505,7 +2540,8 @@ class HTMLForm:
                 mw.startmultipartbody(
                     "form-data", add_to_http_hdrs=True, prefix=0)
                 for ii, k, v, control_index in self._pairs_and_controls():
-                    self.controls[control_index]._write_mime_data(mw, k, v)
+                    self.controls[control_index]._write_mime_data(
+                            mw, encode_data(k), encode_data(v))
                 mw.lastpart()
                 return uri, data.getvalue(), http_hdrs
             else:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # vim:fileencoding=utf-8
 # License: BSD Copyright: 2017, Kovid Goyal <kovid at kovidgoyal.net>
 
@@ -9,22 +9,22 @@ import re
 import string
 
 from ._entities import html5_entities
+from .polyglot import codepoint_to_chr
 
 space_chars = frozenset(("\t", "\n", "\u000C", " ", "\r"))
 space_chars_bytes = frozenset(item.encode("ascii") for item in space_chars)
 ascii_letters_bytes = frozenset(
     item.encode("ascii") for item in string.ascii_letters)
-ascii_uppercase_bytes = frozenset(
-    item.encode("ascii") for item in string.ascii_uppercase)
 spaces_angle_brackets = space_chars_bytes | frozenset((b">", b"<"))
 skip1 = space_chars_bytes | frozenset((b"/", ))
-head_elems = frozenset(("html", "head", "title", "base", "script", "style",
-                        "meta", "link", "object"))
+head_elems = frozenset((
+    b"html", b"head", b"title", b"base", b"script",
+    b"style", b"meta", b"link", b"object"))
 
 
 def my_unichr(num):
     try:
-        return unichr(num)
+        return codepoint_to_chr(num)
     except (ValueError, OverflowError):
         return '?'
 
@@ -61,9 +61,6 @@ class Bytes(bytes):
     """String-like object with an associated position and various extra methods
     If the position is ever greater than the string length then an exception is
     raised"""
-
-    def __new__(self, value):
-        return bytes.__new__(self, value.lower())
 
     def __init__(self, value):
         self._position = -1
@@ -130,6 +127,7 @@ class Bytes(bytes):
                 return self[pos:p], c
             p += 1
         self._position = p
+        return b'', b''
 
     def match_bytes(self, bytes):
         """Look for a sequence of bytes at the start of a string. If the bytes
@@ -142,11 +140,21 @@ class Bytes(bytes):
             self.position += len(bytes)
         return rv
 
+    def match_bytes_pat(self, pat):
+        bytes = pat.pattern
+        m = pat.match(self, self.position)
+        if m is None:
+            return False
+        bytes = m.group()
+        self.position += len(bytes)
+        return True
+
     def jump_to(self, bytes):
         """Look for the next sequence of bytes matching a given sequence. If
         a match is found advance the position to the last byte of the match"""
-        new_pos = self[self.position:].find(bytes)
+        new_pos = self.find(bytes, max(0, self.position))
         if new_pos > -1:
+            new_pos -= self.position
             if self._position == -1:
                 self._position = 0
             self._position += (new_pos + len(bytes) - 1)
@@ -164,16 +172,22 @@ class HTTPEquivParser(object):
         self.headers = []
 
     def __call__(self):
-        dispatch = ((b"<!--", self.handle_comment), (b"<meta",
-                                                     self.handle_meta),
-                    (b"</head", lambda: False), (b"</",
-                                                 self.handle_possible_end_tag),
-                    (b"<!", self.handle_other), (b"<?", self.handle_other),
-                    (b"<", self.handle_possible_start_tag))
+        mb, mbp = self.data.match_bytes, self.data.match_bytes_pat
+        dispatch = (
+                (mb, b"<!--", self.handle_comment),
+                (mbp, re.compile(b"<meta", flags=re.IGNORECASE),
+                    self.handle_meta),
+                (mbp, re.compile(b"</head", flags=re.IGNORECASE),
+                    lambda: False),
+                (mb, b"</", self.handle_possible_end_tag),
+                (mb, b"<!", self.handle_other),
+                (mb, b"<?", self.handle_other),
+                (mb, b"<", self.handle_possible_start_tag)
+        )
         for byte in self.data:
             keep_parsing = True
-            for key, method in dispatch:
-                if self.data.match_bytes(key):
+            for matcher, key, method in dispatch:
+                if matcher(key):
                     try:
                         keep_parsing = method()
                         break
@@ -216,8 +230,10 @@ class HTTPEquivParser(object):
             if attr is None:
                 return True
             name, val = attr
+            name = name.lower()
             if name == b"http-equiv":
                 if val:
+                    val = val.lower()
                     if pending_content:
                         self.headers.append((val, pending_content))
                         return True
@@ -249,6 +265,7 @@ class HTTPEquivParser(object):
             return True
 
         tag_name, c = data.skip_until(spaces_angle_brackets)
+        tag_name = tag_name.lower()
         if not end_tag and tag_name not in head_elems:
             return False
         if c == b"<":
@@ -288,8 +305,6 @@ class HTTPEquivParser(object):
                 break
             elif c in (b"/", b">"):
                 return b"".join(attr_name), b""
-            elif c in ascii_uppercase_bytes:
-                attr_name.append(c.lower())
             elif c is None:
                 return None
             else:
@@ -316,15 +331,10 @@ class HTTPEquivParser(object):
                     next(data)
                     return b"".join(attr_name), b"".join(attr_value)
                 # 10.4
-                elif c in ascii_uppercase_bytes:
-                    attr_value.append(c.lower())
-                # 10.5
                 else:
                     attr_value.append(c)
         elif c == b">":
             return b"".join(attr_name), b""
-        elif c in ascii_uppercase_bytes:
-            attr_value.append(c.lower())
         elif c is None:
             return None
         else:
@@ -334,8 +344,6 @@ class HTTPEquivParser(object):
             c = next(data)
             if c in spaces_angle_brackets:
                 return b"".join(attr_name), b"".join(attr_value)
-            elif c in ascii_uppercase_bytes:
-                attr_value.append(c.lower())
             elif c is None:
                 return None
             else:

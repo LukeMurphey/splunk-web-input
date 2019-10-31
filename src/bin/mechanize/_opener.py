@@ -4,19 +4,16 @@ Copyright 2004-2006 John J Lee <jjl@pobox.com>
 
 This code is free software; you can redistribute it and/or modify it
 under the terms of the BSD or ZPL 2.1 licenses (see the file
-COPYING.txt included with the distribution).
+LICENSE included with the distribution).
 
 """
 
 from __future__ import absolute_import
 
 import bisect
-import httplib
 import os
 import tempfile
 import threading
-import types
-import urllib2
 
 from . import _response
 from . import _rfc3986
@@ -24,15 +21,16 @@ from . import _sockettimeout
 from . import _urllib2_fork
 from ._request import Request
 from ._util import isstringlike
+from .polyglot import HTTPError, URLError, iteritems, is_class
 
 
 open_file = open
 
 
-class ContentTooShortError(urllib2.URLError):
+class ContentTooShortError(URLError):
 
     def __init__(self, reason, result):
-        urllib2.URLError.__init__(self, reason)
+        URLError.__init__(self, reason)
         self.result = result
 
 
@@ -134,14 +132,14 @@ class OpenerDirector(_urllib2_fork.OpenerDirector):
         # sort indexed methods
         # XXX could be cleaned up
         for lookup in [process_request, process_response]:
-            for scheme, handlers in lookup.iteritems():
+            for scheme, handlers in iteritems(lookup):
                 lookup[scheme] = handlers
-        for scheme, lookup in handle_error.iteritems():
-            for code, handlers in lookup.iteritems():
+        for scheme, lookup in iteritems(handle_error):
+            for code, handlers in iteritems(lookup):
                 handlers = list(handlers)
                 handlers.sort()
                 lookup[code] = handlers
-        for scheme, handlers in handle_open.iteritems():
+        for scheme, handlers in iteritems(handle_open):
             handlers = list(handlers)
             handlers.sort()
             handle_open[scheme] = handlers
@@ -221,13 +219,13 @@ class OpenerDirector(_urllib2_fork.OpenerDirector):
             meth_name = proto + '_error'
             http_err = 0
         args = (dict, proto, meth_name) + args
-        result = apply(self._call_chain, args)
+        result = self._call_chain(*args)
         if result:
             return result
 
         if http_err:
             args = (dict, 'default', 'http_error_default') + orig_args
-            return apply(self._call_chain, args)
+            return self._call_chain(*args)
 
     BLOCK_SIZE = 1024 * 8
 
@@ -275,11 +273,11 @@ class OpenerDirector(_urllib2_fork.OpenerDirector):
                 blocknum = 0
                 if reporthook:
                     if "content-length" in headers:
-                        size = int(headers["Content-Length"])
+                        size = int(headers["content-length"])
                     reporthook(blocknum, bs, size)
                 while 1:
                     block = fp.read(bs)
-                    if block == "":
+                    if not block:
                         break
                     read += len(block)
                     tfp.write(block)
@@ -321,7 +319,7 @@ def wrapped_open(urlopen, process_response_object, fullurl, data=None,
     success = True
     try:
         response = urlopen(fullurl, data, timeout)
-    except urllib2.HTTPError, error:
+    except HTTPError as error:
         success = False
         if error.fp is None:  # not a response
             raise
@@ -355,10 +353,6 @@ class SeekableResponseOpener(ResponseProcessingOpener):
         return _response.seek_wrapped_response(response)
 
 
-def isclass(obj):
-    return isinstance(obj, (types.ClassType, type))
-
-
 class OpenerFactory:
     """This class's interface is quite likely to change."""
 
@@ -375,8 +369,7 @@ class OpenerFactory:
         _urllib2_fork.HTTPCookieProcessor,
         _urllib2_fork.HTTPErrorProcessor,
     ]
-    if hasattr(httplib, 'HTTPS'):
-        default_classes.append(_urllib2_fork.HTTPSHandler)
+    default_classes.append(_urllib2_fork.HTTPSHandler)
     handlers = []
     replacement_handlers = []
 
@@ -398,7 +391,7 @@ class OpenerFactory:
         skip = set()
         for klass in default_classes:
             for check in handlers:
-                if isclass(check):
+                if is_class(check):
                     if issubclass(check, klass):
                         skip.add(klass)
                 elif isinstance(check, klass):
@@ -409,7 +402,7 @@ class OpenerFactory:
         for klass in default_classes:
             opener.add_handler(klass())
         for h in handlers:
-            if isclass(h):
+            if is_class(h):
                 h = h()
             opener.add_handler(h)
 
@@ -423,7 +416,13 @@ thread_local.opener = None
 
 
 def get_thread_local_opener():
-    ans = thread_local.opener
+    try:
+        ans = thread_local.opener
+    except AttributeError:
+        # threading module is broken, use a single global instance
+        ans = getattr(get_thread_local_opener, 'ans', None)
+        if ans is None:
+            ans = get_thread_local_opener.ans = build_opener()
     if ans is None:
         ans = thread_local.opener = build_opener()
     return ans
@@ -440,4 +439,8 @@ def urlretrieve(url, filename=None, reporthook=None, data=None,
 
 
 def install_opener(opener):
-    thread_local.opener = opener
+    get_thread_local_opener.ans = opener
+    try:
+        thread_local.opener = opener
+    except AttributeError:
+        pass

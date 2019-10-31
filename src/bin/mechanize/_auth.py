@@ -4,13 +4,14 @@
 Copyright 2006 John J. Lee <jjl@pobox.com>
 
 This code is free software; you can redistribute it and/or modify it under
-the terms of the BSD or ZPL 2.1 licenses (see the file COPYING.txt
+the terms of the BSD or ZPL 2.1 licenses (see the file LICENSE
 included with the distribution).
 
 """
 
 from __future__ import absolute_import
 from ._urllib2_fork import HTTPPasswordMgr
+from .polyglot import is_string, iteritems
 
 
 # TODO: stop deriving from HTTPPasswordMgr
@@ -19,7 +20,7 @@ class HTTPProxyPasswordMgr(HTTPPasswordMgr):
 
     def add_password(self, realm, uri, user, passwd):
         # uri could be a single URI or a sequence
-        if uri is None or isinstance(uri, basestring):
+        if uri is None or is_string(uri):
             uris = [uri]
         else:
             uris = uri
@@ -38,7 +39,7 @@ class HTTPProxyPasswordMgr(HTTPPasswordMgr):
                 authinfo_by_domain = self.passwd.get(realm, {})
                 for default_port in True, False:
                     reduced_authuri = self.reduce_uri(authuri, default_port)
-                    for uri, authinfo in authinfo_by_domain.iteritems():
+                    for uri, authinfo in iteritems(authinfo_by_domain):
                         if uri is None and not default_uri:
                             continue
                         if self.is_suburi(uri, reduced_authuri):

@@ -8,8 +8,51 @@ from ._form import parse_forms
 from ._headersutil import is_html as _is_html
 from ._headersutil import split_header_words
 from ._rfc3986 import clean_url, urljoin
+from .polyglot import is_string
 
 DEFAULT_ENCODING = "utf-8"
+_encoding_pats = (
+    # XML declaration
+    r'<\?[^<>]+encoding\s*=\s*[\'"](.*?)[\'"][^<>]*>',
+    # HTML 5 charset
+    r'''<meta\s+charset=['"]([-_a-z0-9]+)['"][^<>]*>(?:\s*</meta>){0,1}''',
+    # HTML 4 Pragma directive
+    r'''<meta\s+?[^<>]*?content\s*=\s*['"][^'"]*?charset=([-_a-z0-9]+)[^'"]*?['"][^<>]*>(?:\s*</meta>){0,1}''',
+)
+
+
+def compile_pats(binary):
+    for raw in _encoding_pats:
+        if binary:
+            raw = raw.encode('ascii')
+        yield re.compile(raw, flags=re.IGNORECASE)
+
+
+class LazyEncodingPats(object):
+
+    def __call__(self, binary=False):
+        attr = 'binary_pats' if binary else 'unicode_pats'
+        pats = getattr(self, attr, None)
+        if pats is None:
+            pats = tuple(compile_pats(binary))
+            setattr(self, attr, pats)
+        for pat in pats:
+            yield pat
+
+
+lazy_encoding_pats = LazyEncodingPats()
+
+
+def find_declared_encoding(raw, limit=50*1024):
+    prefix = raw[:limit]
+    is_binary = isinstance(raw, bytes)
+    for pat in lazy_encoding_pats(is_binary):
+        m = pat.search(prefix)
+        if m is not None:
+            ans = m.group(1)
+            if is_binary:
+                ans = ans.decode('ascii', 'replace')
+                return ans
 
 
 def elem_text(elem):
@@ -25,7 +68,7 @@ def elem_text(elem):
 def iterlinks(root, base_url):
     link_tags = {"a": "href", "area": "href", "iframe": "src"}
     for tag in root.iter('*'):
-        if not isinstance(tag.tag, basestring):
+        if not is_string(tag.tag):
             continue
         q = tag.tag.lower()
         attr = link_tags.get(q)
@@ -133,7 +176,7 @@ def content_parser(data,
     :param bytes data: The data to parse
     :param url: The URL of the document being parsed or None
     :param response_info: Information about the document
-        (contains all HTTP headers as :class:`mimetools.Message`)
+        (contains all HTTP headers as :class:`HTTPMessage`)
     :param transport_encoding: The character encoding for the document being
         parsed as specified in the HTTP headers or None.
     :param default_encoding: The character encoding to use if no encoding
@@ -142,11 +185,16 @@ def content_parser(data,
     '''
     if not is_html:
         return
-    from html5lib import parse
-    return parse(
-        data,
-        transport_encoding=transport_encoding,
-        namespaceHTMLElements=False)
+    try:
+        from html5_parser import parse
+    except Exception:
+        from html5lib import parse
+        kw = {'namespaceHTMLElements': False}
+        if transport_encoding and isinstance(data, bytes):
+            kw['transport_encoding'] = transport_encoding
+        return parse(data, **kw)
+    else:
+        return parse(data, transport_encoding=transport_encoding)
 
 
 def get_title(root):
@@ -197,6 +245,7 @@ class Factory:
 
         """
         self._encoding_finder = EncodingFinder(default_encoding)
+        self.form_encoding = default_encoding
         self._response_type_finder = ResponseTypeFinder(
             allow_xhtml=allow_xhtml)
         self._content_parser = content_parser
@@ -237,14 +286,18 @@ class Factory:
     def root(self):
         if self._root is lazy:
             response = self._response
+            raw = self._response.read() if self._response else b''
+            default_encoding = self._encoding_finder._default_encoding
+            transport_encoding = get_encoding_from_response(response, verify=False)
+            declared_encoding = find_declared_encoding(raw)
+            self.form_encoding = declared_encoding or transport_encoding or default_encoding
             self._root = self._content_parser(
-                self._response.read() if self._response else b'',
+                raw,
                 url=response.geturl() if response else None,
                 response_info=response.info() if response else None,
-                default_encoding=self._encoding_finder._default_encoding,
+                default_encoding=default_encoding,
                 is_html=self.is_html,
-                transport_encoding=get_encoding_from_response(
-                    response, verify=False))
+                transport_encoding=transport_encoding)
         return self._root
 
     @property
@@ -282,4 +335,4 @@ class Factory:
         if self.root is None:
             return (), None
         return parse_forms(self.root,
-                           self._response.geturl(), self._request_class)
+                           self._response.geturl(), self._request_class, encoding=self.form_encoding)

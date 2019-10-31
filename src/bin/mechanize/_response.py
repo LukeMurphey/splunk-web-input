@@ -11,18 +11,18 @@ using Browser.
 Copyright 2006 John J. Lee <jjl@pobox.com>
 
 This code is free software; you can redistribute it and/or modify it
-under the terms of the BSD or ZPL 2.1 licenses (see the file COPYING.txt
+under the terms of the BSD or ZPL 2.1 licenses (see the file LICENSE
 included with the distribution).
 
 """
 
 from __future__ import absolute_import
+from functools import partial
 import copy
-import mimetools
-import urllib2
-from cStringIO import StringIO
+from io import BytesIO
 
 from ._headersutil import normalize_header_name
+from .polyglot import HTTPError, create_response_info
 
 
 def len_of_seekable(file_):
@@ -72,7 +72,7 @@ class seek_wrapper:
     """
 
     # General strategy is to check that cache is full enough, then delegate to
-    # the cache (self.__cache, which is a cStringIO.StringIO instance).  A seek
+    # the cache (self.__cache, which is a BytesIO instance).  A seek
     # position (self.__pos) is maintained independently of the cache, in order
     # that a single cache may be shared between multiple seek_wrapper objects.
     # Copying using module copy shares the cache in this way.
@@ -82,7 +82,7 @@ class seek_wrapper:
         self.__read_complete_state = [False]
         self.__is_closed_state = [False]
         self.__have_readline = hasattr(self.wrapped, "readline")
-        self.__cache = StringIO()
+        self.__cache = BytesIO()
         self.__pos = 0  # seek position
 
     def invariant(self):
@@ -250,11 +250,12 @@ class seek_wrapper:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         line = self.readline()
-        if line == "":
+        if not line:
             raise StopIteration
         return line
+    next = __next__
 
     xreadlines = __iter__
 
@@ -295,7 +296,7 @@ class response_seek_wrapper(seek_wrapper):
         self.seek(0)
         self.read()
         self.close()
-        cache = self._seek_wrapper__cache = StringIO()
+        cache = self._seek_wrapper__cache = BytesIO()
         cache.write(data)
         self.seek(0)
 
@@ -304,16 +305,17 @@ class eoffile:
     # file-like object that always claims to be at end-of-file...
 
     def read(self, size=-1):
-        return ""
+        return b""
 
     def readline(self, size=-1):
-        return ""
+        return b""
 
     def __iter__(self):
         return self
 
-    def next(self):
-        return ""
+    def __next__(self):
+        return b""
+    next = __next__
 
     def close(self):
         pass
@@ -361,7 +363,8 @@ class closeable_response:
     # presence of this attr indicates is useable after .close()
     closeable_response = None
 
-    def __init__(self, fp, headers, url, code, msg, http_version=None):
+    def __init__(
+            self, fp, headers, url, code=200, msg='OK', http_version=None):
         self._set_fp(fp)
         self._headers = headers
         self._url = url
@@ -380,7 +383,7 @@ class closeable_response:
         else:
             self.fileno = lambda: None
         self.__iter__ = self.fp.__iter__
-        self.next = self.fp.next
+        self.next = partial(next, self.fp)
 
     def __repr__(self):
         return '<%s at %s whose fp = %r>' % (self.__class__.__name__,
@@ -420,28 +423,6 @@ class closeable_response:
                                   self.msg)
         self._set_fp(new_wrapped)
 
-    def __getstate__(self):
-        # There are three obvious options here:
-        # 1. truncate
-        # 2. read to end
-        # 3. close socket, pickle state including read position, then open
-        #    again on unpickle and use Range header
-        # XXXX um, 4. refuse to pickle unless .close()d.  This is better,
-        #  actually ("errors should never pass silently").  Pickling doesn't
-        #  work anyway ATM, because of http://python.org/sf/1144636 so fix
-        #  this later
-
-        # 2 breaks pickle protocol, because one expects the original object
-        # to be left unscathed by pickling.  3 is too complicated and
-        # surprising (and too much work ;-) to happen in a sane __getstate__.
-        # So we do 1.
-
-        state = self.__dict__.copy()
-        new_wrapped = eofresponse(self._url, self._headers, self.code,
-                                  self.msg)
-        state["wrapped"] = new_wrapped
-        return state
-
 
 def test_response(data='test data',
                   headers=[],
@@ -471,7 +452,9 @@ def make_response(data, headers, url, code, msg):
 
     """
     mime_headers = make_headers(headers)
-    r = closeable_response(StringIO(data), mime_headers, url, code, msg)
+    if not isinstance(data, bytes):
+        data = data.encode('utf-8')
+    r = closeable_response(BytesIO(data), mime_headers, url, code, msg)
     return response_seek_wrapper(r)
 
 
@@ -482,7 +465,10 @@ def make_headers(headers):
     hdr_text = []
     for name_value in headers:
         hdr_text.append("%s: %s" % name_value)
-    return mimetools.Message(StringIO("\n".join(hdr_text)))
+    ans = "\n".join(hdr_text)
+    if not isinstance(ans, bytes):
+        ans = ans.encode('iso-8859-1')
+    return create_response_info(BytesIO(ans))
 
 
 # Rest of this module is especially horrible, but needed, at least until fork
@@ -492,8 +478,10 @@ def make_headers(headers):
 def get_seek_wrapper_class(response):
     # in order to wrap response objects that are also exceptions, we must
     # dynamically subclass the exception :-(((
-    if (isinstance(response, urllib2.HTTPError) and
-            not hasattr(response, "seek")):
+    if (
+            isinstance(response, HTTPError) and
+            not isinstance(response, seek_wrapper)
+    ):
         if response.__class__.__module__ == "__builtin__":
             exc_class_name = response.__class__.__name__
         else:
@@ -525,6 +513,15 @@ def get_seek_wrapper_class(response):
     return wrapper_class
 
 
+def needs_seek_wrapper(obj):
+    return (
+            not isinstance(obj, seek_wrapper) and (
+                hasattr(obj, 'seek') or isinstance(obj, HTTPError)
+                or not hasattr(obj, 'get_data')
+                )
+            )
+
+
 def seek_wrapped_response(response):
     """Return a copy of response that supports seekable response interface.
 
@@ -534,7 +531,7 @@ def seek_wrapped_response(response):
     can't be simply wrapped due to the requirement of preserving the exception
     base class).
     """
-    if not hasattr(response, "seek"):
+    if needs_seek_wrapper(response):
         wrapper_class = get_seek_wrapper_class(response)
         response = wrapper_class(response)
     assert hasattr(response, "get_data")
@@ -556,7 +553,7 @@ def upgrade_response(response):
     """
     wrapper_class = get_seek_wrapper_class(response)
     if hasattr(response, "closeable_response"):
-        if not hasattr(response, "seek"):
+        if needs_seek_wrapper(response):
             response = wrapper_class(response)
         assert hasattr(response, "get_data")
         return copy.copy(response)

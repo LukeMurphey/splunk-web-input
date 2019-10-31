@@ -8,17 +8,16 @@ Copyright 2002-2006 John J Lee <jjl@pobox.com>
 
 This code is free software; you can redistribute it and/or modify it
 under the terms of the BSD or ZPL 2.1 licenses (see the file
-COPYING.txt included with the distribution).
+LICENSE included with the distribution).
 
 """
 
 from __future__ import absolute_import
 
 import logging
-import robotparser
 import socket
 import time
-from cStringIO import StringIO
+from io import BytesIO
 
 from . import _rfc3986, _sockettimeout
 from ._headersutil import is_html
@@ -26,6 +25,7 @@ from ._request import Request
 from ._response import response_seek_wrapper
 from ._urllib2_fork import BaseHandler, HTTPError
 from ._equiv import HTTPEquivParser
+from .polyglot import create_response_info, RobotFileParser, is_py2, as_unicode
 
 debug = logging.getLogger("mechanize").debug
 debug_robots = logging.getLogger("mechanize.robots").debug
@@ -58,20 +58,24 @@ class HTTPEquivProcessor(BaseHandler):
                 pass
             else:
                 for hdr, val in html_headers:
-                    # add a header
-                    http_message.dict[hdr.lower()] = val
-                    text = hdr + ": " + val
-                    for line in text.split("\n"):
-                        http_message.headers.append(line + "\n")
+                    if is_py2:
+                        # add a header
+                        http_message.dict[hdr.lower()] = val
+                        text = hdr + b": " + val
+                        for line in text.split(b"\n"):
+                            http_message.headers.append(line + b"\n")
+                    else:
+                        hdr = hdr.decode('iso-8859-1')
+                        http_message[hdr] = val.decode('iso-8859-1')
         return response
 
     https_response = http_response
 
 
-class MechanizeRobotFileParser(robotparser.RobotFileParser):
+class MechanizeRobotFileParser(RobotFileParser):
 
     def __init__(self, url='', opener=None):
-        robotparser.RobotFileParser.__init__(self, url)
+        RobotFileParser.__init__(self, url)
         self._opener = opener
         self._timeout = _sockettimeout._GLOBAL_DEFAULT_TIMEOUT
 
@@ -92,9 +96,9 @@ class MechanizeRobotFileParser(robotparser.RobotFileParser):
                       timeout=self._timeout)
         try:
             f = self._opener.open(req)
-        except HTTPError, f:
-            pass
-        except (IOError, socket.error, OSError), exc:
+        except HTTPError as err:
+            f = err
+        except (IOError, socket.error, OSError) as exc:
             debug_robots("ignoring error opening %r: %s" %
                          (self.url, exc))
             return
@@ -112,27 +116,23 @@ class MechanizeRobotFileParser(robotparser.RobotFileParser):
             debug_robots("allow all")
         elif status == 200 and lines:
             debug_robots("parse lines")
-            self.parse(lines)
+            if is_py2:
+                self.parse(lines)
+            else:
+                self.parse(map(as_unicode, lines))
 
 
 class RobotExclusionError(HTTPError):
 
     def __init__(self, request, *args):
-        apply(HTTPError.__init__, (self,) + args)
+        HTTPError.__init__(self, *args)
         self.request = request
 
 
 class HTTPRobotRulesProcessor(BaseHandler):
     # before redirections, after everything else
     handler_order = 800
-
-    try:
-        from httplib import HTTPMessage
-    except:
-        from mimetools import Message
-        http_response_class = Message
-    else:
-        http_response_class = HTTPMessage
+    http_response_class = None
 
     def __init__(self, rfp_class=MechanizeRobotFileParser):
         self.rfp_class = rfp_class
@@ -178,12 +178,13 @@ class HTTPRobotRulesProcessor(BaseHandler):
             return request
         else:
             # XXX This should really have raised URLError.  Too late now...
-            msg = "request disallowed by robots.txt"
+            factory = self.http_response_class or create_response_info
+            msg = b"request disallowed by robots.txt"
             raise RobotExclusionError(
                 request,
                 request.get_full_url(),
                 403, msg,
-                self.http_response_class(StringIO()), StringIO(msg))
+                factory(BytesIO()), BytesIO(msg))
 
     https_request = http_request
 
