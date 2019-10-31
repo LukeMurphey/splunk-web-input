@@ -3,7 +3,11 @@ import sys
 import os
 import time
 import threading
-import SocketServer
+
+try:
+    from SocketServer import TCPServer
+except:
+    from socketserver import TCPServer
 
 # There needs to be a file named test_web_server next to this file with a class named TestWebServerHandler that inherits from BaseHTTPServer.BaseHTTPRequestHandler
 from test_web_server import TestWebServerHandler
@@ -35,7 +39,7 @@ class UnitTestWithWebServer(unittest.TestCase):
             try:
                 UnitTestWithWebServer.httpd = cls.get_server(cls.web_server_port)
                 
-                print " Done"
+                print(" Done")
                     
             except IOError:
                 UnitTestWithWebServer.httpd = None
@@ -45,7 +49,7 @@ class UnitTestWithWebServer(unittest.TestCase):
                 sys.stdout.flush()
                         
         if UnitTestWithWebServer.httpd is None:
-            print "Web-server could not be started"
+            print("Web-server could not be started")
             return
         
         def start_server(httpd):
@@ -73,7 +77,7 @@ class UnitTestWithWebServer(unittest.TestCase):
         Call httpd.shutdown() to stop the server
         """
         
-        httpd = SocketServer.TCPServer(("", port), TestWebServerHandler)
+        httpd = TCPServer(("", port), TestWebServerHandler)
         return httpd
         
 def skipIfNoServer(func):

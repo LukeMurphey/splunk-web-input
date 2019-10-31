@@ -72,10 +72,13 @@ import re
 import tempfile
 import unicodedata
 import lxml.html
-from StringIO import StringIO
-from collections import OrderedDict
 
-import HTMLTestRunner
+try: 
+    from StringIO import StringIO
+except:
+    from io import StringIO
+
+from collections import OrderedDict
 
 # Change into the tests directory if necessary
 # This is necessary when tests are executed from the main directory as opposed to the tests
@@ -89,9 +92,12 @@ sys.path.append(os.path.join("..", "src", "bin", "website_input_app"))
 from web_input import URLField, DurationField, SelectorField, WebInput, WebScraper
 from web_client import MechanizeClient
 from web_driver_client import WebDriverClient, FirefoxClient, ChromeClient
-from website_input_app.modular_input import Field, FieldValidationException
 from website_input_app import hash_helper
 from unit_test_web_server import UnitTestWithWebServer, skipIfNoServer
+
+path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
+sys.path.insert(0, path_to_mod_input_lib)
+from modular_input import  Field, FieldValidationException
 
 class TestURLField(unittest.TestCase):
 
@@ -225,7 +231,7 @@ class TestWebInput(UnitTestWithWebServer):
 
         web_scraper = WebScraper(timeout=3)
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.2/"), selector_field.to_python("div"))
-        print results
+        print(results)
         result = results[0]
         self.assertEqual(result['timed_out'], True)
 
@@ -240,7 +246,7 @@ class TestWebInput(UnitTestWithWebServer):
         #results = web_scraper.scrape_page(url_field.to_python("http://httpbin.org/basic-auth/admin/changeme"), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)
 
         result = results[0]
-        #print result['match']
+        #print(result['match'])
         self.assertEqual(len(result['match']), 30)
         
     @skipIfNoServer
@@ -251,7 +257,7 @@ class TestWebInput(UnitTestWithWebServer):
         web_scraper = WebScraper(timeout=3)
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), output_matches_as_mv=True)
         result = results[0]
-        #print result['match']
+        #print(result['match'])
         self.assertEqual(len(result.get('match', '')), 0)
 
     @skipIfNoServer
@@ -284,7 +290,7 @@ class TestWebInput(UnitTestWithWebServer):
         result = results[0]
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 1)
-        #print result['match']
+        #print(result['match'])
         self.assertEqual(unicodedata.normalize('NFC', result['match'][0]), unicodedata.normalize('NFC', u"ΕΝ ΑΡΧΗ ἦν ὁ λόγος, καὶ ὁ λόγος ἦν πρὸς τὸν θεόν, καὶ θεὸς ἦν ὁ λόγος."))
         self.assertEqual(result['encoding'], "utf-8")
 
@@ -471,7 +477,7 @@ class TestWebInput(UnitTestWithWebServer):
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/header_reflection"), selector_field.to_python(".user-agent"), output_matches_as_mv=True)
         result = results[0]
 
-        #print result['match']
+        #print(result['match']
         self.assertEqual(len(result['match']), 1)
         self.assertEqual(result['match'][0], "test_scrape_page_custom_user_agent")
         
@@ -851,7 +857,7 @@ class TestWebClient(UnitTestWithWebServer):
     client = None
 
     def get_client(self, browser):
-        print self.BROWSER
+        print(self.BROWSER)
         if self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             self.client = MechanizeClient(5)
         elif self.BROWSER.lower() == WebScraper.FIREFOX:
@@ -1298,11 +1304,7 @@ if __name__ == "__main__":
             if exception.errno != errno.EEXIST:
                 raise
 
-        with open(report_path, 'w') as report_file:
-            test_runner = HTMLTestRunner.HTMLTestRunner(
-                stream=report_file
-            )
-            unittest.main(testRunner=test_runner)
+        unittest.main()
 
     finally:
         # Shutdown the server. Note that it should shutdown automatically since it is a daemon

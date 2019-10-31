@@ -1,9 +1,16 @@
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+try:
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+except:
+    from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 import base64
 import cgi
 import random
-import urlparse
+try:
+    from urllib.parse import urlparse, parse_qs
+except ImportError:
+    import urlparse as urlparse, parse_qs
+    
 
 DEBUG_LOG = False
 
@@ -56,14 +63,14 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
         if not cookie:
             if DEBUG_LOG:
-                print "Cookie is not present; user is not authenticated"
+                print("Cookie is not present; user is not authenticated")
         elif cookie == 'sessionid=ABCD':
             if DEBUG_LOG:
-                print "Cookie is present; user is authenticated"
+                print("Cookie is present; user is authenticated")
             return True
         else:
             if DEBUG_LOG:
-                print "Cookie is present but wrong; user is not authenticated"
+                print("Cookie is present but wrong; user is not authenticated")
             return False
 
     def authenticate(self):
@@ -82,19 +89,19 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         # Check the username
         if postvars.get("username", [None])[0] != 'admin':
             if DEBUG_LOG:
-                print "username is wrong"
+                print("username is wrong")
             login_failed = True
 
         # Check the password
         if postvars.get("password", [None])[0] != 'changeme':
             if DEBUG_LOG:
-                print "password is wrong"
+                print("password is wrong")
             login_failed = True
 
         # Check the authenticity token
         if postvars.get("authenticity_token", [None])[0] != 'TMTEyUewsdg8F2fut7pe8yZ1zWwi8Mynrylq4PaWXL0tRf9jQ4q9Q/Hx0ExSwAfme/iPWw2dsWXlX65c86czwg==':
             if DEBUG_LOG:
-                print "authenticity token is wrong"
+                print("authenticity token is wrong")
             login_failed = True
 
         if login_failed:
@@ -245,8 +252,8 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         elif basepath == "/bigfile":
 
             # Get the file size
-            parsed_path = urlparse.urlparse(self.path)  
-            parsed_args = urlparse.parse_qs(parsed_path.query)
+            parsed_path = urlparse(self.path)  
+            parsed_args = parse_qs(parsed_path.query)
             size_limit = parsed_args.get('size', [None])[0]
 
             self.do_HEAD(size_limit)
@@ -268,7 +275,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             self.do_AUTHHEAD()
             self.wfile.write('no auth header received')
             if DEBUG_LOG:
-                print 'no auth header received'
+                print('no auth header received')
 
         elif self.headers.getheader('Authorization') == ('Basic ' + encoded_password):
             self.do_HEAD()
@@ -279,7 +286,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
                 self.wfile.write(webfile.read())#.replace('\n', '')
 
             if DEBUG_LOG:
-                print 'auth header was correct:', self.headers.getheader('Authorization')
+                print('auth header was correct:', self.headers.getheader('Authorization'))
 
         else:
             self.do_AUTHHEAD()
@@ -287,7 +294,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             self.wfile.write('not authenticated')
             
             if DEBUG_LOG:
-                print 'auth header was wrong:', self.headers.getheader('Authorization')
+                print('auth header was wrong:', self.headers.getheader('Authorization'))
 
 if __name__ == "__main__":
     server_address = ('127.0.0.1', 8080)
