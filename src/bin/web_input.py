@@ -19,6 +19,7 @@ if path_to_mod_input_lib not in sys.path:
     sys.path.insert(0, path_to_mod_input_lib)
 from modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
 from modular_input.shortcuts import forgive_splunkd_outages
+from modular_input.secure_password import get_secure_password
 
 from website_input_app.timer import Timer
 from website_input_app.web_client import LoginFormNotFound, FormAuthenticationFailed, WebClientException
@@ -173,9 +174,9 @@ class WebInput(ModularInput):
             raise
 
         # Get the proxy password from secure storage (if it exists)
-        secure_password = self.get_secure_password(realm=WebInput.PROXY_PASSWORD_REALM,
-                                                   username=WebInput.PROXY_PASSWORD_USERNAME,
-                                                   session_key=session_key)
+        secure_password = get_secure_password(realm=WebInput.PROXY_PASSWORD_REALM,
+                                              username=WebInput.PROXY_PASSWORD_USERNAME,
+                                              session_key=session_key)
 
         if secure_password is not None:
             proxy_password = secure_password['content']['clear_password']
@@ -329,7 +330,7 @@ class WebInput(ModularInput):
 
             # Get the secure password if necessary
             if username is not None:
-                secure_password = self.get_secure_password(realm=stanza, session_key=input_config.session_key)
+                secure_password = get_secure_password(realm=stanza, session_key=input_config.session_key, logger=self.logger)
 
                 if secure_password is not None:
                     password = secure_password['content']['clear_password']
