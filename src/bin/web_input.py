@@ -10,12 +10,13 @@ import logging
 from logging import handlers
 import sys
 import os
-import splunk
 import hashlib
 import re
+import splunk
 
 path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
-sys.path.insert(0, path_to_mod_input_lib)
+if path_to_mod_input_lib not in sys.path:
+    sys.path.insert(0, path_to_mod_input_lib)
 from modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
 from modular_input.shortcuts import forgive_splunkd_outages
 

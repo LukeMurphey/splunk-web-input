@@ -6,12 +6,19 @@ This wires up the WebInput modular input code to a search command so that you ca
 web-scrape as the search command..
 """
 
-from website_input_app.search_command import SearchCommand
-from website_input_app.modular_input import ModularInput
-from web_input import WebInput
-from website_input_app.web_scraper import WebScraper
+import os
+import sys
 
 from splunk.util import normalizeBoolean
+
+from web_input import WebInput
+from website_input_app.search_command import SearchCommand
+from website_input_app.web_scraper import WebScraper
+
+path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
+if path_to_mod_input_lib not in sys.path:
+    sys.path.insert(0, path_to_mod_input_lib)
+from modular_input import ModularInput
 
 class WebScraperSearchCommand(SearchCommand):
     """
