@@ -238,4 +238,9 @@ Change History
 |         | Updated the geckodriver to 0.24 so that newer versions of Firefox work                                           |
 |         | Added link to search logs to determine why browser test failed                                                   |
 |         | Fixed issue where integrated browser test failed on the input wizard                                             |
+|---------|------------------------------------------------------------------------------------------------------------------|
+| 4.5.8   | Updated to the modular input base class 2.1.8                                                                    |
+|         | Converted the controller to a REST handler                                                                       |
+|         | Python 2 + 3 support                                                                                             |
+|         | Added more logs to the health view                                                                               |
 +---------+------------------------------------------------------------------------------------------------------------------+
