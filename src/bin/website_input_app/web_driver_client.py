@@ -58,7 +58,7 @@ class WebDriverClient(WebClient):
             # See http://bit.ly/2Dq6xM5
             driver_path = sys.platform
 
-        full_driver_path = make_splunkhome_path("etc", "apps", "website_input", "bin", "browser_drivers", driver_path)
+        full_driver_path = make_splunkhome_path(["etc", "apps", "website_input", "bin", "browser_drivers", driver_path])
 
         if not full_driver_path in os.environ["PATH"]:
 

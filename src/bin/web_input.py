@@ -162,13 +162,13 @@ class WebInput(ModularInput):
         try:
             website_input_config = WebsiteInputConfig.get(WebsiteInputConfig.build_id( stanza, "website_input", "nobody"), sessionKey=session_key)
 
-            logger.debug("Proxy information loaded, stanza=%s", stanza)
+            self.logger.debug("Proxy information loaded, stanza=%s", stanza)
 
         except splunk.ResourceNotFound:
-            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s, error="not found"', stanza)
+            self.logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s, error="not found"', stanza)
             raise
         except splunk.SplunkdConnectionException:
-            logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s error="splunkd connection error"', stanza)
+            self.logger.error('Unable to find the proxy configuration for the specified configuration stanza=%s error="splunkd connection error"', stanza)
             raise
 
         # Get the proxy password from secure storage (if it exists)
@@ -235,12 +235,12 @@ class WebInput(ModularInput):
 
             # Calculate the hash of all of the matches
             hash_of_all_matches = result_info.get_hash_of_all_matches()
-            logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), hash_of_all_matches, checkpoint_data.get('matches_hash', ''))
+            self.logger.debug("Hash of results calculated, time=%sms, hash=%s, prior_hash=%s", round(timer.msecs, 3), hash_of_all_matches, checkpoint_data.get('matches_hash', ''))
 
             # Don't output the results if we are set to not output results unless the matches change
             # Note: we will compare the content later
             if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE and checkpoint_data.get('matches_hash', '') == hash_of_all_matches:
-                logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, hash_of_all_matches)
+                self.logger.info("Matches data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, hash_of_all_matches)
 
             else:
                 # Build up a list of the hashes so that we can determine if the content changed
@@ -254,7 +254,7 @@ class WebInput(ModularInput):
                 # Don't output the results if we are set to not output results unless the content changes
                 hash_of_all_results = result_info.get_hash_of_all_results()
                 if output_results_policy == WebInput.OUTPUT_RESULTS_WHEN_CONTENTS_CHANGE and checkpoint_data.get('content_hash', '') == hash_of_all_results:
-                    logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, hash_of_all_results)
+                    self.logger.info("Content data matched the prior result, it will be skipped since output_results=%s, hash=%s", output_results_policy, hash_of_all_results)
 
                 else:
                     # Process each event
@@ -263,7 +263,7 @@ class WebInput(ModularInput):
                         if self.OUTPUT_USING_STASH:
                             # Write the event as a stash new file
                             writer = StashNewWriter(index=index, source_name=source, file_extension=".stash_web_input", sourcetype=sourcetype, host=host)
-                            logger.debug("Wrote stash file=%s", writer.write_event(r))
+                            self.logger.debug("Wrote stash file=%s", writer.write_event(r))
 
                         else:
                             # Write the event using the built-in modular input method
@@ -320,10 +320,10 @@ class WebInput(ModularInput):
             try:
                 proxy_type, proxy_server, proxy_port, proxy_user, proxy_password = self.get_proxy_config(input_config.session_key, conf_stanza)
             except splunk.ResourceNotFound:
-                logger.error("The proxy configuration could not be loaded (resource not found). The execution will be skipped for now for this input with stanza=%s", stanza)
+                self.logger.error("The proxy configuration could not be loaded (resource not found). The execution will be skipped for now for this input with stanza=%s", stanza)
                 return
             except splunk.SplunkdConnectionException:
-                logger.error("The proxy configuration could not be loaded (splunkd connection problem). The execution will be skipped for now for this input with stanza=%s", stanza)
+                self.logger.error("The proxy configuration could not be loaded (splunkd connection problem). The execution will be skipped for now for this input with stanza=%s", stanza)
                 return
 
             # Get the secure password if necessary
@@ -339,12 +339,12 @@ class WebInput(ModularInput):
 
                 # Make sure the page_limit is not too small
                 if page_limit < 1 or page_limit is None or page_limit == "":
-                    logger.warn("The parameter is too small for page_limit=%r", page_limit)
+                    self.logger.warn("The parameter is too small for page_limit=%r", page_limit)
                     page_limit = 1
 
                 # Make sure the depth_limit is valid
                 if depth_limit < 1 or depth_limit is None or depth_limit == "":
-                    logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
+                    self.logger.warn("The parameter is too small for depth_limit=%r", depth_limit)
                     depth_limit = 50
     
                 # Determine how to make the match fields
@@ -360,7 +360,7 @@ class WebInput(ModularInput):
                 }
 
                 # Make an instance of the web-scraper and initialize it
-                web_scraper = WebScraper(timeout, logger=logger)
+                web_scraper = WebScraper(timeout, logger=self.logger)
 
                 web_scraper.set_proxy(proxy_type, proxy_server, proxy_port, proxy_user, proxy_password)
                 web_scraper.user_agent = user_agent
@@ -401,19 +401,19 @@ class WebInput(ModularInput):
                 elif output_fx is not None:
                     matches = results
 
-                logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
+                self.logger.info("Successfully executed the website input, matches_count=%r, stanza=%s, url=%s", matches, stanza, url.geturl())
                     
             except LoginFormNotFound as e:
-                logger.warn('Form authentication failed since the form could not be found, stanza=%s', stanza)
+                self.logger.warn('Form authentication failed since the form could not be found, stanza=%s', stanza)
 
             except FormAuthenticationFailed as e:
-                logger.warn('Form authentication failed, stanza=%s, error="%s"', stanza, str(e))
+                self.logger.warn('Form authentication failed, stanza=%s, error="%s"', stanza, str(e))
 
             except WebClientException as e:
-                logger.warn('Client connection failed, stanza=%s, error="%s"', stanza, str(e))
+                self.logger.warn('Client connection failed, stanza=%s, error="%s"', stanza, str(e))
 
             except Exception:
-                logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza)
+                self.logger.exception("An exception occurred when attempting to retrieve information from the web-page, stanza=%s", stanza)
 
             # Get the time that the input last ran
             last_ran = self.last_ran(input_config.checkpoint_dir, stanza)
@@ -438,11 +438,14 @@ class WebInput(ModularInput):
             import gc
             gc.collect()
 
+web_input = None
+
 if __name__ == '__main__':
     try:
         web_input = WebInput()
         web_input.execute()
         sys.exit(0)
     except Exception:
-        logger.exception("Unhandled exception was caught, this may be due to a defect in the script") # This logs general exceptions that would have been unhandled otherwise (such as coding errors)
+        if web_input is not None:
+            web_input.logger.exception("Unhandled exception was caught, this may be due to a defect in the script") # This logs general exceptions that would have been unhandled otherwise (such as coding errors)
         raise

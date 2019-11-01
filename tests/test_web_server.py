@@ -9,7 +9,7 @@ import random
 try:
     from urllib.parse import urlparse, parse_qs
 except ImportError:
-    import urlparse as urlparse
+    from urlparse import urlparse
     from urlparse import parse_qs
     
 

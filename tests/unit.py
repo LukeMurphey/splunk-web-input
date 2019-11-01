@@ -231,7 +231,7 @@ class TestWebInput(UnitTestWithWebServer):
 
         web_scraper = WebScraper(timeout=3)
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.2/"), selector_field.to_python("div"))
-        print(results)
+
         result = results[0]
         self.assertEqual(result['timed_out'], True)
 
@@ -246,7 +246,7 @@ class TestWebInput(UnitTestWithWebServer):
         #results = web_scraper.scrape_page(url_field.to_python("http://httpbin.org/basic-auth/admin/changeme"), selector_field.to_python("tr"), username="admin", password="changeme", output_matches_as_mv=True)
 
         result = results[0]
-        #print(result['match'])
+
         self.assertEqual(len(result['match']), 30)
         
     @skipIfNoServer
@@ -257,7 +257,7 @@ class TestWebInput(UnitTestWithWebServer):
         web_scraper = WebScraper(timeout=3)
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), output_matches_as_mv=True)
         result = results[0]
-        #print(result['match'])
+
         self.assertEqual(len(result.get('match', '')), 0)
 
     @skipIfNoServer
@@ -290,7 +290,7 @@ class TestWebInput(UnitTestWithWebServer):
         result = results[0]
         self.assertEqual(result['response_code'], 200)
         self.assertEqual(len(result['match']), 1)
-        #print(result['match'])
+
         self.assertEqual(unicodedata.normalize('NFC', result['match'][0]), unicodedata.normalize('NFC', u"ΕΝ ΑΡΧΗ ἦν ὁ λόγος, καὶ ὁ λόγος ἦν πρὸς τὸν θεόν, καὶ θεὸς ἦν ὁ λόγος."))
         self.assertEqual(result['encoding'], "utf-8")
 
@@ -477,7 +477,6 @@ class TestWebInput(UnitTestWithWebServer):
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/header_reflection"), selector_field.to_python(".user-agent"), output_matches_as_mv=True)
         result = results[0]
 
-        #print(result['match']
         self.assertEqual(len(result['match']), 1)
         self.assertEqual(result['match'][0], "test_scrape_page_custom_user_agent")
         
@@ -857,7 +856,7 @@ class TestWebClient(UnitTestWithWebServer):
     client = None
 
     def get_client(self, browser):
-        print(self.BROWSER)
+        print("Browser:", self.BROWSER)
         if self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             self.client = MechanizeClient(5)
         elif self.BROWSER.lower() == WebScraper.FIREFOX:
