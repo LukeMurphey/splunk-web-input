@@ -26,7 +26,7 @@
     <panel>
       <chart>
         <search>
-          <query><![CDATA[index=_internal sourcetype=web_input_modular_input | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)" | fillnull severity value="UNDEFINED" | timechart count(severity) as count by severity]]></query>
+          <query><![CDATA[index=_internal `website_input_sourcetypes` | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)" | fillnull severity value="UNDEFINED" | timechart count(severity) as count by severity]]></query>
           <earliest>$field1.earliest$</earliest>
           <latest>$field1.latest$</latest>
         </search>
@@ -42,7 +42,7 @@
       <table>
         <title>Logs by Severity</title>
         <search>
-          <query><![CDATA[index=_internal sourcetype=web_input_modular_input | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)" | fillnull value="undefined" vendor_severity | stats sparkline count by severity | sort -count]]></query>
+          <query><![CDATA[index=_internal `website_input_sourcetypes` | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)" | fillnull value="undefined" vendor_severity | stats sparkline count by severity | sort -count]]></query>
           <earliest>$field1.earliest$</earliest>
           <latest>$field1.latest$</latest>
         </search>
@@ -59,7 +59,7 @@
       <table>
         <title>Latest Logs</title>
         <search>
-          <query><![CDATA[index=_internal (sourcetype=web_input_modular_input) $severity$
+          <query><![CDATA[index=_internal `website_input_sourcetypes` $severity$
           | rex field=_raw "(?<severity>(DEBUG)|(ERROR)|(WARNING)|(INFO)|(CRITICAL)) (?<message>.*)"
           | sort -_time
           | eval time=_time
@@ -74,7 +74,7 @@
         <option name="drilldown">row</option>
         <option name="count">10</option>
         <drilldown>
-          <link target="_blank"><![CDATA[search?earliest=$field1.earliest$&latest=$field1.latest$&q=index=_internal (sourcetype=web_input_modular_input) $severity$ | eval time=_time | convert ctime(time) | search time="$row.time$"]]></link>
+          <link target="_blank"><![CDATA[search?earliest=$field1.earliest$&latest=$field1.latest$&q=index=_internal `website_input_sourcetypes` $severity$ | eval time=_time | convert ctime(time) | search time="$row.time$"]]></link>
         </drilldown>
       </table>
     </panel>
