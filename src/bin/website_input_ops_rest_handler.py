@@ -4,6 +4,8 @@ This REST handler provides helper methods to the front-end views that need to pe
 
 import logging
 import csv
+import sys
+import os
 import time
 import json
 from httplib2 import ServerNotFoundError
@@ -14,29 +16,27 @@ import splunk.util as util
 import splunk.entity as entity
 import splunk.rest as rest
 
+# Python 2 + 3 compatibility
 try:
     from urlparse import urlparse, urljoin
 except:
     from urllib.parse import urlparse, urljoin
 
-import sys
-import os
+# Import the modular input library
+path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
+sys.path.insert(0, path_to_mod_input_lib)
+from modular_input import FieldValidationException, ModularInput
+
+# Import the website input app libraries
+#sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-# sys.path.append(make_splunkhome_path(["etc", "apps", "website_input", "bin"]))
-
-from web_input import WebInput
-from website_input_app.web_scraper import WebScraper
+from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
 from website_input_app import rest_handler
+from website_input_app.web_scraper import WebScraper
 from website_input_app.compat import text_type
 from website_input_app.web_client import DefaultWebClient, MechanizeClient, LoginFormNotFound, FormAuthenticationFailed
 from website_input_app.web_driver_client import FirefoxClient, ChromeClient
-
-path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
-if path_to_mod_input_lib not in sys.path:
-    sys.path.insert(0, path_to_mod_input_lib)
-from modular_input import FieldValidationException, ModularInput
-from cssselect import SelectorError, SelectorSyntaxError, ExpressionError
+from web_input import WebInput
 
 # The default of the csv module is 128KB; upping to 10MB. See SPL-12117 for
 # the background on issues surrounding field sizes.
@@ -66,7 +66,6 @@ logger = setup_logger(logging.DEBUG)
 class WebInputOperationsHandler(rest_handler.RESTHandler):
     """
     This is a REST handler that supports:
-
      1)  
     """
 
@@ -75,28 +74,6 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
 
 
     TEST_BROWSER_URL = "https://www.google.com"
-
-    def render_json(self, output, return_code=200):
-        return {
-            'status': return_code,
-            'payload': output
-        }
-
-    def render_error_json(self, msg, return_code):
-        """
-        Render an error such that it can be returned to the client as JSON.
-
-        Arguments:
-        msg -- A message describing the problem (a string)
-        """
-
-        output = {
-            'data': [],
-            'success': False,
-            'message': msg
-        }
-
-        return self.render_json(output, return_code)
 
     @staticmethod
     def hasCapability(capabilities, user=None, session_key=None):
@@ -225,7 +202,7 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
             # --------------------------------------
             # 2: Only allow HTTPS if the install is on Splunk Cloud
             # --------------------------------------
-            if ModularInput.is_on_cloud(cherrypy.session.get('sessionKey')) and not url.startswith("https://"):
+            if ModularInput.is_on_cloud(request_info.session_key) and not url.startswith("https://"):
                 return self.render_error_html('URLs on Splunk Cloud must use HTTPS protocol', 401) # TODO: deterine best code
 
             # --------------------------------------
