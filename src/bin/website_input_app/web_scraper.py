@@ -8,8 +8,15 @@ The classes included are:
 """
 
 import re
+import os
+import sys
 import chardet
-from urlparse import urlparse, urljoin
+
+try:
+    from urlparse import urlparse, urljoin
+except ImportError:
+    from urllib.parse import urljoin
+    from urllib import parse
 import hashlib
 import lxml.html
 from lxml.etree import XMLSyntaxError
@@ -19,7 +26,10 @@ from collections import OrderedDict
 from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure, LoginFormNotFound, FormAuthenticationFailed, WebClientException
 from website_input_app.web_driver_client import FirefoxClient, ChromeClient
 from selector_field import SelectorField
-from website_input_app.modular_input import URLField
+
+path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
+sys.path.insert(0, path_to_mod_input_lib)
+from modular_input import  URLField
 
 class DiscoveredURL(object):
     """

@@ -8,13 +8,18 @@ This includes the following classes:
 """
 
 import os
-from urlparse import urlunsplit, urlsplit
+
+try:
+    from urlparse import urlunsplit, urlsplit
+except ImportError:
+    from urllib.parse import urlunsplit, urlsplit
+
 import time
 import platform
 import sys
 import urllib
 
-from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path, get_apps_dir
+from splunk.clilib.bundle_paths import make_splunkhome_path
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -53,7 +58,7 @@ class WebDriverClient(WebClient):
             # See http://bit.ly/2Dq6xM5
             driver_path = sys.platform
 
-        full_driver_path = os.path.join(get_apps_dir(), "website_input", "bin", "browser_drivers", driver_path)
+        full_driver_path = make_splunkhome_path("etc", "apps", "website_input", "bin", "browser_drivers", driver_path)
 
         if not full_driver_path in os.environ["PATH"]:
 

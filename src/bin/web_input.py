@@ -6,9 +6,19 @@ The classes included are:
   * WebsiteInputConfig: a class for getting information from Splunk for configuration of the app
   * WebInput: the main modular input class
 """
+import logging
+from logging import handlers
+import sys
+import os
+import splunk
+import hashlib
+import re
 
-from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
-from website_input_app.modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField, forgive_splunkd_outages
+path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
+sys.path.insert(0, path_to_mod_input_lib)
+from modular_input import Field, ListField, FieldValidationException, ModularInput, URLField, DurationField, BooleanField, IntegerField, StaticListField
+from modular_input.shortcuts import forgive_splunkd_outages
+
 from website_input_app.timer import Timer
 from website_input_app.web_client import LoginFormNotFound, FormAuthenticationFailed, WebClientException
 from website_input_app.web_scraper import WebScraper
@@ -20,38 +30,7 @@ from splunk.models.base import SplunkAppObjModel
 from splunk.models.field import Field as ModelField
 from splunk.models.field import IntField as ModelIntField
 
-import logging
-from logging import handlers
-import sys
-import os
-import splunk
-import hashlib
-import re
-from urlparse import urlparse
-
-from __builtin__ import classmethod
-
-def setup_logger():
-    """
-    Setup a logger.
-
-    Note that the modular input base class has a logger too. However, it isn't currently used
-    because there are several classmethods that don't have access to the logger.
-    """
-
-    logger = logging.getLogger('web_input_modular_input')
-    logger.propagate = False # Prevent the log messages from being duplicated in the python.log file
-    logger.setLevel(logging.DEBUG)
-
-    file_handler = handlers.RotatingFileHandler(make_splunkhome_path(['var', 'log', 'splunk', 'web_input_modular_input.log']), maxBytes=25000000, backupCount=5)
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    file_handler.setFormatter(formatter)
-
-    logger.addHandler(file_handler)
-
-    return logger
-
-logger = setup_logger()
+# from __builtin__ import classmethod
 
 class WebsiteInputConfig(SplunkAppObjModel):
 
@@ -141,10 +120,7 @@ class WebInput(ModularInput):
             URLField("authentication_url", "Authentication URL", "The URL of the login form", none_allowed=True, empty_allowed=True, required_on_create=False, required_on_edit=False, require_https_on_cloud=True)
         ]
 
-        ModularInput.__init__(self, scheme_args, args)
-
-        # Make the base class use our logger
-        self.logger = logger
+        ModularInput.__init__(self, scheme_args, args, logger_name='web_input_modular_input', logger_level=logging.INFO)
 
         if timeout > 0:
             self.timeout = timeout

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, tzinfo
 import time
 import random
 import re
-from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
+from splunk.clilib.bundle_paths import make_splunkhome_path
 
 # Python handles datetimes badly, really badly. Below is a UTC timezone implementation since
 # Python does not include one by default

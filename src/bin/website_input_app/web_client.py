@@ -8,9 +8,14 @@ The classes included are:
   * MechanizeClient: a web-client based on mechanize (supports form authentication)
 """
 
-import urllib2
 import httplib2
 from httplib2 import socks
+
+try:
+    from urllib.request import (URLError)
+except ImportError:
+    from urllib2 import (URLError)
+
 import socket
 import mechanize
 
@@ -351,7 +356,7 @@ class MechanizeClient(WebClient):
             with Timer() as timer:
                 try:
                     self.response = self.browser.open(url, timeout=self.timeout)
-                except mechanize.HTTPError, self.response:
+                except mechanize.HTTPError:
                     # This excepts the HTTP error that can occur for authentication failures.
                     # We want to ignore the exception and keep moving so that the response can be
                     # examined.
@@ -362,7 +367,7 @@ class MechanizeClient(WebClient):
 
             self.response_time = timer.msecs
 
-        except urllib2.URLError as e:
+        except URLError as e:
             # Make sure the exception is a timeout
             if e.reason is not None and str(e.reason) == "timed out":
                 raise RequestTimeout()
@@ -461,7 +466,7 @@ class MechanizeClient(WebClient):
 
             # Authenticate
             res = self.browser.submit()
-            content = res.read()
+            _ = res.read() # TODO: need?
 
             self.is_logged_in = True
 
