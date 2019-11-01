@@ -124,17 +124,22 @@ class RESTHandler(PersistentServerConnectionApplication):
         else:
             return method
 
-    def render_json(self, data, response_code=200):
+    def render_json(self, data, response_code=200, headers=None):
         """
         Render the data as JSON
         """
 
+        combined_headers = {
+            'Content-Type': 'application/json'
+        }
+
+        if headers is not None:
+            combined_headers.update(headers)
+
         return {
             'payload': json.dumps(data),
             'status': response_code,
-            'headers': {
-                'Content-Type': 'application/json'
-            },
+            'headers': combined_headers,
         }
 
     def render_error_json(self, message, response_code=500):
@@ -189,7 +194,17 @@ class RESTHandler(PersistentServerConnectionApplication):
                 }
 
             if method.lower() == 'post':
-                query = self.get_forms_args_as_dict(args["form"])
+                # Load the parameters from the query
+                query = args['query_parameters']
+
+                if query is None:
+                    query = {}
+
+                # Apply the ones (if any) we got from the form
+                query_form = self.get_forms_args_as_dict(args["form"])
+
+                if query_form is not None:
+                    query.update(query_form)
             else:
                 query = args['query_parameters']
 

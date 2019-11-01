@@ -203,7 +203,7 @@ define([
 
         	// Get the results
         	$.ajax({
-    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/test_browser"),
+    			url: Splunk.util.make_full_url("/splunkd/__raw/services/data/website_input_ops/test_browser"),
     			data: args,
     			type: 'GET',
                 success: function(result) {
@@ -272,7 +272,7 @@ define([
 
         	// Get the results
         	$.ajax({
-    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/get_login_fields"),
+    			url: Splunk.util.make_full_url("/splunkd/__raw/services/data/website_input_ops/get_login_fields"),
     			data: args,
     			type: 'GET',
                 success: function(result) {
@@ -436,7 +436,7 @@ define([
         	
         	// Get the results
         	$.ajax({
-    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page"),
+    			url: Splunk.util.make_full_url("/splunkd/__raw/services/data/website_input_ops/scrape_page"),
     			data: args,
     			type: 'POST',
                 success: function(results) {
@@ -855,7 +855,7 @@ define([
 
 			this.addIfInputIsNonEmpty(params, 'user_agent', '#inputUserAgent');
 
-            var uri = Splunk.util.make_url("/custom/website_input/web_input_controller/load_page");
+            var uri = Splunk.util.make_url("/splunkd/__raw/services/data/website_input_ops/load_page");
             uri += '?' + Splunk.util.propToQueryString(params);
             
         	// Tell the iframe to load the URL

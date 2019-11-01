@@ -8,6 +8,8 @@ import sys
 import os
 import time
 import json
+import lxml.html
+from lxml.html.clean import Cleaner
 from httplib2 import ServerNotFoundError
 
 from splunk.clilib.bundle_paths import make_splunkhome_path
@@ -190,14 +192,19 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
             # 1: Make sure that user has permission to make inputs. We don't want to allow people
             #    to use this as a general proxy.
             # --------------------------------------
-            if not WebInputOperationsHandler.hasCapability('edit_modinput_web_input'):
+            if not WebInputOperationsHandler.hasCapability('edit_modinput_web_input') and WebInputOperationsHandler.hasCapability('admin_all_objects'):
                 return self.render_error_html('You need the "edit_modinput_web_input" capability ' +
                                               'to make website inputs', 403)
 
             # Don't allow proxying of the javascript files
             if url.endswith(".js"):
-                cherrypy.response.headers['Content-Type'] = 'application/javascript'
-                return ""
+                return {
+                    'payload': '',
+                    'status': 200,
+                    'headers': {
+                        'Content-Type': 'application/javascript'
+                    },
+                }
 
             # --------------------------------------
             # 2: Only allow HTTPS if the install is on Splunk Cloud
@@ -279,7 +286,7 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
                 response = web_client.get_response_headers()
             except:
                 logger.exception("Exception generated while attempting to content for url=%s", url)
-                return self.render_error_html("Page preview could not be created using a web-browser", 500)
+                return self.render_error_html("Page preview could not be obtained using a web-browser", 500)
 
             # --------------------------------------
             # 4: Render the content with the browser if necessary
@@ -306,7 +313,7 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
                     logger.exception("Exception generated while attempting to get browser rendering or url=%s", url)
 
                     cherrypy.response.status = 500
-                    return self.render_error_html("Page preview could not be created using a web-browser")
+                    return self.render_error_html("Page preview could not be obtained using a web-browser")
             """
 
             # --------------------------------------
@@ -381,10 +388,12 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
             # --------------------------------------
             # 6: Respond with the results
             # --------------------------------------
+            headers = {}
+
             if 'content-type' in response:
-                cherrypy.response.headers['Content-Type'] = response['content-type']
+                headers['Content-Type'] = response['content-type']
             else:
-                cherrypy.response.headers['Content-Type'] = 'text/html'
+                headers['Content-Type'] = 'text/html'
 
             # --------------------------------------
             # 7: Clear Javascript files
@@ -394,9 +403,17 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
                or response.get('content-type', "") == "text/javascript" \
                or url.endswith(".js"):
 
-                return ""
+                return {
+                    'payload': '',
+                    'headers': headers,
+                    'status': 200
+                }
 
-            return content
+            return {
+                    'payload': content,
+                    'headers': headers,
+                    'status': 200
+                }
 
         except LoginFormNotFound:
             logger.debug("Login form not found")

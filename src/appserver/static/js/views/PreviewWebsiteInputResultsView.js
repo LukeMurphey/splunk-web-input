@@ -157,7 +157,7 @@ define([
         	
         	// Get the results
         	$.ajax({
-    			url: Splunk.util.make_full_url("/custom/website_input/web_input_controller/scrape_page"),
+    			url: Splunk.util.make_full_url("/splunkd/__raw/services/data/website_input_ops/scrape_page"),
     			data: input_config,
     			type: 'POST',
                 success: function(results) {
