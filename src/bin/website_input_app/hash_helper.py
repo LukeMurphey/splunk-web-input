@@ -1,6 +1,6 @@
 import hashlib
 from collections import OrderedDict
-from six import string_types, binary_type
+from six import string_types, binary_type, text_type
 
 def update_hash(data, hashlib_data=None, ignore_keys=None):
     """
@@ -11,7 +11,7 @@ def update_hash(data, hashlib_data=None, ignore_keys=None):
     hashlib_data -- The existing hash that contains the hash thus far
     ignore_keys -- A list of keys to ignore in the dictionaries
     """
-
+    # print("Hashing: ", data)
     if hashlib_data is None:
         # Make a hasher capable of handling SHA224
         hashlib_data = hashlib.sha224()
@@ -20,7 +20,7 @@ def update_hash(data, hashlib_data=None, ignore_keys=None):
     if isinstance(data, dict) or isinstance(data, OrderedDict):
 
         # Sort the dictionary by key
-        for key, value in sorted(data.items()):
+        for key, value in sorted(data.items(), key=normalize_value):
 
             if ignore_keys is None or key not in ignore_keys:
                 update_hash(key, hashlib_data, ignore_keys)
@@ -28,26 +28,48 @@ def update_hash(data, hashlib_data=None, ignore_keys=None):
 
     # If the input is a string
     elif isinstance(data, string_types):
-        bin_data = data.encode('utf-8')
+        bin_data = data.encode("utf-8", "replace")
         hashlib_data.update(bin_data)
 
     # If the input is a binary string
     elif isinstance(data, binary_type):
         hashlib_data.update(data)
 
+    # If is an array
     elif isinstance(data, list) and not isinstance(data, string_types):
-
         # Sort the list
-        data.sort()
+        data.sort(key=normalize_value)
 
         for entry in data:
             update_hash(entry, hashlib_data, ignore_keys)
 
     else:
-        hashlib_data.update(str(data))
+        hashlib_data.update(normalize_value(data))
 
     return hashlib_data
 
+def normalize_value(item):
+    if isinstance(item, string_types):
+        return item
+    elif isinstance(item, binary_type):
+        return item.decode("utf-8", "replace")
+    else:
+        return text_type(item)
+
+def compare(item1, item2):
+    # Make sure they are both strings
+    if not isinstance(item1, string_types):
+        item1 = text_type(item1)
+    
+    if not isinstance(item2, string_types):
+        item2 = text_type(item2)
+
+    if item1 < item2:
+        return -1
+    elif item1 > item2:
+        return 1
+    else:
+        return 0
 
 def hash_data(data, ignore_keys=None):
     """
