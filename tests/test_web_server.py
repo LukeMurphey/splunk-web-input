@@ -254,7 +254,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
             while size_limit is None or bytes_written < size_limit:
                 random_number = random.randint(0,9)
-                self.wfile.write(bytes(format(random_number, '01'), 'utf-8'))
+                self.wfile.write(format(random_number, '01').decode('utf-8'))
 
                 bytes_written = bytes_written + 1
 
