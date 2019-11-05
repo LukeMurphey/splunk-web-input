@@ -212,7 +212,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
     </body>
 </html>"""
 
-            self.wfile.write(html)
+            self.wfile.write(html.encode('utf-8'))
 
         # Present bad encoding
         elif basepath == "/bad_encoding":
@@ -264,14 +264,14 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         # Present frontpage with user authentication.
         elif self.headers.get('Authorization') == None:
             self.do_AUTHHEAD()
-            self.wfile.write('no auth header received')
+            self.wfile.write(b'no auth header received')
             if DEBUG_LOG:
                 print('no auth header received')
 
-        elif self.headers.get('Authorization') == ('Basic ' + encoded_password):
+        elif self.headers.get('Authorization') == (b'Basic ' + encoded_password):
             self.do_HEAD()
-            self.wfile.write(self.headers.get('Authorization'))
-            self.wfile.write('authenticated!')
+            self.wfile.write(self.headers.get('Authorization').encode('utf-8'))
+            self.wfile.write(b'authenticated!')
             
             self.get_file("web_files", "adsl_modem.html")
             
@@ -281,8 +281,8 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
         else:
             self.do_AUTHHEAD()
-            self.wfile.write(self.headers.get('Authorization'))
-            self.wfile.write('not authenticated')
+            self.wfile.write(self.headers.get('Authorization').encode('utf-8'))
+            self.wfile.write(b'not authenticated')
             
             if DEBUG_LOG:
                 print('auth header was wrong:', self.headers.get('Authorization'))

@@ -27,6 +27,7 @@ from pyvirtualdisplay import Display
 from easyprocess import EasyProcessCheckInstalledError
 from web_client import WebClient, DEFAULT_USER_AGENT, LoginFormNotFound, FormAuthenticationFailed
 from timer import Timer
+from six.moves.urllib.parse import quote_plus
 
 class WebDriverClient(WebClient):
     """
@@ -96,9 +97,9 @@ class WebDriverClient(WebClient):
 
             # Replace the netloc with one that contains the username and password. Note that this will drop the existing username and password if it exists
             if u.port is None: #(u.port == 80 and u.scheme == "http") or (u.port == 443 and u.scheme == "https"):
-                split[1] = urllib.quote_plus(username) + ":" + urllib.quote_plus(password) + "@" + u.hostname
+                split[1] = quote_plus(username) + ":" + quote_plus(password) + "@" + u.hostname
             else:
-                split[1] = urllib.quote_plus(username) + ":" + urllib.quote_plus(password) + "@" + u.hostname + ":" + str(u.port)
+                split[1] = quote_plus(username) + ":" + quote_plus(password) + "@" + u.hostname + ":" + str(u.port)
 
             return urlunsplit(split)
         else:
