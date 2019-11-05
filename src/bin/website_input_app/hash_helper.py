@@ -11,7 +11,7 @@ def update_hash(data, hashlib_data=None, ignore_keys=None):
     hashlib_data -- The existing hash that contains the hash thus far
     ignore_keys -- A list of keys to ignore in the dictionaries
     """
-    # print("Hashing: ", data)
+
     if hashlib_data is None:
         # Make a hasher capable of handling SHA224
         hashlib_data = hashlib.sha224()
@@ -50,11 +50,11 @@ def update_hash(data, hashlib_data=None, ignore_keys=None):
 
 def normalize_value(item):
     if isinstance(item, string_types):
-        return item
+        return item.encode("utf-8", "replace")
     elif isinstance(item, binary_type):
         return item.decode("utf-8", "replace")
     else:
-        return text_type(item)
+        return text_type(item).encode("utf-8", "replace")
 
 def compare(item1, item2):
     # Make sure they are both strings
