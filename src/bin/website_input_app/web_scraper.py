@@ -278,7 +278,11 @@ class WebScraper(object):
         if encoding is None:
             encoding = "cp1252"
 
-        return encoding
+        # Make sure the encoding is a string so that it works on Python 3
+        if isinstance(encoding, text_type):
+            return encoding
+        else:
+            return encoding.decode('utf-8')
 
     @classmethod
     def is_url_in_domain(cls, url, domain):
