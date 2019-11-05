@@ -969,6 +969,18 @@ class TestHashHelper(unittest.TestCase):
             "3606346815fd4d491a92649905a40da025d8cf15f095136b19f37923"
         )
 
+    def test_hash_non_utf_8_string(self):
+        """
+        Test hashing of a string with non-utf-8 characters.
+        """
+
+        data = "﷐﷑﷒﷓﷔﷕﷖﷗﷘﷙﷚﷛﷜﷝﷞﷟﷠﷡﷢﷣﷤﷥﷦﷧﷨﷩﷪﷫﷬﷭﷮﷯���������������������√ࠀ∑😀"
+
+        self.assertEqual(
+            hash_helper.hash_data(data),
+            "ff5ba8456f981d2590bcb4259421a7f1b3b591ee495c71071e144b87"
+        )
+
     def test_hash_dictionary(self):
         """
         Test hashing of a dictionary.
@@ -988,7 +1000,7 @@ class TestHashHelper(unittest.TestCase):
 
         self.assertEqual(
             hash_helper.hash_data(data),
-            "2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2"
+            "02d3ab5a99ba3545ca55b2d489a6ec4342c7f97ea13fe145a7bcd358"
         )
 
     def test_hash_dictionary_sorting(self):
@@ -1016,7 +1028,7 @@ class TestHashHelper(unittest.TestCase):
         pre_sorted = hash_helper.hash_data(data)
         post_sorted = hash_helper.hash_data(data2)
 
-        self.assertEqual(pre_sorted, '2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2')
+        self.assertEqual(pre_sorted, '02d3ab5a99ba3545ca55b2d489a6ec4342c7f97ea13fe145a7bcd358')
         self.assertEqual(pre_sorted, post_sorted)
 
     def test_hash_dictionary_with_list(self):
@@ -1044,7 +1056,7 @@ class TestHashHelper(unittest.TestCase):
         pre_sorted = hash_helper.hash_data(data)
         post_sorted = hash_helper.hash_data(data2)
 
-        self.assertEqual(pre_sorted, '2162da53bd7307db3595f0f3c8c845960cfbc1a707c1af513c66a1e2')
+        self.assertEqual(pre_sorted, '02d3ab5a99ba3545ca55b2d489a6ec4342c7f97ea13fe145a7bcd358')
         self.assertNotEqual(pre_sorted, post_sorted)
 
     def test_hash_integer(self):
