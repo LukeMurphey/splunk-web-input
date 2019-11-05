@@ -12,11 +12,8 @@ import os
 import sys
 import chardet
 
-try:
-    from urlparse import urlparse, urljoin
-except ImportError:
-    from urllib.parse import urljoin
-    from urllib import parse
+from six.moves.urllib.parse import urlparse, urljoin
+
 import hashlib
 import lxml.html
 from lxml.etree import XMLSyntaxError
@@ -26,6 +23,7 @@ from collections import OrderedDict
 from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure, LoginFormNotFound, FormAuthenticationFailed, WebClientException
 from website_input_app.web_driver_client import FirefoxClient, ChromeClient
 from selector_field import SelectorField
+from six import binary_type, text_type, string_types
 
 path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
 sys.path.insert(0, path_to_mod_input_lib)
@@ -255,7 +253,7 @@ class WebScraper(object):
         # Try getting the encoding from the "meta" attribute
         if charset_detect_meta_enabled:
             #http://stackoverflow.com/questions/3458217/how-to-use-regular-expression-to-match-the-charset-string-in-html
-            find_meta_charset = re.compile("<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE)
+            find_meta_charset = re.compile(b"<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE)
             matched_encoding = find_meta_charset.search(content)
 
             if matched_encoding:
@@ -272,7 +270,7 @@ class WebScraper(object):
                     encoding = matched_encoding.groups()[0]
 
         # Try sniffing the encoding
-        if encoding is None and charset_detect_sniff_enabled and not isinstance(content, unicode):
+        if encoding is None and charset_detect_sniff_enabled and not isinstance(content, text_type):
             encoding_detection = chardet.detect(content)
             encoding = encoding_detection[WebScraper.ENCODING_FIELD]
 
@@ -619,11 +617,12 @@ class WebScraper(object):
         except ConnectionFailure:
             result[WebScraper.TIMED_OUT_FIELD] = True
 
-        except httplib2.SSLHandshakeError as e:
-            if self.logger is not None:
-                self.logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
-            return None # Unable to connect to this site due to an SSL issue
-
+            """
+            except httplib2.SSLHandshakeError as e:
+                if self.logger is not None:
+                    self.logger.warn('Unable to connect to website due to an issue with the SSL handshake, url="%s", message="%s"', url.geturl(), str(e))
+                return None # Unable to connect to this site due to an SSL issue
+            """
         except httplib2.RelativeURIError:
             if self.logger is not None:
                 self.logger.debug('Ignoring relative URI, url="%s", message="%s"', url.geturl(), str(e))
@@ -666,10 +665,10 @@ class WebScraper(object):
         output_fx -- Run this function against the results for outputting them
         """
 
-        if isinstance(url, basestring):
+        if isinstance(url, string_types):
             url = URLField.parse_url(url, "url")
 
-        if isinstance(selector, basestring):
+        if isinstance(selector, string_types):
             selector = SelectorField.parse_selector(selector, "selector")
 
         if self.logger is not None:
@@ -796,8 +795,11 @@ class WebScraper(object):
         if text is None:
             return None
 
-        import HTMLParser
-        h = HTMLParser.HTMLParser()
+        try:
+            from HTMLParser import HTMLParser
+        except:
+            from html.parser import HTMLParser
+        h = HTMLParser()
         
         return h.unescape(text)
             

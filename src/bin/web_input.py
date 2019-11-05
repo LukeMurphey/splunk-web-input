@@ -139,7 +139,7 @@ class WebInput(ModularInput):
         stanza -- The stanza of the input being used
         """
 
-        return os.path.join(checkpoint_dir, hashlib.md5(stanza).hexdigest() + ".json")
+        return os.path.join(checkpoint_dir, hashlib.md5(stanza.encode('utf-8')).hexdigest() + ".json")
 
     @forgive_splunkd_outages
     def get_proxy_config(self, session_key, stanza="default"):

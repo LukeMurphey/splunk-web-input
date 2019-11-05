@@ -1,17 +1,11 @@
-try:
-    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-except:
-    from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 import base64
 import cgi
 import random
-try:
-    from urllib.parse import urlparse, parse_qs
-except ImportError:
-    from urlparse import urlparse
-    from urlparse import parse_qs
-    
+
+from six.moves.urllib.parse import urlparse, parse_qs
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from six import binary_type
 
 DEBUG_LOG = False
 
@@ -60,7 +54,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def is_authenticated(self):
-        cookie = self.headers.getheader('cookie')
+        cookie = self.headers.get('cookie')
 
         if not cookie:
             if DEBUG_LOG:
@@ -75,12 +69,12 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             return False
 
     def authenticate(self):
-        ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+        ctype, pdict = cgi.parse_header(self.headers.get('content-type'))
 
         if ctype == 'multipart/form-data':
             postvars = cgi.parse_multipart(self.rfile, pdict)
         elif ctype == 'application/x-www-form-urlencoded':
-            length = int(self.headers.getheader('content-length'))
+            length = int(self.headers.get('content-length'))
             postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
         else:
             postvars = {}
@@ -135,14 +129,21 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
                 self.do_SENDCOOKIE()
 
             # Render the login form
-            with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "login_form.html")
+
+    def get_file(self, dirname, fname):
+        with open(os.path.join(dirname, fname), "rb") as webfile:
+            return self.wfile.write(webfile.read())
 
     def do_GET(self):
         username = 'admin'
         password = 'changeme'
+        combined_user_pass = username + ":" + password
 
-        encoded_password = base64.b64encode(username + ":" + password)
+        if not isinstance(combined_user_pass, binary_type):
+            combined_user_pass = combined_user_pass.encode('utf-8')
+
+        encoded_password = base64.b64encode(combined_user_pass)
 
         if self.path is not None:
             basepath = self.path.split("?")[0]
@@ -156,43 +157,37 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         # Present header reflection page
         elif basepath == "/header_reflection":
             self.do_HEAD()
-            self.wfile.write('<html><body><div class="user-agent">%s</div></body></html>' % str(self.headers['user-agent']))
+            self.wfile.write(('<html><body><div class="user-agent">%s</div></body></html>' % str(self.headers['user-agent'])).encode('utf-8'))
 
         # Present XML file
         elif basepath== "/xml":
             self.do_HEAD()
-            with open(os.path.join("web_files", "file.xml"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "file.xml")
 
         # Present HTML file
         elif basepath == "/html":
             self.do_HEAD()
-            with open(os.path.join("web_files", "simple.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "simple.html")
 
         # Present HTML file with UTF-8 content
         elif basepath == "/utf8":
             self.do_HEAD()
-            with open(os.path.join("web_files", "utf8.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "utf8.html")
 
         # Present HTML file with a meta tag noting the content-type
         elif basepath == "/utf8_meta":
             self.do_HEAD()
-            with open(os.path.join("web_files", "utf8_meta.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "utf8_meta.html")
 
         # Present HTML file and a header saying it is UTF-8
         elif basepath == "/utf8_header":
             self.do_HEAD_utf8_encoding()
-            with open(os.path.join("web_files", "simple.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "simple.html")
 
         # Present HTML file with XML
         elif basepath == "/xml_with_encoding":
             self.do_HEAD()
-            with open(os.path.join("web_files", "xml_with_encoding.xml"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "xml_with_encoding.xml")
 
         # Present simulated view with sub-directories
         elif basepath == "/page_":
@@ -222,31 +217,26 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         # Present bad encoding
         elif basepath == "/bad_encoding":
             self.do_HEAD_bad_encoding()
-            with open(os.path.join("web_files", "simple.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "simple.html")
 
         # Present HTML file for login
         elif basepath == "/login":
             self.do_HEAD()
-            with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "login_form.html")
 
         # Present HTML file for login with overlapping field names
         elif basepath == "/login_overlapping_names":
             self.do_HEAD()
-            with open(os.path.join("web_files", "login_form_overlapping_names.html"), "r") as webfile:
-                self.wfile.write(webfile.read())
+            self.get_file("web_files", "login_form_overlapping_names.html")
 
         # Present the authenticated form
         elif basepath == "/authenticated":
             if self.is_authenticated():
                 self.do_HEAD()
-                with open(os.path.join("web_files", "authenticated.html"), "r") as webfile:
-                    self.wfile.write(webfile.read())
+                self.get_file("web_files", "authenticated.html")
             else:
                 self.do_AUTHFAILED()
-                with open(os.path.join("web_files", "login_form.html"), "r") as webfile:
-                    self.wfile.write(webfile.read())
+                self.get_file("web_files", "login_form.html")
 
         # Present a file of requested size (can be an unlimited large file if the size parameter
         # isn't provided)
@@ -264,7 +254,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
             while size_limit is None or bytes_written < size_limit:
                 random_number = random.randint(0,9)
-                self.wfile.write(format(random_number, '01'))
+                self.wfile.write(bytes(format(random_number, '01'), 'utf-8'))
 
                 bytes_written = bytes_written + 1
 
@@ -272,30 +262,30 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             self.do_NOTFOUND()
 
         # Present frontpage with user authentication.
-        elif self.headers.getheader('Authorization') == None:
+        elif self.headers.get('Authorization') == None:
             self.do_AUTHHEAD()
             self.wfile.write('no auth header received')
             if DEBUG_LOG:
                 print('no auth header received')
 
-        elif self.headers.getheader('Authorization') == ('Basic ' + encoded_password):
+        elif self.headers.get('Authorization') == ('Basic ' + encoded_password):
             self.do_HEAD()
-            self.wfile.write(self.headers.getheader('Authorization'))
+            self.wfile.write(self.headers.get('Authorization'))
             self.wfile.write('authenticated!')
             
-            with open(os.path.join("web_files", "adsl_modem.html"), "r") as webfile:
-                self.wfile.write(webfile.read())#.replace('\n', '')
+            self.get_file("web_files", "adsl_modem.html")
+            
 
             if DEBUG_LOG:
-                print('auth header was correct:', self.headers.getheader('Authorization'))
+                print('auth header was correct:', self.headers.get('Authorization'))
 
         else:
             self.do_AUTHHEAD()
-            self.wfile.write(self.headers.getheader('Authorization'))
+            self.wfile.write(self.headers.get('Authorization'))
             self.wfile.write('not authenticated')
             
             if DEBUG_LOG:
-                print('auth header was wrong:', self.headers.getheader('Authorization'))
+                print('auth header was wrong:', self.headers.get('Authorization'))
 
 if __name__ == "__main__":
     server_address = ('127.0.0.1', 8080)

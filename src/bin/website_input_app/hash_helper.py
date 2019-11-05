@@ -1,5 +1,6 @@
 import hashlib
 from collections import OrderedDict
+from six import string_types, binary_type
 
 def update_hash(data, hashlib_data=None, ignore_keys=None):
     """
@@ -26,10 +27,15 @@ def update_hash(data, hashlib_data=None, ignore_keys=None):
                 update_hash(value, hashlib_data, ignore_keys)
 
     # If the input is a string
-    elif isinstance(data, basestring):
+    elif isinstance(data, string_types):
+        bin_data = data.encode('utf-8')
+        hashlib_data.update(bin_data)
+
+    # If the input is a binary string
+    elif isinstance(data, binary_type):
         hashlib_data.update(data)
 
-    elif isinstance(data, list) and not isinstance(data, basestring):
+    elif isinstance(data, list) and not isinstance(data, string_types):
 
         # Sort the list
         data.sort()

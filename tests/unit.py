@@ -150,7 +150,7 @@ class TestWebInput(UnitTestWithWebServer):
 
         file_path = WebInput.get_file_path("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "web_input://TextCritical.com")
         expected_path = os.path.join("/Users/lmurphey/Applications/splunk/var/lib/splunk/modinputs/web_input", "2c70b6c76574eb4d825bfb194a460558.json")
-        self.assertEquals(file_path, expected_path)
+        self.assertEqual(file_path, expected_path)
 
     def test_input_timeout(self):
         url_field = URLField("test_input_timeout", "title", "this is a test")
@@ -159,14 +159,14 @@ class TestWebInput(UnitTestWithWebServer):
         web_scraper = WebScraper(timeout=3)
         results = web_scraper.scrape_page(url_field.to_python("https://192.168.30.23/"), selector_field.to_python("div"))
         result = results[0]
-        self.assertEquals(result['timed_out'], True)
+        self.assertEqual(result['timed_out'], True)
 
     def test_save_checkpoint(self):
 
         web_input = WebInput(timeout=3)
 
         web_input.save_checkpoint_data(self.tmp_dir, "web_input://TextCritical.com", {'last_run': 100})
-        self.assertEquals(WebInput.last_ran(self.tmp_dir, "web_input://TextCritical.com"), 100)
+        self.assertEqual(WebInput.last_ran(self.tmp_dir, "web_input://TextCritical.com"), 100)
 
     def test_is_expired(self):
         self.assertFalse(WebInput.is_expired(time.time(), 30))
@@ -223,7 +223,7 @@ class TestWebInput(UnitTestWithWebServer):
         out = StringIO()
         web_input = WebInput(timeout=3)
         web_input.output_event(result, stanza="web_input://textcritical_net", index="main", source="test_web_input", sourcetype="sourcetype", out=out)
-        self.assertEquals(len(re.findall("match=", out.getvalue())), 4)
+        self.assertEqual(len(re.findall("match=", out.getvalue())), 4)
 
     def test_scrape_unavailable_page(self):
         url_field = URLField("test_web_input", "title", "this is a test")
@@ -583,7 +583,7 @@ class TestWebInput(UnitTestWithWebServer):
         # Run the input so that the match_hashes are populated
         result_info = web_input.output_results(results, "main", "web_input://test_case", "web_input", "no_host", checkpoint_data, WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE)
 
-        self.assertEquals(result_info.results_outputted, 0)
+        self.assertEqual(result_info.results_outputted, 0)
 
         # We are going to test again with a result set that is equivalent in its matches to the
         # previous output and see if it correctly determines that the matches are the same.
@@ -600,7 +600,7 @@ class TestWebInput(UnitTestWithWebServer):
         # Run the input and ensure that the matches are now ignored
         result_info = web_input.output_results(results2, "main", "web_input://test_case", "web_input", "no_host", checkpoint_data, WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE)
 
-        self.assertEquals(result_info.results_outputted, 0)
+        self.assertEqual(result_info.results_outputted, 0)
 
         # Run the input and ensure that the matches are not ignored now that the hash is different
         results3 = [
@@ -612,7 +612,7 @@ class TestWebInput(UnitTestWithWebServer):
 
         result_info = web_input.output_results(results3, "main", "web_input://test_case", "web_input", "no_host", checkpoint_data, WebInput.OUTPUT_RESULTS_WHEN_MATCHES_CHANGE)
 
-        self.assertEquals(result_info.results_outputted, 1)
+        self.assertEqual(result_info.results_outputted, 1)
 
     def test_output_results_hash_non_mv_matches(self):
         """
@@ -641,7 +641,7 @@ class TestWebInput(UnitTestWithWebServer):
         # Run the input so that the match_hashes are populated
         result_info = web_input.output_results(results, "main", "web_input://test_case", "web_input", "no_host", {}, WebInput.OUTPUT_RESULTS_ALWAYS)
 
-        self.assertEquals(result_info.results_outputted, 1)
+        self.assertEqual(result_info.results_outputted, 1)
 
 class TestWebInputCrawling(UnitTestWithWebServer):
     """
