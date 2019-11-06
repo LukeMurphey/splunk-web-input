@@ -16,6 +16,9 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
     """
     Main class to present web-pages for testing purposes
     """
+    def get_header(self, header_name):
+        return self.headers.get(header_name.lower())
+
     def do_HEAD(self, size=None):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
@@ -54,7 +57,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def is_authenticated(self):
-        cookie = self.headers.get('cookie')
+        cookie = self.get_header('cookie')
 
         if not cookie:
             if DEBUG_LOG:
@@ -141,6 +144,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             return self.wfile.write(webfile.read())
 
     def do_GET(self):
+        # Determine that encoded passward for authentication
         username = 'admin'
         password = 'changeme'
         combined_user_pass = username + ":" + password
@@ -150,6 +154,10 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
         encoded_password = base64.b64encode(combined_user_pass)
 
+        if isinstance(encoded_password, binary_type):
+            encoded_password = encoded_password.decode('utf-8')
+
+        # Get the path
         if self.path is not None:
             basepath = self.path.split("?")[0]
         else:
@@ -267,30 +275,29 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             self.do_NOTFOUND()
 
         # Present frontpage with user authentication.
-        elif self.headers.get('Authorization') == None:
+        elif self.get_header('Authorization') == None:
             self.do_AUTHHEAD()
             self.wfile.write(b'no auth header received')
             if DEBUG_LOG:
                 print('no auth header received')
 
-        elif self.headers.get('Authorization') == (b'Basic ' + encoded_password):
+        elif self.get_header('Authorization') == ('Basic ' + encoded_password):
             self.do_HEAD()
-            self.wfile.write(self.headers.get('Authorization').encode('utf-8'))
+            self.wfile.write(self.get_header('Authorization').encode('utf-8'))
             self.wfile.write(b'authenticated!')
             
             self.get_file("web_files", "adsl_modem.html")
             
-
             if DEBUG_LOG:
-                print('auth header was correct:', self.headers.get('Authorization'))
+                print('auth header was correct:', self.get_header('Authorization'))
 
         else:
             self.do_AUTHHEAD()
-            self.wfile.write(self.headers.get('Authorization').encode('utf-8'))
+            self.wfile.write(self.get_header('Authorization').encode('utf-8'))
             self.wfile.write(b'not authenticated')
             
             if DEBUG_LOG:
-                print('auth header was wrong:', self.headers.get('Authorization'))
+                print('auth header was wrong:', self.get_header('Authorization'), 'expected', encoded_password)
 
 if __name__ == "__main__":
     server_address = ('127.0.0.1', 8080)
