@@ -595,7 +595,7 @@ class WebScraper(object):
  
             # Include the raw content if requested
             if include_raw_content:
-                result[WebScraper.CONTENT_FIELD] = content
+                result[WebScraper.CONTENT_FIELD] = content_decoded
 
             # If we are to extract links, do it
             if tree is not None:
@@ -804,6 +804,6 @@ class WebScraper(object):
         except:
             from html.parser import HTMLParser
         h = HTMLParser()
-        
+
         return h.unescape(text)
             
