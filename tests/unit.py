@@ -72,6 +72,7 @@ import re
 import tempfile
 import unicodedata
 import lxml.html
+from six import binary_type, text_type
 
 try: 
     from StringIO import StringIO
@@ -856,7 +857,6 @@ class TestWebClient(UnitTestWithWebServer):
     client = None
 
     def get_client(self, browser):
-        print("Browser:", self.BROWSER)
         if self.BROWSER.lower() == WebScraper.INTEGRATED_CLIENT:
             self.client = MechanizeClient(5)
         elif self.BROWSER.lower() == WebScraper.FIREFOX:
@@ -1269,6 +1269,10 @@ class TestFormAuthentication(TestWebClient):
         content = client.get_url("http://127.0.0.1:" + str(self.web_server_port) + "/authenticated")
         
         client.close()
+
+        # For Python 3, convert a bytes array to str
+        if isinstance(content, binary_type):
+            content = content.decode('utf-8')
 
         self.assertTrue("<h1>Auth success</h1>" in content)
 
