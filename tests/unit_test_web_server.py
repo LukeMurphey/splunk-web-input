@@ -87,5 +87,5 @@ def skipIfNoServer(func):
             self.skipTest("The web-server is not running")
         else:
             return func(self, *args, **kwargs)
-        
+
     return _decorator

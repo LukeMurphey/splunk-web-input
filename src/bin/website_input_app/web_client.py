@@ -84,6 +84,14 @@ class WebClient(object):
         # Indicates if the browser is in a logged in state
         self.is_logged_in = False
 
+    def normalize_response_headers(self, headers_dict):
+        headers_normalized = {}
+
+        for header in headers_dict.keys():
+            headers_normalized[header.lower()] = headers_dict[header]
+
+        return headers_normalized
+
     def add_header(self, header_name, header_value):
         self.headers[header_name] = header_value
 
@@ -275,7 +283,7 @@ class Http2LibClient(WebClient):
         return self.content
 
     def get_response_headers(self):
-        return self.response
+        return self.normalize_response_headers(self.response)
 
 class MechanizeClient(WebClient):
     """
@@ -394,7 +402,7 @@ class MechanizeClient(WebClient):
         return content
 
     def get_response_headers(self):
-        return self.response_headers
+        return self.normalize_response_headers(self.response_headers)
 
     @classmethod
     def detectFormFields(cls, login_url, proxy_type=None, proxy_server=None, proxy_port=None, proxy_user=None, proxy_pass=None, user_agent=DEFAULT_USER_AGENT):
