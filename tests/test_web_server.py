@@ -75,7 +75,12 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             postvars = cgi.parse_multipart(self.rfile, pdict)
         elif ctype == 'application/x-www-form-urlencoded':
             length = int(self.headers.get('content-length'))
-            postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
+
+            # Get the file to be read as UTF-8
+            incoming_content = self.rfile.read(length)
+            incoming_content = incoming_content.decode('utf-8')
+
+            postvars = parse_qs(incoming_content, keep_blank_values=1)
         else:
             postvars = {}
 
@@ -254,7 +259,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
             while size_limit is None or bytes_written < size_limit:
                 random_number = random.randint(0,9)
-                self.wfile.write(format(random_number, '01').decode('utf-8'))
+                self.wfile.write(format(random_number, '01').encode('utf-8'))
 
                 bytes_written = bytes_written + 1
 
