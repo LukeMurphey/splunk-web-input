@@ -52,7 +52,7 @@ class WebDriverClient(WebClient):
 
         driver_path = None
 
-        if sys.platform == "linux2":
+        if sys.platform == "linux2" or sys.platform == "linux":
             driver_path = "linux64"
         else:
             # Note that Windows will always return win32 (even on 64-bit hosts)
