@@ -22,6 +22,7 @@ import urllib
 from splunk.clilib.bundle_paths import make_splunkhome_path
 
 from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import NoSuchElementException
 from pyvirtualdisplay import Display
 from easyprocess import EasyProcessCheckInstalledError
@@ -330,10 +331,13 @@ class FirefoxClient(WebDriverClient):
     def get_driver(self):
         profile = self.get_firefox_profile()
 
+        options = Options()
+        options.add_argument('-headless')
+
         if profile is not None:
-            driver = webdriver.Firefox(profile, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
+            driver = webdriver.Firefox(profile, firefox_options=options, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
         else:
-            driver = webdriver.Firefox(log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
+            driver = webdriver.Firefox(firefox_options=options, log_path=make_splunkhome_path(['var', 'log', 'splunk', 'geckodriver.log']))
 
         return driver
 
