@@ -29,6 +29,7 @@ from easyprocess import EasyProcessCheckInstalledError
 from web_client import WebClient, DEFAULT_USER_AGENT, LoginFormNotFound, FormAuthenticationFailed
 from timer import Timer
 from six.moves.urllib.parse import quote_plus
+from six import text_type
 
 class WebDriverClient(WebClient):
     """
@@ -192,7 +193,7 @@ class WebDriverClient(WebClient):
         self.is_logged_in = False
 
         # Load the login form
-        content = self.get_url(login_url, retain_driver=True)
+        self.get_url(login_url, retain_driver=True)
 
         # Fill out the username and password
         try:
@@ -265,7 +266,13 @@ class WebDriverClient(WebClient):
                     self.driver.add_cookie(cookie)
 
             # Get the content
-            return self.get_content_from_driver(self.driver, url)
+            content = self.get_content_from_driver(self.driver, url)
+
+            # Selenium on Python 3 returns Unicode, but the API assumes a bytes string will be returned
+            if isinstance(content, text_type):
+                return content.encode('utf-8')
+            else:
+                return content
 
         finally:
 
@@ -331,6 +338,7 @@ class FirefoxClient(WebDriverClient):
     def get_driver(self):
         profile = self.get_firefox_profile()
 
+        # See https://lukemurphey.net/issues/2498
         options = Options()
         options.add_argument('-headless')
 
