@@ -10,7 +10,6 @@ The classes included are:
 import re
 import os
 import sys
-import chardet
 
 from six.moves.urllib.parse import urlparse, urljoin
 
@@ -235,56 +234,6 @@ class WebScraper(object):
         return name
 
     @classmethod
-    def detect_encoding(cls, content, response, charset_detect_meta_enabled=True, charset_detect_content_type_header_enabled=True, charset_detect_sniff_enabled=True):
-        """
-        Detect the encoding that is used in the given website/webpage.
-
-        Arguments:
-        content -- The downloaded content (as raw bytes) http.request()
-        response -- The response object from http.request()
-        charset_detect_meta_enabled -- Enable detection from the META attribute in the head tag
-        charset_detect_content_type_header_enabled -- Enable detection from the content-type header
-        charset_detect_sniff_enabled -- Enable detection by reviewing some of the content and trying different encodings
-        """
-
-        # This will contain the detected encoding
-        encoding = None
-
-        # Try getting the encoding from the "meta" attribute
-        if charset_detect_meta_enabled:
-            #http://stackoverflow.com/questions/3458217/how-to-use-regular-expression-to-match-the-charset-string-in-html
-            find_meta_charset = re.compile(b"<meta(?!\s*(?:name|value)\s*=)[^>]*?charset\s*=[\s\"']*([^\s\"'/>]*)", re.IGNORECASE)
-            matched_encoding = find_meta_charset.search(content)
-
-            if matched_encoding:
-                encoding = matched_encoding.groups()[0]
-
-        # Try getting the encoding from the content-type header
-        if encoding is None and charset_detect_content_type_header_enabled:
-
-            if response is not None and 'content-type' in response:
-                find_header_charset = re.compile("charset=(.*)", re.IGNORECASE)
-                matched_encoding = find_header_charset.search(response['content-type'])
-
-                if matched_encoding:
-                    encoding = matched_encoding.groups()[0]
-
-        # Try sniffing the encoding
-        if encoding is None and charset_detect_sniff_enabled and not isinstance(content, text_type):
-            encoding_detection = chardet.detect(content)
-            encoding = encoding_detection[WebScraper.ENCODING_FIELD]
-
-        # If all else fails, default to "Windows-1252"
-        if encoding is None:
-            encoding = "cp1252"
-
-        # Make sure the encoding is a string so that it works on Python 3
-        if isinstance(encoding, text_type):
-            return encoding
-        else:
-            return encoding.decode('utf-8')
-
-    @classmethod
     def is_url_in_domain(cls, url, domain):
         """
         Determine if the URL is within the given domain.
@@ -446,10 +395,9 @@ class WebScraper(object):
                     result[k] = v
 
             # Perform the request
-            content = web_client.get_url(url.geturl())
-
-            # Detect the encoding
-            encoding = self.detect_encoding(content, web_client.get_response_headers())
+            web_client.set_charset_detection(self.charset_detect_meta_enabled, self.charset_detect_content_type_header_enabled, self.charset_detect_sniff_enabled)
+            content, encoding = web_client.get_url(url.geturl(), return_encoding=True)
+            result[WebScraper.ENCODING_FIELD] = encoding
 
             # Assign the browser string to the integrated client
             if browser is None or browser == "":
@@ -469,31 +417,19 @@ class WebScraper(object):
 
             # Get the hash of the content
             if content is not None:
-                result[WebScraper.CONTENT_MD5_FIELD] = hashlib.md5(content).hexdigest()
-                result[WebScraper.CONTENT_SHA224_FIELD] = hashlib.sha224(content).hexdigest()
+                if encoding is None:
+                    encoding = 'utf-8'
 
-            # Decode the content
-            try:
-                if encoding is not None and encoding != "":
-                    content_decoded = content.decode(encoding=encoding, errors='replace')
-
-                    # Store the encoding in the result
-                    result[WebScraper.ENCODING_FIELD] = encoding
-                else:
-                    content_decoded = content
-            except LookupError:
-                # The charset was not recognized. Try to continue with what we have without decoding.
-                # https://lukemurphey.net/issues/2190
-                if self.logger is not None:
-                    self.logger.warn('Detected encoding was not recognized and the content will be evaluated (possibly with the wrong encoding), encoding_detected="%s"', encoding)
-                content_decoded = content
+                content_bytes = content.encode(encoding, "replace")
+                result[WebScraper.CONTENT_MD5_FIELD] = hashlib.md5(content_bytes).hexdigest()
+                result[WebScraper.CONTENT_SHA224_FIELD] = hashlib.sha224(content_bytes).hexdigest()
 
             # By default, assume we couldn't parse the content
             tree = None
 
             # Parse the HTML
             try:
-                tree = lxml.html.fromstring(content_decoded)
+                tree = lxml.html.fromstring(content)
             except (ValueError, XMLSyntaxError):
                 # lxml will refuse to parse a Unicode string containing XML that declares the encoding even if the encoding declaration matches the encoding used.
                 # This is odd since this exception will be thrown even though the app successfully determined the encoding (it matches the declaration in the XML).
@@ -595,7 +531,7 @@ class WebScraper(object):
  
             # Include the raw content if requested
             if include_raw_content:
-                result[WebScraper.CONTENT_FIELD] = content_decoded
+                result[WebScraper.CONTENT_FIELD] = content
 
             # If we are to extract links, do it
             if tree is not None:

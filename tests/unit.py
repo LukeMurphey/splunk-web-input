@@ -407,6 +407,7 @@ class TestWebInput(UnitTestWithWebServer):
 
         web_scraper = WebScraper(timeout=3)
         results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/html"), selector_field.to_python(".a"), include_empty_matches=True, text_separator=",")
+
         result = results[0]
 
         # The result below includes more empty items than expected. This is because text nodes can occur after elements.
@@ -1270,11 +1271,7 @@ class TestFormAuthentication(TestWebClient):
         
         client.close()
 
-        # For Python 3, convert a bytes array to str
-        if isinstance(content, binary_type):
-            content = content.decode('utf-8')
-
-        self.assertTrue("<h1>Auth success</h1>" in content)
+        self.assertIn("<h1>Auth success</h1>", content)
 
     def test_form_auth_auto_discover_form_fields(self):
         url_field = URLField("test_web_input", "title", "this is a test")

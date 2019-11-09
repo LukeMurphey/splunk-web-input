@@ -29,7 +29,7 @@ from easyprocess import EasyProcessCheckInstalledError
 from web_client import WebClient, DEFAULT_USER_AGENT, LoginFormNotFound, FormAuthenticationFailed
 from timer import Timer
 from six.moves.urllib.parse import quote_plus
-from six import text_type
+from six import text_type, binary_type
 
 class WebDriverClient(WebClient):
     """
@@ -193,7 +193,7 @@ class WebDriverClient(WebClient):
         self.is_logged_in = False
 
         # Load the login form
-        self.get_url(login_url, retain_driver=True)
+        self.get_url(login_url, retain_driver=True, return_encoding=False)
 
         # Fill out the username and password
         try:
@@ -243,13 +243,12 @@ class WebDriverClient(WebClient):
             self.driver = None
             self.display = None
 
-    def get_url(self, url, operation='GET', retain_driver=True):
+    def get_url(self, url, operation='GET', retain_driver=True, return_encoding=False):
 
         if not retain_driver:
             self.close()
 
         try:
-
             # Make an instance of the driver if necessary
             if not retain_driver or self.driver is None:
                 self.display = self.get_display(self.logger)
@@ -257,22 +256,24 @@ class WebDriverClient(WebClient):
 
             # Load the cookies if they are available
             if self.cookies is not None and len(self.cookies) > 0:
-                
-                # Load the content
-                # https://stackoverflow.com/questions/24919525/how-to-set-a-cookie-to-a-specific-domain-in-selenium-webdriver-with-python
-                #self.get_content_from_driver(self.driver, url)
-                
                 for cookie in self.cookies:
                     self.driver.add_cookie(cookie)
 
             # Get the content
             content = self.get_content_from_driver(self.driver, url)
 
-            # Selenium on Python 3 returns Unicode, but the API assumes a bytes string will be returned
-            if isinstance(content, text_type):
-                return content.encode('utf-8')
+            # Decode the content
+            if isinstance(content, binary_type):
+                content_decoded, encoding = self.decode_content(content)
             else:
-                return content
+                encoding = None
+                content_decoded = content
+
+            # Return the results
+            if return_encoding:
+                return content_decoded, encoding
+            else:
+                return content_decoded
 
         finally:
 
@@ -350,11 +351,17 @@ class FirefoxClient(WebDriverClient):
         return driver
 
 class ChromeClient(WebDriverClient):
+    DEFAULT_TO_HEADLESS = True
 
     def get_driver(self):
                
         chrome_options = webdriver.ChromeOptions()
         chrome_options_set = False
+
+        # Use headless mode if requested
+        if ChromeClient.DEFAULT_TO_HEADLESS:
+            chrome_options.add_argument("--headless")
+            chrome_options_set = True
 
         # Set the proxy configuration if necessary
         if self.proxy_type is not None and self.proxy_server is not None and self.proxy_port is not None:
