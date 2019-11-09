@@ -735,8 +735,14 @@ class WebScraper(object):
         if text is None:
             return None
 
-        from six.moves.html_parser import HTMLParser
-        h = HTMLParser()
+        try:
+            # Python 2.6-2.7 
+            from HTMLParser import HTMLParser
+            h = HTMLParser()
+            return h.unescape(text)
+        except ImportError:
+            # Python 3
+            import html
+            return html.unescape(text)
 
-        return h.unescape(text)
             
