@@ -38,7 +38,6 @@ class UnitTestWithWebServer(unittest.TestCase):
         while UnitTestWithWebServer.httpd is None and attempts < 75:
             try:
                 UnitTestWithWebServer.httpd = cls.get_server(cls.web_server_port)
-                
                 print(" Done")
                     
             except IOError:
@@ -47,7 +46,7 @@ class UnitTestWithWebServer(unittest.TestCase):
                 attempts = attempts + 1
                 sys.stdout.write(".")
                 sys.stdout.flush()
-                        
+     
         if UnitTestWithWebServer.httpd is None:
             print("Web-server could not be started")
             return
