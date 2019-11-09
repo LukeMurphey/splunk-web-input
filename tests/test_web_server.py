@@ -141,7 +141,7 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
 
     def get_file(self, dirname, fname):
         with open(os.path.join(dirname, fname), "rb") as webfile:
-            return self.wfile.write(webfile.read())
+            self.wfile.write(webfile.read())
 
     def do_GET(self):
         # Determine that encoded passward for authentication
@@ -259,6 +259,9 @@ class TestWebServerHandler(BaseHTTPRequestHandler):
             parsed_path = urlparse(self.path)  
             parsed_args = parse_qs(parsed_path.query)
             size_limit = parsed_args.get('size', [None])[0]
+
+            if size_limit is not None:
+                size_limit = int(size_limit)
 
             self.do_HEAD(size_limit)
 
