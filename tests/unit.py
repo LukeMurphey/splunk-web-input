@@ -561,7 +561,7 @@ class TestWebInput(UnitTestWithWebServer):
         selector_field = SelectorField("test_scrape_page_download_limit", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=TestWebInput.DEFAULT_TIMEOUT)
-        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/bigfile?size=512000"), selector_field.to_python("*"))
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port) + "/bigfile?size=512100"), selector_field.to_python("*"))
 
         self.assertEqual(len(results), 1)
 
