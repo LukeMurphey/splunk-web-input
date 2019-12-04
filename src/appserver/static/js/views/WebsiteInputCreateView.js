@@ -807,13 +807,25 @@ define([
         	return true;
         },
 		
-
         /**
          * Selector gadget sent a message up.
          */
         selectorGadgetReceived: function(event){
+
+			if(!event || !event.data || !event.data.message) {
+				console.warn("Selector gadget provided an invalid message");
+				return;
+			}
+
+			// Send the first selector message if the gadget is saying it is ready
+			else if(event.data.message === 'selector_gadget_ready') {
+				console.info("Selector gadget initialized");
+				frames[0].window.postMessage({'selector': $("#inputSelector", this.$el).val()}, "*");
+				return;
+			}
+
 			// Stop if we didn't get the data we wanted
-			if(!event || !event.data || !event.data.selector) {
+			else if(event.data.message !== 'selector_updated' || !event.data.selector) {
 				return;
 			}
 			

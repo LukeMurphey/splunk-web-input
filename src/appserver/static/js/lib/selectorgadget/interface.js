@@ -290,10 +290,16 @@ SelectorGadget.prototype.setPath = function(prediction) {
 
 SelectorGadget.prototype.postSelectorMessage = function(prediction) {
   if (prediction && prediction.length > 0){
-    window.parent.postMessage({'selector': prediction}, "*");
+    window.parent.postMessage({
+      'message': 'selector_updated',
+      'selector': prediction
+    }, "*");
   }
   else{
-    window.parent.postMessage({'selector': null}, "*");
+    window.parent.postMessage({
+      'message': 'selector_updated',
+      'selector': null
+    }, "*");
   }
 };
 
@@ -430,6 +436,10 @@ SelectorGadget.prototype.listenForSelectorUpdates = function() {
     this.path_output_field.value = event.data.selector;
     this.refreshFromPath();
   }.bind(this));
+
+  window.parent.postMessage({
+    'message': 'selector_gadget_ready'
+  }, "*");
 };
 
 // And go!
