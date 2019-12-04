@@ -815,6 +815,7 @@ define([
          * Selector gadget sent a message up.
          */
         selectorGadgetReceived: function(event){
+			console.log('Got event from selector gadget');
     		// If we haven't set the value, then this means that the selector gadget has just been initialized. Sync the form element back to selector gadget.
     		if(this.previous_sg_value === null){
     			this.refreshSelector($("#inputSelector", this.$el).val());
