@@ -3,7 +3,7 @@
  * 
  * How does the wizard know when the selector gadget updated?
  * ----------------------------------------------------------
- * The function syncSelectorGadget() gets the value from the selector gadget.
+ * The selector gadget sends a message that is handled by selectorGadgetReceived().
  * 
  * 
  * How does the wizard communicate to the selector gadget?
@@ -16,7 +16,7 @@
  * It goes like this:
  *  1) tryToLoadSelectorGadget() runs every 2 seconds
  *  2) startSelectorGadget() insert the selector gadget once the frame is ready
- *  3) syncSelectorGadget() will attempt to send the selector to the gadget (unless is has not been able to do so yet)
+ *  3) a message will be sent to the selector gadget whenever the selector gets updated
  */
 require.config({
     paths: {
@@ -145,9 +145,6 @@ define([
                     require(["css!../app/website_input/css/StepControlWizard.css",]);
                 }
             }
-
-        	// Start syncing the selector gadget back to the form
-			// setInterval(this.syncSelectorGadget.bind(this), 100);
         	
         	// Start the interval to make sure that the selector gadget was loaded in the frame
         	setInterval(this.tryToLoadSelectorGadget.bind(this), 2000);
@@ -815,7 +812,13 @@ define([
          * Selector gadget sent a message up.
          */
         selectorGadgetReceived: function(event){
+			// Stop if we didn't get the data we wanted
+			if(!event || !event.data || !event.data.selector) {
+				return;
+			}
+			
 			console.log('Got event from selector gadget');
+
     		// If we haven't set the value, then this means that the selector gadget has just been initialized. Sync the form element back to selector gadget.
     		if(this.previous_sg_value === null){
     			this.refreshSelector($("#inputSelector", this.$el).val());
@@ -868,7 +871,7 @@ define([
     			this.startSelectorGadget();
 				this.sg_loaded = true;
 			
-				// Wire up the listener
+				// Wire up the listener to get messages from the selector gadget
 				window.addEventListener('message', this.selectorGadgetReceived.bind(this), false);
 			}
         },
@@ -1872,52 +1875,6 @@ define([
         },
         
         /**
-         * Synchronize the selector gadget back with the input in the editor if needed.
-         */
-        syncSelectorGadget: function(){
-        	
-        	// Stop if there is no iframe
-        	if(frames.length === 0){
-        		return;
-        	}
-        	
-        	// Stop if the selector gadget isn't initialized
-        	if($("#_sg_path_field", frames[0].window.document).length === 0){
-        		this.previous_sg_value = null;
-        		return;
-        	}
-        	
-    		// Get the current value
-    		var value = $("#_sg_path_field", frames[0].window.document).val();
-    		
-    		// If we haven't set the value, then this means that the selector gadget has just been initialized. Sync the form element back to selector gadget.
-    		if(this.previous_sg_value === null){
-    			this.refreshSelector($("#inputSelector", this.$el).val());
-    			return;
-    		}
-    		
-    		// Do something since the value changed
-    		if(value !== this.previous_sg_value){
-    			
-        		// See if the value is blank
-        		if(value === "No valid path found."){
-        			if($("#inputSelector", this.$el).val() !== ""){
-        				$("#inputSelector", this.$el).val("");
-        	        	this.updateMatchCount();
-        			}
-        		}
-        		
-        		// Otherwise, do something since the value changed
-        		else if($("#inputSelector", this.$el).val() !== value){
-        			$("#inputSelector", this.$el).val(value);
-        			this.updateMatchCount();
-        		}
-        		
-        		this.previous_sg_value = value;
-    		}
-		},
-        
-        /**
          * Import JS into the iframe.
          */
         importJS: function(src, look_for, onload) {
@@ -1998,7 +1955,7 @@ define([
 		        		function(){
 		        			this.importJS(base_url + "dom.js", "DomPredictionHelper",
 		        				function(){
-		        					this.importJS(base_url + "interface.js");
+									this.importJS(base_url + "interface.js");
 		        				}.bind(this)
 		        			);
 		        		}.bind(this)
@@ -2008,13 +1965,6 @@ define([
         	
         	// Clear the selector
         	this.previous_sg_value = null;
-        },
-        
-        /**
-         * Get the selector from the gadget in the iframe window
-         */
-        getSelectorFromGadget: function(){
-        	return $("#preview-panel").contents().find("#_sg_path_field");
         },
         
         /**
@@ -2033,7 +1983,6 @@ define([
          * Render the view.
          */
         render: function () {
-        	
         	var has_permission = this.hasCapability('edit_modinput_web_input');
 
 			if(this.is_on_cloud === null){
@@ -2169,7 +2118,6 @@ define([
 											);
 				}
 				else{
-					
 					this.fetched_input_name = null;
 					this.fetched_input_namespace = null;
 					this.fetched_input_owner = null;
