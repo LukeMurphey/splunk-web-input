@@ -279,10 +279,15 @@ SelectorGadget.prototype.suggestPredicted = function(prediction) {
 };
 
 SelectorGadget.prototype.setPath = function(prediction) {
-  if (prediction && prediction.length > 0)
+  if (prediction && prediction.length > 0){
     this.path_output_field.value = prediction;
-  else
+    window.parent.postMessage({'selector': prediction}, "*");
+  }
+  else{
     this.path_output_field.value = 'No valid path found.';
+    window.parent.postMessage({'selector': null}, "*");
+  }
+  
 };
 
 SelectorGadget.prototype.refreshFromPath = function(e) {
@@ -412,6 +417,14 @@ SelectorGadget.prototype.analytics = function() {
   document.body.appendChild(jQuery('<img />').attr('src', urchinUrl).get(0));
 };
 
+SelectorGadget.prototype.listenForSelectorUpdates = function() {
+  window.addEventListener('message', function(event) {
+    console.log("Got selector in gadget:", event.data.selector);
+    this.path_output_field = event.data.selector;
+    this.refreshFromPath();
+  }.bind(this));
+};
+
 // And go!
 if (typeof(selector_gadget) == 'undefined' || selector_gadget == null) {
   (function() {
@@ -419,7 +432,8 @@ if (typeof(selector_gadget) == 'undefined' || selector_gadget == null) {
     selector_gadget.makeInterface();
     selector_gadget.clearEverything();
     selector_gadget.setMode('interactive');
-    selector_gadget.analytics();
+    // selector_gadget.analytics();
+    selector_gadget.listenForSelectorUpdates();
   })();
 } else if (selector_gadget.unbound) {
   selector_gadget.rebind();
