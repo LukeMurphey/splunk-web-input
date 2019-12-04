@@ -78,6 +78,7 @@ define([
 			"click .authenticationHelp" : "showAuthenticationHelp",
 			"change #inputPageLimit" : "changeInputSelector",
 			"click #suggestURLFilter" : "suggestURLFilter",
+			"click .openInNewTab" : "clickOpenURL",
         },
         
         initialize: function() {
@@ -761,13 +762,28 @@ define([
         		this.updatePreview($("#inputURL", this.$el).val());
         	}
         },
-        
+		
+		/**
+         * Handle the case where user wants to open the url.
+         */
+		clickOpenURL: function(ev){
+			var url = $('#inputURL').val();
+			window.open(url, '_blank');
+		},
+
         /**
          * Handle the case where the preview button was clicked.
          */
         clickUpdatePreview: function(ev){
-        	var url = $(ev.target).data("url");
-        	this.updatePreview(url);
+        	var url = $('#inputURL').val();
+			this.updatePreview(url);
+
+			if(!url || url.length === ''){
+				$('.openInNewTab').addClass('hide');
+			}
+			else {
+				$('.openInNewTab').removeClass('hide');
+			}
         	return true;
         },
         
@@ -1944,7 +1960,7 @@ define([
         },
         
         /**
-         * Get the selector from the gadget in the 
+         * Get the selector from the gadget in the iframe window
          */
         getSelectorFromGadget: function(){
         	return $("#preview-panel").contents().find("#_sg_path_field");
