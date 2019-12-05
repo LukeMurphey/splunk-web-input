@@ -77,7 +77,7 @@ define([
         },
         
         events: {
-        	"change #inputURL" : "clickUpdatePreview",
+        	"change #inputURL" : "changeInputURL",
         	"click #do-preview" : "clickUpdatePreview",
         	"click .preview-url" : "clickUpdatePreview",
         	"click .clearSelector" : "clearSelector",
@@ -791,19 +791,28 @@ define([
 			window.open(url, '_blank');
 		},
 
-        /**
-         * Handle the case where the preview button was clicked.
-         */
-        clickUpdatePreview: function(ev){
-        	var url = $('#inputURL').val();
-			this.updatePreview(url);
-
+		/**
+		 * Handle the case where the user has changed the main URL.
+		 */
+		changeInputURL: function(ev){
+			var url = $('#inputURL').val();
+			
 			if(!url || url.length === ''){
 				$('.openInNewTab').addClass('hide');
 			}
 			else {
 				$('.openInNewTab').removeClass('hide');
 			}
+
+			return this.clickUpdatePreview(ev);
+		},
+
+        /**
+         * Handle the case where the preview button was clicked.
+         */
+        clickUpdatePreview: function(ev){
+        	var url = $(ev.target).data("url");
+        	this.updatePreview(url);
         	return true;
         },
 		
