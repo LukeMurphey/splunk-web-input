@@ -194,6 +194,7 @@ SelectorGadget.prototype.sgMousedown = function(e) {
   var prediction = gadget.prediction_helper.predictCss(gadget.selected, gadget.rejected.concat(gadget.restricted_elements));
   gadget.suggestPredicted(prediction);
   gadget.setPath(prediction);
+  gadget.postSelectorMessage(prediction);
   gadget.removeBorders();
 
   gadget.blockClicksOn(elem);
@@ -279,10 +280,27 @@ SelectorGadget.prototype.suggestPredicted = function(prediction) {
 };
 
 SelectorGadget.prototype.setPath = function(prediction) {
-  if (prediction && prediction.length > 0)
+  if (prediction && prediction.length > 0){
     this.path_output_field.value = prediction;
-  else
+  }
+  else{
     this.path_output_field.value = 'No valid path found.';
+  }
+};
+
+SelectorGadget.prototype.postSelectorMessage = function(prediction) {
+  if (prediction && prediction.length > 0){
+    window.parent.postMessage({
+      'message': 'selector_updated',
+      'selector': prediction
+    }, "*");
+  }
+  else{
+    window.parent.postMessage({
+      'message': 'selector_updated',
+      'selector': null
+    }, "*");
+  }
 };
 
 SelectorGadget.prototype.refreshFromPath = function(e) {
@@ -412,6 +430,18 @@ SelectorGadget.prototype.analytics = function() {
   document.body.appendChild(jQuery('<img />').attr('src', urchinUrl).get(0));
 };
 
+SelectorGadget.prototype.listenForSelectorUpdates = function() {
+  window.addEventListener('message', function(event) {
+    console.log("Got selector to the gadget:", event.data.selector);
+    this.path_output_field.value = event.data.selector;
+    this.refreshFromPath();
+  }.bind(this));
+
+  window.parent.postMessage({
+    'message': 'selector_gadget_ready'
+  }, "*");
+};
+
 // And go!
 if (typeof(selector_gadget) == 'undefined' || selector_gadget == null) {
   (function() {
@@ -419,7 +449,8 @@ if (typeof(selector_gadget) == 'undefined' || selector_gadget == null) {
     selector_gadget.makeInterface();
     selector_gadget.clearEverything();
     selector_gadget.setMode('interactive');
-    selector_gadget.analytics();
+    // selector_gadget.analytics();
+    selector_gadget.listenForSelectorUpdates();
   })();
 } else if (selector_gadget.unbound) {
   selector_gadget.rebind();

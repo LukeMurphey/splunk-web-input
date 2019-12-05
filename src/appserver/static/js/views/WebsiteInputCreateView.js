@@ -1,3 +1,24 @@
+/**
+ * This view provides the wizard for creating and editing inputs.
+ * 
+ * How does the wizard know when the selector gadget updated?
+ * ----------------------------------------------------------
+ * The selector gadget sends a message that is handled by selectorGadgetReceived().
+ * 
+ * 
+ * How does the wizard communicate to the selector gadget?
+ * ----------------------------------------------------------
+ * The function refreshSelector() communicates to the selector gadget.
+ * 
+ * 
+ * How does the selector gadget get setup?
+ * ----------------------------------------------------------
+ * It goes like this:
+ *  1) tryToLoadSelectorGadget() runs every 2 seconds
+ *  2) startSelectorGadget() insert the selector gadget once the frame is ready
+ *  3) the selector gadget will send a message indicating when it is initialized
+ *  4) a message will be sent to the selector gadget whenever the selector gets updated
+ */
 require.config({
     paths: {
         "text": "../app/website_input/js/lib/text",
@@ -9,12 +30,10 @@ require.config({
 define([
     "underscore",
     "backbone",
-    "models/SplunkDBase",
     "collections/SplunkDsBase",
     "splunkjs/mvc",
     "util/splunkd_utils",
     "jquery",
-    "splunkjs/mvc/simplesplunkview",
 	"models/services/server/ServerInfo",
     'views/shared/controls/StepWizardControl',
     "splunkjs/mvc/simpleform/input/dropdown",
@@ -27,12 +46,10 @@ define([
 ], function(
     _,
     Backbone,
-    SplunkDBaseModel,
     SplunkDsBaseCollection,
     mvc,
     splunkd_utils,
     $,
-    SimpleSplunkView,
 	ServerInfo,
     StepWizardControl,
     DropdownInput,
@@ -79,7 +96,11 @@ define([
 			"change #inputPageLimit" : "changeInputSelector",
 			"click #suggestURLFilter" : "suggestURLFilter",
 			"click .openInNewTab" : "clickOpenURL",
-        },
+		},
+		
+		STATE_UNINITIALIZED: 0,
+		STATE_LOADED: 1,
+		STATE_READY: 2,
         
         initialize: function() {
         	this.options = _.extend({}, this.defaults, this.options);
@@ -90,8 +111,7 @@ define([
         	this.inputs = null; // The list of inputs
         	this.existing_input_names = []; // The list if existing inputs names (to help make a name that isn't used yet)
         	this.selector_gadget_added_interval = null; // The interval that keeps checking to see if the selectot gadget is loaded in the iframe
-        	this.previous_sg_value = null; // The previous value of the selector gadget selector
-        	this.sg_loaded = false; // Indicates if the selector gadget was loaded yet
+        	this.sg_state = this.STATE_UNINITIALIZED; // Indicates the state of the selector gadget
         	this.fetched_input_name = null; // The name of the input that was loaded
         	this.fetched_input_owner = null; // The owner of the input that was loaded
         	this.fetched_input_namespace = null; // The namespace of the input that was loaded
@@ -125,9 +145,6 @@ define([
                     require(["css!../app/website_input/css/StepControlWizard.css",]);
                 }
             }
-
-        	// Start syncing the selector gadget back to the form
-        	setInterval(this.syncSelectorGadget.bind(this), 100);
         	
         	// Start the interval to make sure that the selector gadget was loaded in the frame
         	setInterval(this.tryToLoadSelectorGadget.bind(this), 2000);
@@ -321,29 +338,29 @@ define([
         	
         	// Make an array that can be used to drop fields or translate the names
         	var arguments_translation = {
-        			'interval' : null,
-        			'host' : null,
-        			'index' : null,
-        			'title' : null,
-        			'name' : null,
-					'output_results' : null,
-					'username' : null,
-					'password' : null,
-					'username_field' : null,
-					'password_field' : null,
-					'authentication_url' : null
+				'interval' : null,
+				'host' : null,
+				'index' : null,
+				'title' : null,
+				'name' : null,
+				'output_results' : null,
+				'username' : null,
+				'password' : null,
+				'username_field' : null,
+				'password_field' : null,
+				'authentication_url' : null
         	};
         	
         	// Make a list of the default arguments. If the argument match, then will be excluded from the search string (in order to make it simpler)
         	var default_arguments = {
-        			 'timeout' : '5',
-        			 'browser' : 'integrated_client',
-        			 'user_agent' : 'Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)',
-        			 'page_limit' : '1',
-        			 'depth_limit': '2',
-        			 'raw_content' : '0',
-        			 'output_as_mv' : '1',
-        			 'use_element_name' : '0'
+				'timeout' : '5',
+				'browser' : 'integrated_client',
+				'user_agent' : 'Splunk Website Input (+https://splunkbase.splunk.com/app/1818/)',
+				'page_limit' : '1',
+				'depth_limit': '2',
+				'raw_content' : '0',
+				'output_as_mv' : '1',
+				'use_element_name' : '0'
 			};
 
         	// Make up the arguments
@@ -673,10 +690,13 @@ define([
         	
         	// Update the selector gadget if it has been loaded
         	if(frames[0].window.selector_gadget){
-        		$(frames[0].window.selector_gadget.path_output_field).val(selector);
-            	frames[0].window.selector_gadget.refreshFromPath();
-            	this.previous_sg_value = selector;
-        	}
+        		// $(frames[0].window.selector_gadget.path_output_field).val(selector);
+            	// frames[0].window.selector_gadget.refreshFromPath();
+            	// this.previous_sg_value = selector;
+			}
+			
+			// Send the message to the selector gadget 
+			frames[0].window.postMessage({'selector': selector}, "*");
         	
         	// Update the count of matches
         	this.updateMatchCount();
@@ -786,7 +806,50 @@ define([
 			}
         	return true;
         },
-        
+		
+        /**
+         * Selector gadget sent a message up.
+         */
+        selectorGadgetReceived: function(event){
+			// Make sure the message is valid
+			if(!event || !event.data || !event.data.message) {
+				console.warn("Selector gadget provided an invalid message");
+				return;
+			}
+
+			// Send the first selector message if the gadget is saying it is ready
+			else if(event.data.message === 'selector_gadget_ready') {
+				frames[0].window.postMessage({'selector': $("#inputSelector", this.$el).val()}, "*");
+				this.sg_state = this.STATE_READY;
+				console.info("Selector gadget is ready");
+				return;
+			}
+
+			// Stop if we didn't get the data we wanted
+			else if(event.data.message !== 'selector_updated' || !event.data.selector) {
+				return;
+			}
+			
+			console.log('Got an event from selector gadget with an updated selector');
+
+    		// If we haven't set the value, then this means that the selector gadget has just been initialized. Sync the form element back to selector gadget.
+    		if(this.sg_state < this.STATE_READY){
+    			this.refreshSelector($("#inputSelector", this.$el).val());
+    			return;
+			}
+			
+			// Handle the case of an empty selector
+			if(event.data.selector === null){
+				$("#inputSelector", this.$el).val("");
+				this.updateMatchCount();
+			}
+			// Handle the case of a non-empty selector
+			else{
+				$("#inputSelector", this.$el).val(event.data.selector);
+				this.updateMatchCount();
+			}
+        },
+
         /**
          * Try to load the selector gadget in the preview window if necessary.
          */
@@ -796,18 +859,17 @@ define([
         	if(frames.length === 0){
         		return;
         	}
-        	
+			
         	// Stop if the selector gadget successfully loaded
-    		if(this.sg_loaded){
+    		if(this.sg_state > this.STATE_UNINITIALIZED){
     			return;
     		}
     		
-    		// See if the selector gadget exists
+    		// See if the selector gadget exists already, don't load it again if so
     		if(typeof frames[0].window.selector_gadget !== 'undefined'){
-    			//clearInterval(this.selector_gadget_added_interval);
     			return;
-    		}
-    		
+			}
+
     		// See if the document is ready and update it if it is
     		if( (frames[0].window.document.readyState === 'loaded'
     			|| frames[0].window.document.readyState === 'interactive'
@@ -818,8 +880,11 @@ define([
     			
     			console.log("Loading the selector gadget into the preview frame")
     			this.startSelectorGadget();
-    			this.sg_loaded = true;
-    		}
+				this.sg_state = this.STATE_LOADED;
+			
+				// Wire up the listener to get messages from the selector gadget
+				window.addEventListener('message', this.selectorGadgetReceived.bind(this), false);
+			}
         },
         
         /**
@@ -831,7 +896,7 @@ define([
         	this.loaded_iframe_url = url;
         	
         	// Indicate that the selector gadget has not loaded yet
-        	this.sg_loaded = false;
+        	this.sg_state = this.STATE_UNINITIALIZED;
         	
         	// Clear the existing page so that it is clear that we are reloading the page
         	$("#preview-panel", this.$el).attr("src", "");
@@ -1821,52 +1886,6 @@ define([
         },
         
         /**
-         * Synchronize the selector gadget back with the input in the editor if needed.
-         */
-        syncSelectorGadget: function(){
-        	
-        	// Stop if there is no iframe
-        	if(frames.length === 0){
-        		return;
-        	}
-        	
-        	// Stop if the selector gadget isn't initialized
-        	if($("#_sg_path_field", frames[0].window.document).length === 0){
-        		this.previous_sg_value = null;
-        		return;
-        	}
-        	
-    		// Get the current value
-    		var value = $("#_sg_path_field", frames[0].window.document).val();
-    		
-    		// If we haven't set the value, then this means that the selector gadget has just been initialized. Sync the form element back to selector gadget.
-    		if(this.previous_sg_value === null){
-    			this.refreshSelector($("#inputSelector", this.$el).val());
-    			return;
-    		}
-    		
-    		// Do something since the value changed
-    		if(value !== this.previous_sg_value){
-    			
-        		// See if the value is blank
-        		if(value === "No valid path found."){
-        			if($("#inputSelector", this.$el).val() !== ""){
-        				$("#inputSelector", this.$el).val("");
-        	        	this.updateMatchCount();
-        			}
-        		}
-        		
-        		// Otherwise, do something since the value changed
-        		else if($("#inputSelector", this.$el).val() !== value){
-        			$("#inputSelector", this.$el).val(value);
-        			this.updateMatchCount();
-        		}
-        		
-        		this.previous_sg_value = value;
-    		}
-        },
-        
-        /**
          * Import JS into the iframe.
          */
         importJS: function(src, look_for, onload) {
@@ -1927,6 +1946,9 @@ define([
          */
         startSelectorGadget: function(){
         	
+        	// Reset the state of the selector gadget
+			this.sg_state = this.STATE_UNINITIALIZED;
+
         	// Make the base URL for where the static files will be loaded from
         	var base_url = document.location.origin + Splunk.util.make_url("/static/app/website_input/js/lib/selectorgadget/");
         	
@@ -1947,23 +1969,13 @@ define([
 		        		function(){
 		        			this.importJS(base_url + "dom.js", "DomPredictionHelper",
 		        				function(){
-		        					this.importJS(base_url + "interface.js");
+									this.importJS(base_url + "interface.js");
 		        				}.bind(this)
 		        			);
 		        		}.bind(this)
 		        	);
         		}.bind(this)
         	);
-        	
-        	// Clear the selector
-        	this.previous_sg_value = null;
-        },
-        
-        /**
-         * Get the selector from the gadget in the iframe window
-         */
-        getSelectorFromGadget: function(){
-        	return $("#preview-panel").contents().find("#_sg_path_field");
         },
         
         /**
@@ -1982,7 +1994,6 @@ define([
          * Render the view.
          */
         render: function () {
-        	
         	var has_permission = this.hasCapability('edit_modinput_web_input');
 
 			if(this.is_on_cloud === null){
@@ -2118,7 +2129,6 @@ define([
 											);
 				}
 				else{
-					
 					this.fetched_input_name = null;
 					this.fetched_input_namespace = null;
 					this.fetched_input_owner = null;
