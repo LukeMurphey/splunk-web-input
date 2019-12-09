@@ -15,6 +15,11 @@ import random
 import re
 from splunk.clilib.bundle_paths import make_splunkhome_path
 
+try:
+    basestring
+except:
+    basestring = str
+
 # Python handles datetimes badly, really badly. Below is a UTC timezone implementation since
 # Python does not include one by default
 TIMEDELTA_ZERO = timedelta(0)
@@ -148,7 +153,7 @@ class EventWriter(object):
                 result_value = str(result[key])
 
                 # If the field is blank then do not include it if we are supposed to exclude it
-                if result_value <= 0 and ignore_empty_fields == True:
+                if len(result_value) <= 0 and ignore_empty_fields == True:
                     pass # Ignore this field and continue to the next field value
                 else:
                      #TODO: need to figure out if field names must be escaped
