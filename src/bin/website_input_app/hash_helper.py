@@ -37,10 +37,11 @@ def update_hash(data, hashlib_data=None, ignore_keys=None):
 
     # If is an array
     elif isinstance(data, list) and not isinstance(data, string_types):
-        # Sort the list
-        data.sort(key=normalize_value)
+        # Sort the list (use a copy so that we don't mess with the original)
+        sorted_array = data[:]
+        sorted_array.sort(key=normalize_value)
 
-        for entry in data:
+        for entry in sorted_array:
             update_hash(entry, hashlib_data, ignore_keys)
 
     else:

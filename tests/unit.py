@@ -72,6 +72,7 @@ import re
 import tempfile
 import unicodedata
 import lxml.html
+from collections import OrderedDict
 from six import binary_type, text_type
 
 try: 
@@ -646,6 +647,20 @@ class TestWebInput(UnitTestWithWebServer):
 
         self.assertEqual(result_info.results_outputted, 1)
 
+    def test_retains_order(self):
+        """
+        Ensure that the results retain the extracted order
+        """
+        # https://lukemurphey.net/issues/2807
+        url_field = URLField("test_retains_order", "title", "this is a test")
+        selector_field = SelectorField("test_retains_order_css", "title", "this is a test")
+
+        web_scraper = WebScraper(timeout=TestWebInput.DEFAULT_TIMEOUT)
+        results = web_scraper.scrape_page(url_field.to_python("http://127.0.0.1:" + str(self.web_server_port)), selector_field.to_python("tr"), output_matches_as_mv=True)
+        result = results[0]
+
+        self.assertEqual(len(result.get('match', '')), 0)
+
 class TestWebInputCrawling(UnitTestWithWebServer):
     """
     http://lukemurphey.net/issues/762
@@ -1005,27 +1020,49 @@ class TestHashHelper(unittest.TestCase):
             "02d3ab5a99ba3545ca55b2d489a6ec4342c7f97ea13fe145a7bcd358"
         )
 
+
+    def test_hash_dictionary_sort_retained(self):
+        """
+        Test an ordered dictionary to ensure they are not reordered.
+        """
+
+        data = OrderedDict()
+        data["A"] = "aaaa"
+        data["B"] = "bbbb"
+        data["One"] = 1
+        data[2] = "Two"
+        data["list"] = [2, 1, 4, 3]
+
+        self.assertEqual(
+            hash_helper.hash_data(data),
+            "02d3ab5a99ba3545ca55b2d489a6ec4342c7f97ea13fe145a7bcd358"
+        )
+
+        # Make sure the dictionary was not reordered
+        self.assertEqual(data.keys(), ["A", "B", "One", 2, "list"])
+
+        # Make sure the list was not reordered (https://lukemurphey.net/issues/2807)
+        self.assertEqual(data["list"], [2, 1, 4, 3])
+
     def test_hash_dictionary_sorting(self):
         """
         Test hashing of a dictionary and make sure that the dictionary is sorted so that two
         dictionaries with the same values in a different order are not considered different.
         """
 
-        data = {
-            "B": "bbbb",
-            "A": "aaaa",
-            "One": 1,
-            2: "Two",
-            "list" : [1, 2, 3, 4]
-        }
+        data = OrderedDict()
+        data["A"] = "aaaa"
+        data["B"] = "bbbb"
+        data["One"] = 1
+        data[2] = "Two"
+        data["list"] = [1, 2, 3, 4]
 
-        data2 = {
-            2: "Two",
-            "A": "aaaa",
-            "B": "bbbb",
-            "list" : [1, 2, 3, 4],
-            "One": 1
-        }
+        data2 = OrderedDict()
+        data2[2] = "Two"
+        data2["A"] = "aaaa"
+        data2["B"] = "bbbb"
+        data2["list"] = [1, 2, 3, 4]
+        data2["One"] = 1
 
         pre_sorted = hash_helper.hash_data(data)
         post_sorted = hash_helper.hash_data(data2)
