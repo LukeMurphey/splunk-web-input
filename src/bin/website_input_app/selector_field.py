@@ -1,5 +1,5 @@
 from modular_input import Field, FieldValidationException
-from cssselector import CSSSelector
+from website_input_app.cssselector import CSSSelector
 
 class SelectorField(Field):
     """

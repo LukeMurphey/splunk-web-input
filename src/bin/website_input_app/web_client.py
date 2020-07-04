@@ -22,7 +22,7 @@ except ImportError:
 import socket
 import mechanize
 
-from timer import Timer
+from website_input_app.timer import Timer
 
 class WebClientException(Exception):
     def __init__(self, message=None, cause=None):

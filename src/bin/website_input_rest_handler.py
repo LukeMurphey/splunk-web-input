@@ -453,9 +453,9 @@ class WebsiteInputRestHandler(admin.MConfigHandler):
             # Write out the updated conf
             self.writeConf(self.CONF_FILE, name, validated_params )
             
-        except admin.NotFoundException, e:
+        except admin.NotFoundException as e:
             raise e
-        except Exception, e:
+        except Exception as e:
             logger.exception("Exception generated while performing edit")
             
             raise e

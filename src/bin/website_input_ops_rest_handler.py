@@ -402,12 +402,16 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
                or response.get('content-type', "") == "application/x-javascript" \
                or response.get('content-type', "") == "text/javascript" \
                or url.endswith(".js"):
-
-                return {
-                    'payload': '',
-                    'headers': headers,
-                    'status': 200
-                }
+                    
+                    return {
+                        'payload': '',
+                        'headers': headers,
+                        'status': 200
+                    }
+            
+            # Convert from binary
+            if content is not None and 'encoding' in content and not isinstance(content, str):
+                content = content.decode(content['encoding'], errors='ignore')
 
             return {
                     'payload': content,

@@ -26,8 +26,8 @@ from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import NoSuchElementException
 from pyvirtualdisplay import Display
 from easyprocess import EasyProcessCheckInstalledError
-from web_client import WebClient, DEFAULT_USER_AGENT, LoginFormNotFound, FormAuthenticationFailed
-from timer import Timer
+from website_input_app.web_client import WebClient, DEFAULT_USER_AGENT, LoginFormNotFound, FormAuthenticationFailed
+from website_input_app.timer import Timer
 from six.moves.urllib.parse import quote_plus
 from six import text_type, binary_type
 

@@ -21,7 +21,7 @@ from collections import OrderedDict
 
 from website_input_app.web_client import DefaultWebClient, RequestTimeout, ConnectionFailure, LoginFormNotFound, FormAuthenticationFailed, WebClientException
 from website_input_app.web_driver_client import FirefoxClient, ChromeClient
-from selector_field import SelectorField
+from website_input_app.selector_field import SelectorField
 from six import binary_type, text_type, string_types
 
 path_to_mod_input_lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modular_input.zip')
