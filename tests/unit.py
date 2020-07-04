@@ -1039,7 +1039,7 @@ class TestHashHelper(unittest.TestCase):
         )
 
         # Make sure the dictionary was not reordered
-        self.assertEqual(data.keys(), ["A", "B", "One", 2, "list"])
+        self.assertEqual(list(data.keys()), ["A", "B", "One", 2, "list"])
 
         # Make sure the list was not reordered (https://lukemurphey.net/issues/2807)
         self.assertEqual(data["list"], [2, 1, 4, 3])
