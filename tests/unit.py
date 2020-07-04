@@ -792,7 +792,7 @@ class TestWebInputCrawling(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".footer-links > li > a"), output_matches_as_mv=True, page_limit=5, depth_limit=0)
+        results = web_scraper.scrape_page(url_field.to_python("https://textcritical.net"), selector_field.to_python(".footer-links > li > a"), output_matches_as_mv=True, page_limit=5, depth_limit=0)
         self.assertEqual(len(results), 1)
 
     def test_scrape_page_spider_from_non_matching_links(self):
@@ -802,7 +802,7 @@ class TestWebInputCrawling(UnitTestWithWebServer):
         selector_field = SelectorField("test_web_input_css", "title", "this is a test")
 
         web_scraper = WebScraper(timeout=3)
-        results = web_scraper.scrape_page(url_field.to_python("http://textcritical.net"), selector_field.to_python(".ajah-loading"), output_matches_as_mv=True, page_limit=5, depth_limit=3)
+        results = web_scraper.scrape_page(url_field.to_python("https://lukemurphey.net"), selector_field.to_python("title"), output_matches_as_mv=True, page_limit=5, depth_limit=3)
 
         self.assertGreater(len(results), 1) # This should return only one result if link extraction only applies to matched pages 
 
