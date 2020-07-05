@@ -380,10 +380,10 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
                                       links=False, style=clean_styles, safe_attrs_only=False)
 
                     # Get the content
-                    content = lxml.html.tostring(cleaner.clean_html(html))
+                    content = lxml.html.tostring(cleaner.clean_html(html), encoding="unicode")
 
                 else:
-                    content = lxml.html.tostring(html)
+                    content = lxml.html.tostring(html, encoding="unicode")
 
             # --------------------------------------
             # 6: Respond with the results
@@ -409,10 +409,6 @@ class WebInputOperationsHandler(rest_handler.RESTHandler):
                         'status': 200
                     }
             
-            # Convert from binary
-            if content is not None and 'encoding' in content and not isinstance(content, str):
-                content = content.decode(content['encoding'], errors='ignore')
-
             return {
                     'payload': content,
                     'headers': headers,
