@@ -1,5 +1,7 @@
 # Splunk Website Input App
 
+I support this app in my free-time and at my own expense. Please consider offering a donation in order to promote continued development. [You can donate on Paypal.](https://www.paypal.com/donate?business=MQSKTS3W7LUTY&item_name=Support+continued+development+of+Splunk+apps&currency_code=USD)
+
 ## A Splunk app for obtaining information from web apps
 
 This app allows you to download contents of web-pages and index them. You can get the app here on [Splunkbase](https://splunkbase.splunk.com/app/1818).
